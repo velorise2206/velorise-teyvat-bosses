@@ -1,0 +1,10 @@
+{
+  "type": "veloriseteyvat:teyvat",
+  "generator": {
+    "type": "minecraft:noise",
+    "settings": "veloriseteyvat:teyvat_noise",
+    "biome_source": {
+      "type": "veloriseteyvat:teyvat_biome_source"
+    }
+  }
+}

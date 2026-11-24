@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "facing=north,half=lower": {
+      "model": "veloriseteyvat:block/celestia_portal"
+    },
+    "facing=east,half=lower": {
+      "model": "veloriseteyvat:block/celestia_portal",
+      "y": 90
+    },
+    "facing=south,half=lower": {
+      "model": "veloriseteyvat:block/celestia_portal",
+      "y": 180
+    },
+    "facing=west,half=lower": {
+      "model": "veloriseteyvat:block/celestia_portal",
+      "y": 270
+    },
+    "facing=north,half=upper": {
+      "model": "veloriseteyvat:block/celestia_portal_upper"
+    },
+    "facing=east,half=upper": {
+      "model": "veloriseteyvat:block/celestia_portal_upper"
+    },
+    "facing=south,half=upper": {
+      "model": "veloriseteyvat:block/celestia_portal_upper"
+    },
+    "facing=west,half=upper": {
+      "model": "veloriseteyvat:block/celestia_portal_upper"
+    }
+  }
+}

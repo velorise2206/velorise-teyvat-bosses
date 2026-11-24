@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "velorise_teyvat",
+  "version": "${version}",
+  "name": "Velorise's Teyvat",
+  "description": "Teyvat 3D Dimension & Boss Expansion for Velorise's Staves.",
+  "authors": [
+    "velorise2206"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.velorise.teyvat.fabric.VeloriseTeyvatFabric"
+    ],
+    "client": [
+      "com.velorise.teyvat.fabric.VeloriseTeyvatFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

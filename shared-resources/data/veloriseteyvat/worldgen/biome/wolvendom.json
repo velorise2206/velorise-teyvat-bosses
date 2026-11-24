@@ -1,0 +1,35 @@
+{
+  "has_precipitation": true,
+  "temperature": 0.55,
+  "downfall": 0.6,
+  "effects": {
+    "sky_color": 7376895,
+    "fog_color": 11583692,
+    "water_color": 3893928,
+    "water_fog_color": 329011,
+    "grass_color": 5999444,
+    "foliage_color": 4880954
+  },
+  "carvers": {},
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "minecraft:trees_taiga",
+      "minecraft:patch_grass_taiga_2",
+      "minecraft:patch_large_fern",
+      "minecraft:brown_mushroom_taiga",
+      "minecraft:red_mushroom_taiga",
+      "minecraft:patch_berry_common"
+    ]
+  ],
+  "spawners": {},
+  "spawn_costs": {}
+}

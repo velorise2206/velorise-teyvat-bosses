@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "veloriseteyvat:block/teleport_waypoint"
+    }
+  }
+}

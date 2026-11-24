@@ -1,0 +1,33 @@
+{
+  "has_precipitation": true,
+  "temperature": 0.5,
+  "downfall": 0.7,
+  "effects": {
+    "sky_color": 6717849,
+    "fog_color": 9611942,
+    "water_color": 3566494,
+    "water_fog_color": 329011,
+    "grass_color": 6324048,
+    "foliage_color": 5337416
+  },
+  "carvers": {},
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "minecraft:trees_windswept_hills",
+      "minecraft:flower_default",
+      "minecraft:patch_grass_forest",
+      "minecraft:patch_large_fern"
+    ]
+  ],
+  "spawners": {},
+  "spawn_costs": {}
+}

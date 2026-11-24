@@ -1,0 +1,315 @@
+{
+  "dimension": "veloriseteyvat:teyvat",
+  "world_bounds": {
+    "min_x": -2048,
+    "max_x": 2048,
+    "min_z": -2048,
+    "max_z": 2048
+  },
+  "blocks_per_pixel": 8,
+  "default_unlocked_regions": [
+    "MONDSTADT"
+  ],
+  "landmarks": [
+    {
+      "id": "statue_starfell_lake",
+      "name": "Statue: Starfell Lake",
+      "region": "MONDSTADT",
+      "sub_biome": "starfell_valley",
+      "type": "statue",
+      "x": 512,
+      "y": 70,
+      "z": 131,
+      "pad_radius": 14,
+      "uv": [
+        0.625,
+        0.532
+      ]
+    },
+    {
+      "id": "statue_windrise",
+      "name": "Statue: Windrise",
+      "region": "MONDSTADT",
+      "sub_biome": "windrise",
+      "type": "statue",
+      "x": 483,
+      "y": 74,
+      "z": 623,
+      "pad_radius": 24,
+      "uv": [
+        0.618,
+        0.652
+      ]
+    },
+    {
+      "id": "statue_dawn_winery",
+      "name": "Statue: Dawn Winery",
+      "region": "MONDSTADT",
+      "sub_biome": "wolvendom",
+      "type": "statue",
+      "x": -319,
+      "y": 78,
+      "z": 934,
+      "pad_radius": 18,
+      "uv": [
+        0.422,
+        0.728
+      ]
+    },
+    {
+      "id": "statue_stormterror",
+      "name": "Statue: Stormterror's Lair",
+      "region": "MONDSTADT",
+      "sub_biome": "stormterrors_lair",
+      "type": "statue",
+      "x": -942,
+      "y": 112,
+      "z": 49,
+      "pad_radius": 36,
+      "uv": [
+        0.27,
+        0.512
+      ]
+    },
+    {
+      "id": "wp_starfell_beach",
+      "name": "Starfell Beach (Spawn)",
+      "region": "MONDSTADT",
+      "sub_biome": "starfell_valley",
+      "type": "spawn_waypoint",
+      "x": 922,
+      "y": 65,
+      "z": -90,
+      "pad_radius": 16,
+      "uv": [
+        0.725,
+        0.478
+      ]
+    },
+    {
+      "id": "wp_mondstadt_gate",
+      "name": "WP: Mondstadt Gate",
+      "region": "MONDSTADT",
+      "sub_biome": "cider_lake",
+      "type": "waypoint",
+      "x": 115,
+      "y": 74,
+      "z": 459,
+      "pad_radius": 14,
+      "uv": [
+        0.528,
+        0.612
+      ]
+    },
+    {
+      "id": "wp_favonius_hq",
+      "name": "WP: Knights of Favonius",
+      "region": "MONDSTADT",
+      "sub_biome": "cider_lake",
+      "type": "waypoint",
+      "x": -98,
+      "y": 82,
+      "z": 344,
+      "pad_radius": 14,
+      "uv": [
+        0.476,
+        0.584
+      ]
+    },
+    {
+      "id": "wp_stormbearer_mnt",
+      "name": "WP: Stormbearer Mountains",
+      "region": "MONDSTADT",
+      "sub_biome": "stormbearer_mountains",
+      "type": "waypoint",
+      "x": 565,
+      "y": 98,
+      "z": -213,
+      "pad_radius": 12,
+      "uv": [
+        0.638,
+        0.448
+      ]
+    },
+    {
+      "id": "wp_stormbearer_point",
+      "name": "WP: Stormbearer Point",
+      "region": "MONDSTADT",
+      "sub_biome": "stormbearer_mountains",
+      "type": "waypoint",
+      "x": 918,
+      "y": 106,
+      "z": -197,
+      "pad_radius": 12,
+      "uv": [
+        0.724,
+        0.452
+      ]
+    },
+    {
+      "id": "wp_whispering_woods",
+      "name": "WP: Whispering Woods",
+      "region": "MONDSTADT",
+      "sub_biome": "starfell_valley",
+      "type": "waypoint",
+      "x": 311,
+      "y": 72,
+      "z": 229,
+      "pad_radius": 12,
+      "uv": [
+        0.576,
+        0.556
+      ]
+    },
+    {
+      "id": "wp_springvale",
+      "name": "WP: Springvale",
+      "region": "MONDSTADT",
+      "sub_biome": "windrise",
+      "type": "waypoint",
+      "x": 98,
+      "y": 74,
+      "z": 852,
+      "pad_radius": 18,
+      "uv": [
+        0.524,
+        0.708
+      ]
+    },
+    {
+      "id": "wp_wolvendom",
+      "name": "WP: Wolvendom",
+      "region": "MONDSTADT",
+      "sub_biome": "wolvendom",
+      "type": "waypoint",
+      "x": -418,
+      "y": 86,
+      "z": 541,
+      "pad_radius": 12,
+      "uv": [
+        0.398,
+        0.632
+      ]
+    },
+    {
+      "id": "wp_cape_oath",
+      "name": "WP: Cape Oath",
+      "region": "MONDSTADT",
+      "sub_biome": "cape_oath",
+      "type": "waypoint",
+      "x": 991,
+      "y": 84,
+      "z": 1303,
+      "pad_radius": 12,
+      "uv": [
+        0.742,
+        0.818
+      ]
+    },
+    {
+      "id": "wp_dornman_port",
+      "name": "WP: Dornman Port",
+      "region": "MONDSTADT",
+      "sub_biome": "dornman_port",
+      "type": "waypoint",
+      "x": -532,
+      "y": 70,
+      "z": -827,
+      "pad_radius": 34,
+      "uv": [
+        0.37,
+        0.298
+      ]
+    },
+    {
+      "id": "boss_cryo_regisvine",
+      "name": "Boss: Cryo Regisvine",
+      "region": "MONDSTADT",
+      "sub_biome": "starfell_valley",
+      "type": "world_boss",
+      "x": 688,
+      "y": 58,
+      "z": 266,
+      "pad_radius": 24,
+      "uv": [
+        0.668,
+        0.565
+      ]
+    },
+    {
+      "id": "boss_anemo_hypostasis",
+      "name": "Boss: Anemo Hypostasis",
+      "region": "MONDSTADT",
+      "sub_biome": "stormbearer_mountains",
+      "type": "world_boss",
+      "x": 909,
+      "y": 116,
+      "z": 348,
+      "pad_radius": 24,
+      "uv": [
+        0.722,
+        0.585
+      ]
+    },
+    {
+      "id": "boss_electro_hypostasis",
+      "name": "Boss: Electro Hypostasis",
+      "region": "MONDSTADT",
+      "sub_biome": "cape_oath",
+      "type": "world_boss",
+      "x": 1122,
+      "y": 86,
+      "z": 1384,
+      "pad_radius": 24,
+      "uv": [
+        0.774,
+        0.838
+      ]
+    },
+    {
+      "id": "boss_cryo_hypostasis",
+      "name": "Boss: Cryo Hypostasis",
+      "region": "DRAGONSPINE",
+      "sub_biome": "dragonspine",
+      "type": "world_boss",
+      "x": 102,
+      "y": 118,
+      "z": 1303,
+      "pad_radius": 24,
+      "uv": [
+        0.525,
+        0.818
+      ]
+    },
+    {
+      "id": "boss_andrius",
+      "name": "Weekly: Andrius",
+      "region": "MONDSTADT",
+      "sub_biome": "wolvendom",
+      "type": "weekly_boss",
+      "x": -565,
+      "y": 98,
+      "z": 688,
+      "pad_radius": 30,
+      "uv": [
+        0.362,
+        0.668
+      ]
+    },
+    {
+      "id": "boss_dvalin",
+      "name": "Weekly: Dvalin",
+      "region": "MONDSTADT",
+      "sub_biome": "stormterrors_lair",
+      "type": "weekly_boss",
+      "x": -942,
+      "y": 112,
+      "z": 49,
+      "pad_radius": 38,
+      "uv": [
+        0.27,
+        0.512
+      ]
+    }
+  ]
+}

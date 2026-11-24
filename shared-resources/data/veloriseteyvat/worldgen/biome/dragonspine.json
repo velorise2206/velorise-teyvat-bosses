@@ -1,0 +1,34 @@
+{
+  "has_precipitation": true,
+  "temperature": -0.6,
+  "downfall": 0.9,
+  "effects": {
+    "sky_color": 8364543,
+    "fog_color": 13624319,
+    "water_color": 3750089,
+    "water_fog_color": 329011,
+    "grass_color": 8429952,
+    "foliage_color": 7116154
+  },
+  "carvers": {},
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "minecraft:trees_snowy",
+      "minecraft:patch_berry_rare"
+    ],
+    [
+      "minecraft:freeze_top_layer"
+    ]
+  ],
+  "spawners": {},
+  "spawn_costs": {}
+}
