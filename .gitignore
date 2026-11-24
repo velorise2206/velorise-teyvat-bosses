@@ -1,0 +1,43 @@
+# Gradle
+.gradle/
+build/
+bin/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# Minecraft / NeoForge / Fabric run directories
+run/
+logs/
+*.log
+*.log.gz
+crash-reports/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+net/
+/assets/
+*.png
+!shared-resources/assets/**
+!shared-resources/logo.png
+!1.20.1/forge/src/main/resources/assets/velorise_teyvat/textures/**/*.png
+!1.21.1/common/src/main/resources/data/**
+!docs/**/*.png
+!wiki/**/*.png
+
+# Materials / Docs scratch
+mats/
+/isssues.md
+/issues.md
+*.zip
+docs/wiki_git/
+
+
