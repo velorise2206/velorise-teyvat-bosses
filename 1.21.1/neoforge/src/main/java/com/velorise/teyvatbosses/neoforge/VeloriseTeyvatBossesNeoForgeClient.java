@@ -1,9 +1,12 @@
 package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.client.BossRespawnAnchorRenderer;
+import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
+import com.velorise.teyvatbosses.client.SkySpearRenderer;
 import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
@@ -27,7 +30,10 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_REGISVINE.get(), CryoRegisvineRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_ICICLE.get(), CryoIcicleRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_ICE_SPIKE.get(), CryoIceSpikeRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.THE_OPEN_EYED.get(), TheOpenEyedRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ELEMENTAL_STAR.get(), ElementalStarRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.SKY_SPEAR.get(), SkySpearRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_RESPAWN_ANCHOR.get(), BossRespawnAnchorRenderer::new);
     }
 }

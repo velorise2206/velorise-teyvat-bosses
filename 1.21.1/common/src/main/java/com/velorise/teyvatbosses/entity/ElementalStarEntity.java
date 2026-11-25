@@ -57,6 +57,7 @@ public class ElementalStarEntity extends Monster {
     public ElementalStarEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
         this.setNoGravity(true);
+        this.addTag("VeloriseInnateChecked");
         this.xpReward = 0;
     }
 
@@ -135,7 +136,7 @@ public class ElementalStarEntity extends Monster {
             hoverPos = position();
             hoverInit = true;
         }
-        double bob = Math.sin(lifeTicks * 0.12D) * 0.28D;
+        double bob = Math.sin(lifeTicks * 0.10D) * 0.10D;
         setDeltaMovement(Vec3.ZERO);
         setPos(hoverPos.x, hoverPos.y + bob, hoverPos.z);
 
@@ -156,7 +157,7 @@ public class ElementalStarEntity extends Monster {
     public boolean hurt(DamageSource source, float amount) {
         if (isInert()) {
             // Official Inert Elemental Star: 80% total RES (10% base + 70% bonus) -> takes 20% damage
-            amount *= 0.20F;
+            amount *= 0.45F;
         } else {
             // Active Elemental Star: 10% base RES; vanilla fire immunity for Pyro star, freeze immunity for Cryo star
             if (getElementId() == ELEM_PYRO && source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) return false;

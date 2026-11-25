@@ -23,13 +23,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 /**
- * Homing Cryo icicle launched by Cryo Regisvine's corolla lashes.
+ * Curving homing Cryo Crystal Dart launched in alternating volleys by Cryo Regisvine's floating stamen pods.
+ * Launches outward in a dramatic arc for 4 ticks before smoothly curving onto the target like Genshin Impact.
  */
 public class CryoIcicleProjectile extends Projectile {
-    private static final int MAX_AGE_TICKS = 90;
+    private static final int MAX_AGE_TICKS = 96;
+    private static final int ARC_DELAY_TICKS = 4;
     @Nullable
     private UUID targetUuid;
-    private float damage = 7.0F;
+    private float damage = 12.0F;
     private int ageTicks = 0;
 
     public CryoIcicleProjectile(EntityType<? extends CryoIcicleProjectile> type, Level level) {
@@ -68,12 +70,14 @@ public class CryoIcicleProjectile extends Projectile {
         }
 
         Vec3 vel = getDeltaMovement();
-        if (!level().isClientSide() && level() instanceof ServerLevel sl && targetUuid != null && ageTicks <= 42) {
+        if (!level().isClientSide() && level() instanceof ServerLevel sl && targetUuid != null
+                && ageTicks >= ARC_DELAY_TICKS && ageTicks <= 48) {
             Entity target = sl.getEntity(targetUuid);
             if (target instanceof LivingEntity living && living.isAlive()) {
+                double speed = Math.min(0.92D, 0.56D + (ageTicks - ARC_DELAY_TICKS) * 0.015D);
                 Vec3 desired = living.position().add(0.0D, living.getBbHeight() * 0.55D, 0.0D)
-                        .subtract(position()).normalize().scale(0.68D);
-                vel = vel.lerp(desired, 0.14D);
+                        .subtract(position()).normalize().scale(speed);
+                vel = vel.lerp(desired, 0.16D);
                 setDeltaMovement(vel);
             }
         }
@@ -88,14 +92,20 @@ public class CryoIcicleProjectile extends Projectile {
         updateRotation();
 
         if (level().isClientSide()) {
-            level().addParticle(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(), 0.0D, 0.0D, 0.0D);
+            level().addParticle(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(),
+                    -vel.x * 0.08D, -vel.y * 0.08D, -vel.z * 0.08D);
+            if (tickCount % 2 == 0) {
+                level().addParticle(ParticleTypes.END_ROD, getX(), getY(), getZ(), 0.0D, 0.0D, 0.0D);
+            }
         }
     }
 
     @Override
     protected boolean canHitEntity(Entity entity) {
         if (!super.canHitEntity(entity)) return false;
-        return entity != getOwner() && !(entity instanceof CryoRegisvineEntity);
+        return entity != getOwner()
+                && !(entity instanceof CryoRegisvineEntity)
+                && !(entity instanceof CryoIceSpikeEntity);
     }
 
     @Override
@@ -103,10 +113,11 @@ public class CryoIcicleProjectile extends Projectile {
         super.onHitEntity(result);
         if (!level().isClientSide() && result.getEntity() instanceof LivingEntity living) {
             LivingEntity owner = getOwner() instanceof LivingEntity le ? le : null;
-            StavesElementBridge.dealElementalDamage(living, owner, "CRYO", damage, 1.0F, false);
+            StavesElementBridge.dealElementalDamage(living, owner, "CRYO", damage, 1.0F, false, 0.25F);
             if (level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(), 10, 0.25D, 0.25D, 0.25D, 0.06D);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.65F, 1.55F);
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(), 16, 0.32D, 0.32D, 0.32D, 0.08D);
+                sl.sendParticles(ParticleTypes.ITEM_SNOWBALL, getX(), getY(), getZ(), 8, 0.25D, 0.25D, 0.25D, 0.1D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.72F, 1.55F);
             }
         }
         discard();
@@ -116,8 +127,9 @@ public class CryoIcicleProjectile extends Projectile {
     protected void onHitBlock(BlockHitResult result) {
         super.onHitBlock(result);
         if (!level().isClientSide() && level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.5F, 1.6F);
+            sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY(), getZ(), 12, 0.28D, 0.28D, 0.28D, 0.07D);
+            sl.sendParticles(ParticleTypes.ITEM_SNOWBALL, getX(), getY(), getZ(), 6, 0.2D, 0.2D, 0.2D, 0.08D);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.55F, 1.65F);
         }
         discard();
     }

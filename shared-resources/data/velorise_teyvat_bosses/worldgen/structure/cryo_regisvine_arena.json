@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:jigsaw",
+  "biomes": "#velorise_teyvat_bosses:has_structure/cryo_regisvine_arena",
+  "step": "surface_structures",
+  "terrain_adaptation": "bury",
+  "start_pool": "velorise_teyvat_bosses:cryo_regisvine_arena",
+  "size": 1,
+  "start_height": {
+    "absolute": -34
+  },
+  "project_start_to_heightmap": "WORLD_SURFACE_WG",
+  "max_distance_from_center": 64,
+  "use_expansion_hack": false,
+  "spawn_overrides": {}
+}

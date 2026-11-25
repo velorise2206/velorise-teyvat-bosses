@@ -1,0 +1,8 @@
+{
+  "comparator_output": 14,
+  "description": {
+    "translate": "jukebox_song.velorise_teyvat_bosses.cryo_regisvine_theme"
+  },
+  "length_in_seconds": 131.0,
+  "sound_event": "velorise_teyvat_bosses:music.cryo_regisvine_theme"
+}

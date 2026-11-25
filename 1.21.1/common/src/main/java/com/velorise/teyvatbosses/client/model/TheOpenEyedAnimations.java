@@ -98,7 +98,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_2() {
-        Clip c = new Clip("animation.the_open_eyed.spear_slam", 1.6000F, false);
+        Clip c = new Clip("animation.the_open_eyed.spear_slam", 2.1000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.4200F, 0.6800F, 0.8200F, 0.9400F, 1.1800F, 1.6000F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, 12.0000F, 13.0000F, -4.0000F, -1.0000F, -2.0000F, 2.0000F}, new float[]{0.0000F, 6.0000F, 7.0000F, -14.0000F, -12.0000F, -12.0000F, 0.0000F}, new int[]{0, 0, 1, 1, 0, 0, 0});
@@ -122,7 +122,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_3() {
-        Clip c = new Clip("animation.the_open_eyed.spear_thrust", 1.7500F, false);
+        Clip c = new Clip("animation.the_open_eyed.spear_thrust", 2.3000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.4800F, 0.7800F, 0.9200F, 1.0400F, 1.2800F, 1.7500F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, 6.0000F, 6.5000F, 1.0000F, 2.0000F, 2.0000F, 2.0000F}, new float[]{0.0000F, 18.0000F, 20.0000F, -24.0000F, -21.0000F, -20.0000F, 0.0000F}, new int[]{0, 0, 1, 1, 0, 0, 0});
@@ -145,7 +145,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_4() {
-        Clip c = new Clip("animation.the_open_eyed.double_lunge", 2.0000F, false);
+        Clip c = new Clip("animation.the_open_eyed.double_lunge", 2.6000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.2800F, 0.4400F, 0.5800F, 0.6800F, 0.9200F, 1.1400F, 1.2800F, 1.4000F, 1.6000F, 2.0000F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, 1.0000F, 1.0000F, -1.0000F, 0.0000F, 3.0000F, 3.5000F, -2.0000F, 0.0000F, 0.0000F, 2.0000F}, new float[]{0.0000F, 7.0000F, 8.0000F, -14.0000F, -12.0000F, -5.0000F, -3.0000F, -26.0000F, -23.0000F, -22.0000F, 0.0000F}, new int[]{0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0});
@@ -166,7 +166,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_5() {
-        Clip c = new Clip("animation.the_open_eyed.double_slash", 1.9000F, false);
+        Clip c = new Clip("animation.the_open_eyed.double_slash", 2.5000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.3800F, 0.5200F, 0.9400F, 1.0800F, 1.3500F, 1.9000F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, 3.0000F, 0.0000F, 2.0000F, -1.0000F, 0.0000F, 2.0000F}, new float[]{0.0000F, 4.0000F, -10.0000F, -8.0000F, -18.0000F, -16.0000F, 0.0000F}, new int[]{0, 1, 1, 1, 1, 0, 0});
@@ -185,7 +185,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_6() {
-        Clip c = new Clip("animation.the_open_eyed.forced_teleport", 1.6000F, false);
+        Clip c = new Clip("animation.the_open_eyed.forced_teleport", 2.1000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.5500F, 0.7800F, 0.9400F, 1.6000F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, 9.0000F, 10.0000F, 3.0000F, 2.0000F}, new float[]{0.0000F, 4.0000F, 5.0000F, -6.0000F, 0.0000F}, new int[]{0, 0, 1, 1, 0});
@@ -207,7 +207,7 @@ public final class TheOpenEyedAnimations {
     }
 
     private static void initClip_7() {
-        Clip c = new Clip("animation.the_open_eyed.leaping_slam", 2.1000F, false);
+        Clip c = new Clip("animation.the_open_eyed.leaping_slam", 2.7000F, false);
         c.add("elemental_star_left", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("elemental_star_right", CH_SCALE, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new float[]{0.0000F}, new int[]{1});
         c.add("body", CH_POS, new float[]{0.0000F, 0.3200F, 0.4200F, 0.8500F, 1.1800F, 1.3600F, 1.4800F, 1.7200F, 2.1000F}, new float[]{0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F, 0.0000F}, new float[]{2.0000F, -4.0000F, -4.5000F, 27.0000F, 28.0000F, -5.0000F, -1.0000F, -2.0000F, 2.0000F}, new float[]{0.0000F, 5.0000F, 5.0000F, -4.0000F, -5.0000F, -24.0000F, -22.0000F, -21.0000F, 0.0000F}, new int[]{0, 0, 1, 0, 1, 1, 0, 0, 0});
@@ -344,12 +344,48 @@ public final class TheOpenEyedAnimations {
         float t = timeSeconds;
         if (clip.lengthSeconds > 0.001F) {
             t = clip.loop ? (t % clip.lengthSeconds) : Math.min(t, clip.lengthSeconds);
-            if (t < 0.0F) t = 0.0F;
+            if (t < 0.0F) t += clip.lengthSeconds;
         }
         return t;
     }
 
-    private static void sampleTrack(Track tr, float t, float[] out) {
+    private static float evalCatmullHermite(float[] vals, float[] times, int i, float u, float dt, boolean loop) {
+        int n = vals.length;
+        float p1 = vals[i];
+        float p2 = vals[i + 1];
+        float m1, m2;
+        if (i > 0) {
+            float span = Math.max(1e-4F, times[i + 1] - times[i - 1]);
+            m1 = (vals[i + 1] - vals[i - 1]) / span;
+        } else if (loop && n >= 3) {
+            float span = Math.max(1e-4F, (times[1] - times[0]) + (times[n - 1] - times[n - 2]));
+            m1 = (vals[1] - vals[n - 2]) / span;
+        } else {
+            m1 = (p2 - p1) / dt;
+        }
+        if (i + 2 < n) {
+            float span = Math.max(1e-4F, times[i + 2] - times[i]);
+            m2 = (vals[i + 2] - vals[i]) / span;
+        } else if (loop && n >= 3) {
+            float span = Math.max(1e-4F, (times[n - 1] - times[n - 2]) + (times[1] - times[0]));
+            m2 = (vals[1] - vals[n - 2]) / span;
+        } else {
+            m2 = (p2 - p1) / dt;
+        }
+        float secant = (p2 - p1) / dt;
+        float maxSlope = Math.abs(secant) * 2.4F + 2.0F;
+        m1 = Math.max(-maxSlope, Math.min(maxSlope, m1)) * dt;
+        m2 = Math.max(-maxSlope, Math.min(maxSlope, m2)) * dt;
+        float u2 = u * u;
+        float u3 = u2 * u;
+        float h00 = 2.0F * u3 - 3.0F * u2 + 1.0F;
+        float h10 = u3 - 2.0F * u2 + u;
+        float h01 = -2.0F * u3 + 3.0F * u2;
+        float h11 = u3 - u2;
+        return h00 * p1 + h10 * m1 + h01 * p2 + h11 * m2;
+    }
+
+    private static void sampleTrack(Track tr, float t, boolean loop, float[] out) {
         if (tr.times.length == 1 || t <= tr.times[0]) {
             out[0] = tr.xs[0]; out[1] = tr.ys[0]; out[2] = tr.zs[0];
             return;
@@ -361,14 +397,17 @@ public final class TheOpenEyedAnimations {
         }
         int i = 0;
         while (i + 1 < tr.times.length && tr.times[i + 1] < t) i++;
-        float span = tr.times[i + 1] - tr.times[i];
-        float a = span > 1e-5F ? (t - tr.times[i]) / span : 0.0F;
-        float s = (tr.interps[i] == INTERP_LINEAR || tr.interps[i + 1] == INTERP_LINEAR)
-                ? a
-                : (a * a * (3.0F - 2.0F * a));
-        out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * s;
-        out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * s;
-        out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * s;
+        float dt = Math.max(1e-5F, tr.times[i + 1] - tr.times[i]);
+        float u = (t - tr.times[i]) / dt;
+        if (tr.interps[i] == INTERP_LINEAR || tr.interps[i + 1] == INTERP_LINEAR) {
+            out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * u;
+            out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * u;
+            out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * u;
+        } else {
+            out[0] = evalCatmullHermite(tr.xs, tr.times, i, u, dt, loop);
+            out[1] = evalCatmullHermite(tr.ys, tr.times, i, u, dt, loop);
+            out[2] = evalCatmullHermite(tr.zs, tr.times, i, u, dt, loop);
+        }
     }
 
     private static void applyWeighted(TheOpenEyedModel<?> model, Clip clip, float timeSeconds, float weight) {
@@ -378,7 +417,7 @@ public final class TheOpenEyedAnimations {
         for (Track tr : clip.tracks) {
             ModelPart part = model.getBone(tr.bone);
             if (part == null || tr.times.length == 0) continue;
-            sampleTrack(tr, t, v);
+            sampleTrack(tr, t, clip.loop, v);
             if (tr.channel == CH_ROT) {
                 part.xRot += v[0] * DEG2RAD * weight;
                 part.yRot += v[1] * DEG2RAD * weight;

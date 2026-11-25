@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "velorise_teyvat_bosses:the_open_eyed_arena",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 42,
+    "separation": 20,
+    "salt": 84205193
+  }
+}

@@ -1,9 +1,20 @@
 {
   "itemGroup.velorise_teyvat_bosses.main": "Velorise: Teyvat Bosses",
   "entity.velorise_teyvat_bosses.cryo_regisvine": "Cryo Regisvine",
-  "entity.velorise_teyvat_bosses.cryo_icicle": "Cryo Icicle",
+  "entity.velorise_teyvat_bosses.cryo_icicle": "Cryo Crystal Dart",
+  "entity.velorise_teyvat_bosses.cryo_ice_spike": "Cryo Ice Pillar",
   "entity.velorise_teyvat_bosses.the_open_eyed": "The Open-Eyed",
   "entity.velorise_teyvat_bosses.elemental_star": "Elemental Star",
   "item.velorise_teyvat_bosses.cryo_regisvine_spawn_egg": "Cryo Regisvine Spawn Egg",
-  "item.velorise_teyvat_bosses.the_open_eyed_spawn_egg": "The Open-Eyed Spawn Egg"
+  "item.velorise_teyvat_bosses.the_open_eyed_spawn_egg": "The Open-Eyed Spawn Egg",
+  "message.velorise_teyvat_bosses.cryo_regisvine.core_broken": "The Cryo Regisvine's core shattered! Attack while it is paralyzed!",
+  "message.velorise_teyvat_bosses.cryo_regisvine.corolla_converge": "Unstable elements have started to converge near its corolla!",
+  "message.velorise_teyvat_bosses.cryo_regisvine.roots_reformed": "The Cryo Regisvine's core has re-formed near its roots!",
+  "entity.velorise_teyvat_bosses.sky_spear": "Celestial Sky Spear",
+  "entity.velorise_teyvat_bosses.boss_respawn_anchor": "Ley Line Respawn Blossom",
+  "item.velorise_teyvat_bosses.music_disc_cryo_regisvine": "Music Disc",
+  "item.velorise_teyvat_bosses.the_open_eyed_music_disc": "Music Disc",
+  "item.velorise_teyvat_bosses.music_disc_the_open_eyed": "Music Disc",
+  "jukebox_song.velorise_teyvat_bosses.cryo_regisvine_theme": "Velorise Ensemble - Frostbound Bloom (Cryo Regisvine)",
+  "jukebox_song.velorise_teyvat_bosses.the_open_eyed_theme": "Velorise Ensemble - Vigil of the Unblinking (The Open-Eyed)"
 }

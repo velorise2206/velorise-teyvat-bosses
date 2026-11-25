@@ -1,6 +1,8 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -26,21 +28,20 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 
 /**
- * Cryo Regisvine World Boss (Velorise: Teyvat Bosses edition).
+ * Overhauled Cryo Regisvine World Boss (Genshin Impact-faithful edition).
  *
- * <p>Implements official Genshin Impact Cryo Regisvine mechanics:
+ * <p>Core mechanics synced 1:1 with Genshin Impact gameplay:
  * <ul>
- *   <li>Rooted at spawn anchor, zero terrain griefing.</li>
- *   <li>Two-phase Cryo Weakpoint Shield (Roots 12U -> Corolla 6U) via {@link StavesElementBridge},
- *       with 14s Stunned vulnerability window (1.35x damage) on shield shatter.</li>
- *   <li>All 14 overhauled Cataclysm-style Windup -> Hold -> Snap animations with exact tick-synced hitboxes
- *       and ground telegraph particle cues.</li>
+ *   <li>Dormant curled bud -> Dramatic petal-bloom Awakening shockwave at 13 blocks.</li>
+ *   <li>Two-phase Cryo Weakpoint Core loop: <b>Roots Core (12U)</b> <-> <b>Corolla Core (6U)</b>
+ *       with exact phase-shift alerts, 80% resistance while core is intact, 2.2x Corolla vulnerability
+ *       window during head slams, and 13s collapsed Stun state (1.55x damage).</li>
+ *   <li>Full moveset with 3D entities & frame-synced hitboxes: 2-pass Twin Pod Cross-Lasers hitting the floor,
+ *       8-shard outward-curving Homing Cryo Darts, Single & Triple player-tracking Head Slams erupting 3D ice spikes,
+ *       continuous 360° Whip Spin sector hitbox, Frost Field + 10 chasing 3D Ice Pillars, and 360° Rotary Corolla Beam.</li>
  * </ul>
  */
 public class CryoRegisvineEntity extends Monster {
@@ -84,12 +85,12 @@ public class CryoRegisvineEntity extends Monster {
     };
 
     public static final int[] ANIM_DURATIONS_TICKS = {
-            60, 44, 80, 52, 48, 44, 84, 56, 72, 56, 80, 96, 80, 52
+            60, 44, 80, 60, 52, 58, 84, 68, 96, 68, 80, 96, 80, 52
     };
 
     public static final float ROOTS_SHIELD_UNITS = 12.0F;
     public static final float COROLLA_SHIELD_UNITS = 6.0F;
-    private static final int STUN_DURATION_TICKS = 280; // 14.0 seconds
+    private static final int STUN_DURATION_TICKS = 260; // 13.0 seconds
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
@@ -101,6 +102,8 @@ public class CryoRegisvineEntity extends Monster {
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_COROLLA_PHASE =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> DATA_ROOT_YAW =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
 
     private static volatile boolean SHIELD_LISTENER_REGISTERED = false;
 
@@ -117,27 +120,20 @@ public class CryoRegisvineEntity extends Monster {
     private int clientAnimTick = 0;
     private int lastSyncedAnimId = -1;
     private int lastSyncedEpoch = -1;
-    private int attackCooldown = 30;
+    private int attackCooldown = 26;
     private int noPlayerTicks = 0;
     private int lastAttackAnim = -1;
+    private int closeCampTicks = 0;
     private float attackStartYaw = 0.0F;
+    private float tripleSlamYaw = 0.0F;
     private boolean customDeathHandled = false;
     private float fallbackShield = 0.0F;
 
-    private static final class BlizzardZone {
-        final double x, y, z;
-        int ticksLeft;
-        BlizzardZone(double x, double y, double z, int ticksLeft) {
-            this.x = x; this.y = y; this.z = z; this.ticksLeft = ticksLeft;
-        }
-    }
-
-    private final List<BlizzardZone> blizzardZones = new ArrayList<>();
-
     public CryoRegisvineEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
-        this.xpReward = 250;
+        this.xpReward = 280;
         this.setPersistenceRequired();
+        this.addTag("VeloriseInnateChecked");
         ensureShieldBreakListener();
     }
 
@@ -154,13 +150,13 @@ public class CryoRegisvineEntity extends Monster {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 450.0D)
+                .add(Attributes.MAX_HEALTH, 520.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.ARMOR, 10.0D)
-                .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
-                .add(Attributes.FOLLOW_RANGE, 32.0D)
-                .add(Attributes.ATTACK_DAMAGE, 20.0D);
+                .add(Attributes.ARMOR, 4.0D)
+                .add(Attributes.ARMOR_TOUGHNESS, 2.0D)
+                .add(Attributes.FOLLOW_RANGE, 36.0D)
+                .add(Attributes.ATTACK_DAMAGE, 22.0D);
     }
 
     @Override
@@ -171,6 +167,7 @@ public class CryoRegisvineEntity extends Monster {
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_SHIELD_PROGRESS, 0.0F);
         builder.define(DATA_COROLLA_PHASE, 0);
+        builder.define(DATA_ROOT_YAW, 0.0F);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -179,6 +176,17 @@ public class CryoRegisvineEntity extends Monster {
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public float getShieldProgress() { return entityData.get(DATA_SHIELD_PROGRESS); }
     public int getCorollaPhase() { return entityData.get(DATA_COROLLA_PHASE); }
+    public float getRootYaw() { return entityData.get(DATA_ROOT_YAW); }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (level().isClientSide() && DATA_ANIM_EPOCH.equals(key)) {
+            lastSyncedAnimId = getAnimId();
+            lastSyncedEpoch = getAnimEpoch();
+            clientAnimTick = 0;
+        }
+    }
 
     public String getCurrentAnimName() {
         int id = getAnimId();
@@ -204,18 +212,39 @@ public class CryoRegisvineEntity extends Monster {
         if (StavesElementBridge.isAvailable()) {
             StavesElementBridge.setElementalShield(this, "CRYO", shieldUnits, true, 0.15F);
         } else {
-            fallbackShield = shieldUnits * 6.0F;
+            fallbackShield = shieldUnits * 6.5F;
         }
         entityData.set(DATA_SHIELD_PROGRESS, 1.0F);
+    }
+
+    private void notifyNearbyPlayers(ServerLevel sl, String translationKey) {
+        Component msg = Component.translatable(translationKey).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
+        for (ServerPlayer sp : sl.players()) {
+            if (sp.distanceToSqr(this) <= 38.0D * 38.0D) {
+                sp.displayClientMessage(msg, true);
+            }
+        }
     }
 
     public void onCorollaShieldBroken(ServerLevel level) {
         transitionTo(STATE_STUNNED, ANIM_STUNNED);
         fallbackShield = 0.0F;
         entityData.set(DATA_SHIELD_PROGRESS, 0.0F);
-        level.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_BREAK_BLOCK, SoundSource.HOSTILE, 1.45F, 0.65F);
-        level.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.6F, 0.75F);
-        level.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.5D, getZ(), 56, 2.2D, 1.8D, 2.2D, 0.12D);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_BREAK_BLOCK, SoundSource.HOSTILE, 1.5F, 0.65F);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.75F, 0.72F);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.HOSTILE, 1.5F, 0.65F);
+        level.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.4D, getZ(), 72, 2.6D, 2.0D, 2.6D, 0.15D);
+        level.sendParticles(ParticleTypes.ITEM_SNOWBALL, getX(), getY() + 1.6D, getZ(), 36, 2.2D, 1.2D, 2.2D, 0.18D);
+        notifyNearbyPlayers(level, "message.velorise_teyvat_bosses.cryo_regisvine.core_broken");
+    }
+
+    private boolean isCorollaVulnerableWindow() {
+        if (getCorollaPhase() != 1) return false;
+        int anim = getAnimId();
+        int t = serverAnimTick;
+        if (anim == ANIM_FACEPLANT_SINGLE && t >= 20 && t <= 40) return true;
+        if (anim == ANIM_FACEPLANT_TRIPLE && ((t >= 16 && t <= 23) || (t >= 36 && t <= 43) || (t >= 56 && t <= 70))) return true;
+        return anim == ANIM_HALF_FLAIL_COMBO && t >= 58 && t <= 70;
     }
 
     @Override
@@ -259,25 +288,27 @@ public class CryoRegisvineEntity extends Monster {
             return false;
         }
         if (st == STATE_STUNNED) {
-            amount *= 1.35F;
+            amount *= 1.55F;
         } else if (StavesElementBridge.isAvailable()) {
             if (StavesElementBridge.hasElementalShield(this)) {
-                amount *= 0.25F;
+                amount *= 0.20F;
             }
         } else if (fallbackShield > 0.0F) {
-            float shieldDmg = source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) ? amount * 2.5F : amount * 0.6F;
-            fallbackShield = Math.max(0.0F, fallbackShield - shieldDmg);
-            float maxShield = ((getCorollaPhase() == 0) ? ROOTS_SHIELD_UNITS : COROLLA_SHIELD_UNITS) * 6.0F;
+            float shieldMult = source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) ? 2.8F : 0.65F;
+            if (isCorollaVulnerableWindow()) {
+                shieldMult *= 2.2F;
+            }
+            fallbackShield = Math.max(0.0F, fallbackShield - amount * shieldMult);
+            float maxShield = ((getCorollaPhase() == 0) ? ROOTS_SHIELD_UNITS : COROLLA_SHIELD_UNITS) * 6.5F;
             entityData.set(DATA_SHIELD_PROGRESS, fallbackShield / maxShield);
             if (fallbackShield <= 0.0F && level() instanceof ServerLevel sl) {
                 onCorollaShieldBroken(sl);
             }
-            amount *= 0.25F;
+            amount *= 0.20F;
         }
         if (source.getEntity() instanceof LivingEntity && !(source.getEntity() instanceof Player)) {
-            amount *= 0.55F;
+            amount *= 0.50F;
         }
-        amount = Math.min(amount, 26.0F);
         return super.hurt(source, amount);
     }
 
@@ -288,7 +319,12 @@ public class CryoRegisvineEntity extends Monster {
             StavesElementBridge.clearElementalShield(this);
             transitionTo(STATE_DEATH, ANIM_DEATH);
             if (level() instanceof ServerLevel sl) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.6F, 0.55F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.7F, 0.52F);
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.5D, getZ(), 65, 2.5D, 2.0D, 2.5D, 0.12D);
+                if (!cause.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+                    if (TeyvatBossesItems.cryoDisc() != null) spawnAtLocation(TeyvatBossesItems.cryoDisc());
+                    BossRespawnAnchorEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE, anchorInitialized ? anchorPos : position(), getRootYaw(), BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
+                }
             }
         }
         super.die(cause);
@@ -298,8 +334,9 @@ public class CryoRegisvineEntity extends Monster {
         entityData.set(DATA_COROLLA_PHASE, 0);
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         applyPhaseShield();
-        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ELDER_GUARDIAN_CURSE, SoundSource.HOSTILE, 1.25F, 1.25F);
-        sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.2D, getZ(), 42, 1.8D, 1.4D, 1.8D, 0.1D);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ELDER_GUARDIAN_CURSE, SoundSource.HOSTILE, 1.3F, 1.25F);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.4F, 0.9F);
+        sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.4D, getZ(), 54, 2.2D, 1.6D, 2.2D, 0.12D);
     }
 
     @Override
@@ -307,6 +344,9 @@ public class CryoRegisvineEntity extends Monster {
         super.tick();
         if (!anchorInitialized) {
             anchorPos = position();
+            if (!level().isClientSide()) {
+                entityData.set(DATA_ROOT_YAW, getYRot());
+            }
             anchorInitialized = true;
         }
         setDeltaMovement(Vec3.ZERO);
@@ -330,7 +370,6 @@ public class CryoRegisvineEntity extends Monster {
         ServerLevel sl = (ServerLevel) level();
         stateTicks++;
         serverAnimTick++;
-        tickBlizzardZones(sl);
 
         int st = getBossState();
         updateBossBar(st);
@@ -340,14 +379,14 @@ public class CryoRegisvineEntity extends Monster {
             return;
         }
 
-        LivingEntity nearest = findActiveTarget(sl, 28.0D);
+        LivingEntity nearest = findActiveTarget(sl, 34.0D);
 
         if (st == STATE_DORMANT) {
             bossEvent.setVisible(false);
-            if (tickCount % 10 == 0) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 0.5D, getZ(), 4, 1.2D, 0.3D, 1.2D, 0.01D);
+            if (tickCount % 8 == 0) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 0.6D, getZ(), 5, 1.3D, 0.35D, 1.3D, 0.015D);
             }
-            if (nearest != null && nearest.distanceToSqr(this) <= 100.0D) {
+            if (nearest != null && nearest.distanceToSqr(this) <= 169.0D) { // 13 blocks
                 awaken(sl);
             }
             return;
@@ -357,7 +396,7 @@ public class CryoRegisvineEntity extends Monster {
 
         if (nearest == null) {
             noPlayerTicks++;
-            if (noPlayerTicks >= 200) {
+            if (noPlayerTicks >= 220) {
                 noPlayerTicks = 0;
                 setHealth(getMaxHealth());
                 StavesElementBridge.clearElementalShield(this);
@@ -371,29 +410,38 @@ public class CryoRegisvineEntity extends Monster {
         }
 
         if (st == STATE_AWAKEN) {
-            faceTarget(nearest, 12.0F);
+            faceTarget(nearest, 14.0F);
             if (stateTicks == 15) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.3F, 1.15F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.35F, 1.18F);
+                spawnFrostShockwaveParticles(sl, 6.5D, 36);
             }
             if (stateTicks >= ANIM_DURATIONS_TICKS[ANIM_AWAKEN]) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE_COMBAT);
-                attackCooldown = 24;
+                attackCooldown = 36;
             }
             return;
         }
 
         if (st == STATE_STUNNED) {
-            if (stateTicks % 15 == 0) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.2D, getZ(), 6, 1.4D, 0.4D, 1.4D, 0.01D);
+            if (stateTicks % 12 == 0) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.0D, getZ(), 7, 1.6D, 0.35D, 1.6D, 0.012D);
             }
             if (stateTicks >= STUN_DURATION_TICKS) {
                 int nextPhase = (getCorollaPhase() + 1) % 2;
                 entityData.set(DATA_COROLLA_PHASE, nextPhase);
                 applyPhaseShield();
-                transitionTo(STATE_COMBAT, ANIM_SPIN_FROST_RING);
+                faceTarget(nearest, 180.0F);
                 attackStartYaw = getYRot();
-                attackCooldown = 35;
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.4F, 0.85F);
+                // Exact Genshin phase transition: Corolla phase opens with 360° Rotary Beam; Roots reform opens with Frost Ring!
+                if (nextPhase == 1) {
+                    notifyNearbyPlayers(sl, "message.velorise_teyvat_bosses.cryo_regisvine.corolla_converge");
+                    transitionTo(STATE_COMBAT, ANIM_ROTARY_SPRAY);
+                } else {
+                    notifyNearbyPlayers(sl, "message.velorise_teyvat_bosses.cryo_regisvine.roots_reformed");
+                    transitionTo(STATE_COMBAT, ANIM_SPIN_FROST_RING);
+                }
+                attackCooldown = 44;
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.5F, 0.82F);
             }
             return;
         }
@@ -402,11 +450,18 @@ public class CryoRegisvineEntity extends Monster {
             entityData.set(DATA_SHIELD_PROGRESS, StavesElementBridge.getShieldProgress(this));
         }
 
+        double distSq = nearest.distanceToSqr(this);
+        if (distSq < 42.25D) { // within 6.5 blocks
+            closeCampTicks++;
+        } else {
+            closeCampTicks = Math.max(0, closeCampTicks - 2);
+        }
+
         int anim = getAnimId();
-        int aTick = getAnimTick();
+        int aTick = serverAnimTick;
 
         if (anim == ANIM_IDLE_COMBAT) {
-            faceTarget(nearest, 8.0F);
+            faceTarget(nearest, 9.0F);
             if (attackCooldown > 0) {
                 attackCooldown--;
             } else {
@@ -416,139 +471,279 @@ public class CryoRegisvineEntity extends Monster {
             executeAttackTick(sl, nearest, anim, aTick);
             if (aTick >= ANIM_DURATIONS_TICKS[anim]) {
                 playAnim(ANIM_IDLE_COMBAT);
-                attackCooldown = 22 + random.nextInt(16);
+                int phaseBonus = (getCorollaPhase() == 1) ? 6 : 0;
+                attackCooldown = Math.max(38, 44 - phaseBonus) + random.nextInt(22);
             }
         }
     }
 
     private void pickNextAttack(LivingEntity target) {
         double dist = Math.sqrt(target.distanceToSqr(this));
-        int[] pool = dist < 7.5D
-                ? new int[]{ANIM_FACEPLANT_SINGLE, ANIM_FACEPLANT_TRIPLE, ANIM_FLAIL_360, ANIM_HALF_FLAIL_COMBO, ANIM_SPIN_FROST_RING}
-                : new int[]{ANIM_ICE_BEAMS_CROSS, ANIM_HOMING_ICICLES, ANIM_BLIZZARD_CHANNEL, ANIM_ROTARY_SPRAY, ANIM_FACEPLANT_TRIPLE};
-        int chosen = pool[random.nextInt(pool.length)];
-        if (chosen == lastAttackAnim && pool.length > 1) {
-            chosen = pool[(random.nextInt(pool.length - 1) + 1) % pool.length];
+        int chosen;
+
+        // Reactive anti-camp punish if player hugs roots for > 3.5 seconds
+        if (closeCampTicks >= 70 && lastAttackAnim != ANIM_FLAIL_360) {
+            closeCampTicks = 0;
+            chosen = random.nextBoolean() ? ANIM_FLAIL_360 : ANIM_SPIN_FROST_RING;
+        } else {
+            int[] pool;
+            if (getCorollaPhase() == 1) {
+                // Corolla Phase: favors Triple Slam, Frost Field Ice Pillars, Rotary Beam, 2-Pass Lasers
+                pool = dist < 8.5D
+                        ? new int[]{ANIM_FACEPLANT_TRIPLE, ANIM_FACEPLANT_SINGLE, ANIM_FLAIL_360, ANIM_HALF_FLAIL_COMBO, ANIM_BLIZZARD_CHANNEL}
+                        : new int[]{ANIM_BLIZZARD_CHANNEL, ANIM_ICE_BEAMS_CROSS, ANIM_HOMING_ICICLES, ANIM_ROTARY_SPRAY, ANIM_FACEPLANT_TRIPLE};
+            } else {
+                // Roots Phase: balanced mix of Twin Lasers, Homing Darts, Slams, Whip Spin, Pillars
+                pool = dist < 8.0D
+                        ? new int[]{ANIM_FACEPLANT_SINGLE, ANIM_FLAIL_360, ANIM_HALF_FLAIL_COMBO, ANIM_FACEPLANT_TRIPLE, ANIM_SPIN_FROST_RING}
+                        : new int[]{ANIM_ICE_BEAMS_CROSS, ANIM_HOMING_ICICLES, ANIM_BLIZZARD_CHANNEL, ANIM_ROTARY_SPRAY, ANIM_FACEPLANT_SINGLE};
+            }
+            chosen = pool[random.nextInt(pool.length)];
+            if (chosen == lastAttackAnim && pool.length > 1) {
+                chosen = pool[(random.nextInt(pool.length - 1) + 1) % pool.length];
+            }
         }
+
         lastAttackAnim = chosen;
         faceTarget(target, 180.0F);
         attackStartYaw = getYRot();
+        tripleSlamYaw = getYRot();
         playAnim(chosen);
     }
 
     /**
-     * All impact ticks strictly synced 1:1 with the overhauled CryoRegisvineAnimations keyframes.
+     * All impact ticks strictly synced 1:1 with animations and 3D CryoIceSpike / CryoIcicle / Beam VFX.
      */
     private void executeAttackTick(ServerLevel sl, LivingEntity target, int anim, int t) {
         switch (anim) {
             case ANIM_FACEPLANT_SINGLE -> {
-                if (t < 11) faceTarget(target, 10.0F);
-                if (t == 10 || t == 13) spawnSlamTelegraph(sl, getYRot(), 4.2D, 3.8D);
-                if (t == 17) impactSlamAtYaw(sl, getYRot(), 4.2D, 4.0D, 24.0F);
+                if (t < 14) faceTarget(target, 10.0F);
+                if (t == 12 || t == 16) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.0D);
+                if (t == 21) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.2D, 25.0F, 6);
             }
             case ANIM_FACEPLANT_TRIPLE -> {
-                if (t < 9) faceTarget(target, 12.0F);
-                if (t == 12) spawnSlamTelegraph(sl, getYRot() - 26.0F, 4.2D, 3.6D);
-                if (t == 17) impactSlamAtYaw(sl, getYRot() - 26.0F, 4.2D, 3.8D, 20.0F);
-                if (t == 32) spawnSlamTelegraph(sl, getYRot(), 4.4D, 3.6D);
-                if (t == 37) impactSlamAtYaw(sl, getYRot(), 4.4D, 3.8D, 21.0F);
-                if (t == 52) spawnSlamTelegraph(sl, getYRot() + 26.0F, 4.2D, 3.8D);
-                if (t == 57) impactSlamAtYaw(sl, getYRot() + 26.0F, 4.2D, 4.0D, 24.0F);
+                if (t < 11) {
+                    faceTarget(target, 12.0F);
+                    tripleSlamYaw = getYRot();
+                } else if (t >= 24 && t < 33) {
+                    faceTarget(target, 10.0F);
+                    tripleSlamYaw = getYRot();
+                } else if (t >= 44 && t < 53) {
+                    faceTarget(target, 10.0F);
+                    tripleSlamYaw = getYRot();
+                }
+                if (t == 12) spawnSlamTelegraph(sl, tripleSlamYaw, 4.4D, 3.8D);
+                if (t == 17) impactSlamAtYaw(sl, tripleSlamYaw, 4.4D, 3.9D, 21.0F, 4);
+                if (t == 32) spawnSlamTelegraph(sl, tripleSlamYaw, 4.6D, 4.0D);
+                if (t == 37) impactSlamAtYaw(sl, tripleSlamYaw, 4.6D, 4.1D, 22.5F, 5);
+                if (t == 52) spawnSlamTelegraph(sl, tripleSlamYaw, 4.8D, 4.4D);
+                if (t == 57) impactSlamAtYaw(sl, tripleSlamYaw, 4.8D, 4.5D, 26.0F, 7);
             }
             case ANIM_FLAIL_360 -> {
-                if (t == 12) sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.1F, 0.7F);
-                if (t == 19 || t == 29) ringAoE(sl, 8.0D, 18.0F, 0.85D);
+                if (t == 14) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.2F, 0.72F);
+                }
+                if (t == 19) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.55F, 0.62F);
+                }
+                // Continuous sweeping sector hitbox synced to live 360° whip angle
+                if (t >= 19 && t <= 45 && t % 2 == 0) {
+                    float prog = (t - 19) / 26.0F;
+                    float sweepYaw = attackStartYaw - prog * 360.0F;
+                    sweepSectorHitbox(sl, sweepYaw, 8.6D, 58.0F, 19.0F, 1.05D);
+                }
             }
             case ANIM_HALF_FLAIL_COMBO -> {
-                if (t < 11 || (t > 24 && t < 31) || (t > 44 && t < 53)) faceTarget(target, 10.0F);
-                if (t == 19 || t == 37) arcSweepInFront(sl, 8.4D, 17.0F);
-                if (t == 53) spawnSlamTelegraph(sl, getYRot(), 4.2D, 4.0D);
-                if (t == 59) impactSlamAtYaw(sl, getYRot(), 4.2D, 4.2D, 26.0F);
+                if (t < 11 || (t > 24 && t < 31) || (t > 44 && t < 53)) faceTarget(target, 11.0F);
+                if (t == 19 || t == 37) arcSweepInFront(sl, 8.6D, 18.0F);
+                if (t == 53) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.2D);
+                if (t == 59) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.4D, 26.5F, 6);
             }
             case ANIM_SPIN_FROST_RING -> {
-                if (t == 17 || t == 29) ringAoE(sl, 9.2D, 17.5F, 1.2D);
+                if (t == 21) {
+                    ringAoE(sl, 9.6D, 18.5F, 1.35D);
+                    spawnSpikeRing(sl, 6.8D, 8, 12.0F, 0.95F);
+                }
+                if (t == 35) {
+                    ringAoE(sl, 10.5D, 18.0F, 1.15D);
+                }
             }
             case ANIM_ICE_BEAMS_CROSS -> {
-                if (t < 12) faceTarget(target, 10.0F);
-                if (t >= 16 && t <= 42 && t % 4 == 0) {
-                    float progress = (t - 16) / 26.0F;
-                    float angleA = getYRot() - 36.0F + progress * 72.0F;
-                    float angleB = getYRot() + 36.0F - progress * 72.0F;
-                    sweepBeamRay(sl, angleA, 17.0D, 14.0F);
-                    sweepBeamRay(sl, angleB, 17.0D, 14.0F);
+                if (t < 12) faceTarget(target, 11.0F);
+                if (t == 10 || t == 34) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.1F, 1.4F);
+                }
+                if (t == 16 || t == 38) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.25F, 1.55F);
+                }
+                // Pass 1: Cross sweep L -> R (ticks 16..32)
+                if (t >= 16 && t <= 32 && t % 4 == 0) {
+                    float progress = (t - 16) / 16.0F;
+                    float angleA = getYRot() - 38.0F + progress * 76.0F;
+                    float angleB = getYRot() + 38.0F - progress * 76.0F;
+                    sweepBeamRay(sl, angleA, 17.5D, 11.5F);
+                    sweepBeamRay(sl, angleB, 17.5D, 11.5F);
+                }
+                // Pass 2: Reverse cross sweep R -> L (ticks 38..54)
+                if (t >= 38 && t <= 54 && t % 4 == 0) {
+                    float progress = (t - 38) / 16.0F;
+                    float angleA = getYRot() + 38.0F - progress * 76.0F;
+                    float angleB = getYRot() - 38.0F + progress * 76.0F;
+                    sweepBeamRay(sl, angleA, 17.5D, 12.0F);
+                    sweepBeamRay(sl, angleB, 17.5D, 12.0F);
                 }
             }
             case ANIM_ROTARY_SPRAY -> {
-                if (t >= 16 && t <= 82 && t % 3 == 0) {
-                    float a = Mth.clamp((t - 14.0F) / 68.0F, 0.0F, 1.0F);
+                if (t == 10) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.3F, 1.15F);
+                }
+                if (t == 16) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 1.4F, 1.25F);
+                }
+                if (t >= 16 && t <= 84 && t % 4 == 0) {
+                    float a = Mth.clamp((t - 14.0F) / 70.0F, 0.0F, 1.0F);
                     float smooth = a * a * (3.0F - 2.0F * a);
                     float beamYaw = attackStartYaw - smooth * 360.0F;
-                    sweepBeamRay(sl, beamYaw, 18.0D, 15.5F);
+                    sweepBeamRay(sl, beamYaw, 18.5D, 13.5F);
                 }
             }
             case ANIM_HOMING_ICICLES -> {
-                faceTarget(target, 10.0F);
-                if (t == 16 || t == 21 || t == 26 || t == 31 || t == 36) {
-                    double side = (t % 2 == 0) ? 2.2D : -2.2D;
+                faceTarget(target, 11.0F);
+                // 8 curving Cryo Crystal Darts alternating left/right stamen pods
+                if (t >= 14 && t <= 42 && (t - 14) % 4 == 0) {
+                    int idx = (t - 14) / 4;
+                    double side = (idx % 2 == 0) ? 2.5D : -2.5D;
                     float rad = getYRot() * Mth.DEG_TO_RAD;
                     Vec3 right = new Vec3(Math.cos(rad), 0.0D, Math.sin(rad));
-                    Vec3 origin = position().add(right.scale(side)).add(0.0D, 4.8D, 0.0D);
-                    Vec3 dir = target.position().add(0.0D, 1.0D, 0.0D).subtract(origin).normalize().scale(0.68D);
-                    CryoIcicleProjectile.spawn(sl, this, target, origin, dir, 11.5F);
-                    sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.HOSTILE, 0.9F, 1.35F);
+                    Vec3 forward = new Vec3(-Math.sin(rad), 0.0D, Math.cos(rad));
+                    Vec3 origin = position().add(right.scale(side)).add(0.0D, 4.9D, 0.0D);
+                    // Launch outward + slightly up so it curves gracefully into the player like Genshin
+                    Vec3 initialVel = right.scale(side * 0.18D).add(forward.scale(0.32D)).add(0.0D, 0.22D, 0.0D);
+                    CryoIcicleProjectile.spawn(sl, this, target, origin, initialVel, 12.5F);
+                    sl.sendParticles(ParticleTypes.SNOWFLAKE, origin.x, origin.y, origin.z, 8, 0.25D, 0.25D, 0.25D, 0.04D);
+                    sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.HOSTILE, 0.95F, 1.38F);
                 }
             }
             case ANIM_BLIZZARD_CHANNEL -> {
                 faceTarget(target, 6.0F);
-                if (t == 14 || t == 24 || t == 34 || t == 44 || t == 54) {
-                    double ox = (random.nextDouble() - 0.5D) * 5.0D;
-                    double oz = (random.nextDouble() - 0.5D) * 5.0D;
-                    blizzardZones.add(new BlizzardZone(target.getX() + ox, target.getY(), target.getZ() + oz, 22));
+                if (t == 10) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ELDER_GUARDIAN_CURSE, SoundSource.HOSTILE, 0.9F, 1.55F);
+                    spawnFrostShockwaveParticles(sl, 12.0D, 48);
+                }
+                if (t % 4 == 0 && t >= 12 && t <= 86) {
+                    // Ambient arena frost field mist
+                    double ang = random.nextDouble() * Math.PI * 2.0D;
+                    double rad = 3.0D + random.nextDouble() * 11.0D;
+                    sl.sendParticles(ParticleTypes.SNOWFLAKE, getX() + Math.cos(ang) * rad, getY() + 0.25D, getZ() + Math.sin(ang) * rad,
+                            3, 0.6D, 0.1D, 0.6D, 0.02D);
+                }
+                // 10 chasing 3D Cryo Ice Pillars erupting beneath/ahead of target!
+                if (t >= 14 && t <= 86 && (t - 14) % 8 == 0) {
+                    Vec3 lead = target.getDeltaMovement().scale(6.0D);
+                    double ox = (random.nextDouble() - 0.5D) * 1.4D;
+                    double oz = (random.nextDouble() - 0.5D) * 1.4D;
+                    double px = target.getX() + lead.x + ox;
+                    double pz = target.getZ() + lead.z + oz;
+                    double py = Math.min(target.getY(), getY() + 0.5D);
+                    CryoIceSpikeEntity.spawnPillar(sl, this, px, py, pz, 16.5F, 1.05F + random.nextFloat() * 0.2F);
                 }
             }
             default -> {}
         }
     }
 
+    private void spawnFrostShockwaveParticles(ServerLevel sl, double radius, int count) {
+        for (int i = 0; i < count; i++) {
+            double ang = (Math.PI * 2.0D * i) / count;
+            sl.sendParticles(ParticleTypes.SNOWFLAKE,
+                    getX() + Math.cos(ang) * radius, getY() + 0.35D, getZ() + Math.sin(ang) * radius,
+                    2, 0.2D, 0.15D, 0.2D, 0.04D);
+        }
+    }
+
     private void spawnSlamTelegraph(ServerLevel sl, float yawDeg, double forwardDist, double radius) {
         float rad = yawDeg * Mth.DEG_TO_RAD;
         Vec3 center = position().add(-Math.sin(rad) * forwardDist, 0.15D, Math.cos(rad) * forwardDist);
-        for (int i = 0; i < 20; i++) {
-            double ang = (Math.PI * 2.0D * i) / 20.0D;
+        for (int i = 0; i < 24; i++) {
+            double ang = (Math.PI * 2.0D * i) / 24.0D;
             sl.sendParticles(ParticleTypes.SNOWFLAKE,
                     center.x + Math.cos(ang) * radius, center.y, center.z + Math.sin(ang) * radius,
                     1, 0.05D, 0.05D, 0.05D, 0.01D);
         }
-        sl.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 0.7F, 1.35F);
+        sl.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 0.8F, 1.35F);
     }
 
-    private void impactSlamAtYaw(ServerLevel sl, float yawDeg, double forwardDist, double radius, float dmg) {
+    private void impactSlamAtYaw(ServerLevel sl, float yawDeg, double forwardDist, double radius, float dmg, int spikeCount) {
         float rad = yawDeg * Mth.DEG_TO_RAD;
         Vec3 center = position().add(-Math.sin(rad) * forwardDist, 0.5D, Math.cos(rad) * forwardDist);
-        sl.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.4D, center.z, 40, radius * 0.5D, 0.5D, radius * 0.5D, 0.09D);
-        sl.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y + 0.5D, center.z, 3, 0.5D, 0.2D, 0.5D, 0.01D);
-        sl.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.15F, 0.75F);
-        sl.playSound(null, center.x, center.y, center.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.1F, 0.8F);
-        AABB box = new AABB(center.x - radius, center.y - 1.5D, center.z - radius, center.x + radius, center.y + 3.0D, center.z + radius);
+        sl.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.4D, center.z, 48, radius * 0.55D, 0.6D, radius * 0.55D, 0.11D);
+        sl.sendParticles(ParticleTypes.ITEM_SNOWBALL, center.x, center.y + 0.4D, center.z, 24, radius * 0.45D, 0.5D, radius * 0.45D, 0.14D);
+        sl.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y + 0.5D, center.z, 3, 0.6D, 0.2D, 0.6D, 0.01D);
+        sl.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.2F, 0.72F);
+        sl.playSound(null, center.x, center.y, center.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.25F, 0.78F);
+
+        // Spawn jagged 3D ice spikes erupting around the slam impact ring!
+        for (int i = 0; i < spikeCount; i++) {
+            double ang = (Math.PI * 2.0D * i) / spikeCount + (random.nextDouble() - 0.5D) * 0.25D;
+            double dist = radius * (0.58D + random.nextDouble() * 0.35D);
+            double sx = center.x + Math.cos(ang) * dist;
+            double sz = center.z + Math.sin(ang) * dist;
+            CryoIceSpikeEntity.spawnSlamSpike(sl, this, sx, getY(), sz, 0.0F, 0.72F + random.nextFloat() * 0.35F, (float) Math.toDegrees(ang));
+        }
+
+        AABB box = new AABB(center.x - radius, center.y - 1.5D, center.z - radius, center.x + radius, center.y + 3.2D, center.z + radius);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
             if (e.position().distanceToSqr(center) <= radius * radius) {
-                StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.25F);
+                StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.20F);
+            }
+        }
+    }
+
+    private void spawnSpikeRing(ServerLevel sl, double radius, int count, float dmg, float scale) {
+        for (int i = 0; i < count; i++) {
+            double ang = (Math.PI * 2.0D * i) / count;
+            double sx = getX() + Math.cos(ang) * radius;
+            double sz = getZ() + Math.sin(ang) * radius;
+            CryoIceSpikeEntity.spawnSlamSpike(sl, this, sx, getY(), sz, dmg, scale, (float) Math.toDegrees(ang));
+        }
+    }
+
+    private void sweepSectorHitbox(ServerLevel sl, float sweepYawDeg, double radius, float halfConeDeg, float dmg, double pushStrength) {
+        float rad = sweepYawDeg * Mth.DEG_TO_RAD;
+        Vec3 forward = new Vec3(-Math.sin(rad), 0.0D, Math.cos(rad));
+        double cosThresh = Math.cos(halfConeDeg * Mth.DEG_TO_RAD);
+
+        // Sweeping frost particles along the whipping head arc
+        Vec3 tip = position().add(forward.scale(radius * 0.78D)).add(0.0D, 0.9D, 0.0D);
+        sl.sendParticles(ParticleTypes.SNOWFLAKE, tip.x, tip.y, tip.z, 8, 0.55D, 0.35D, 0.55D, 0.05D);
+
+        AABB box = getBoundingBox().inflate(radius, 2.5D, radius);
+        for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
+            Vec3 to = e.position().subtract(position());
+            double hDistSq = to.horizontalDistanceSqr();
+            if (hDistSq <= radius * radius && hDistSq > 0.25D) {
+                Vec3 hDir = new Vec3(to.x, 0.0D, to.z).normalize();
+                if (hDir.dot(forward) >= cosThresh) {
+                    StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.25F);
+                    Vec3 push = hDir.scale(pushStrength);
+                    e.push(push.x, 0.35D, push.z);
+                }
             }
         }
     }
 
     private void ringAoE(ServerLevel sl, double radius, float dmg, double pushStrength) {
-        for (int i = 0; i < 36; i++) {
-            double ang = (Math.PI * 2.0D * i) / 36.0D;
-            sl.sendParticles(ParticleTypes.SNOWFLAKE, getX() + Math.cos(ang) * radius * 0.8D, getY() + 0.8D, getZ() + Math.sin(ang) * radius * 0.8D, 2, 0.2D, 0.2D, 0.2D, 0.05D);
+        for (int i = 0; i < 42; i++) {
+            double ang = (Math.PI * 2.0D * i) / 42.0D;
+            sl.sendParticles(ParticleTypes.SNOWFLAKE, getX() + Math.cos(ang) * radius * 0.8D, getY() + 0.8D, getZ() + Math.sin(ang) * radius * 0.8D, 2, 0.2D, 0.2D, 0.2D, 0.06D);
         }
-        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.4F, 0.65F);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.45F, 0.65F);
         AABB box = getBoundingBox().inflate(radius, 2.5D, radius);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
             if (e.distanceToSqr(this) <= radius * radius) {
                 StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.25F);
                 Vec3 push = e.position().subtract(position()).normalize().scale(pushStrength);
-                e.push(push.x, 0.35D, push.z);
+                e.push(push.x, 0.38D, push.z);
             }
         }
     }
@@ -556,7 +751,7 @@ public class CryoRegisvineEntity extends Monster {
     private void arcSweepInFront(ServerLevel sl, double radius, float dmg) {
         float rad = getYRot() * Mth.DEG_TO_RAD;
         Vec3 forward = new Vec3(-Math.sin(rad), 0.0D, Math.cos(rad));
-        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.3F, 0.78F);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.35F, 0.78F);
         AABB box = getBoundingBox().inflate(radius, 2.5D, radius);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
             Vec3 to = e.position().subtract(position());
@@ -569,40 +764,23 @@ public class CryoRegisvineEntity extends Monster {
     private void sweepBeamRay(ServerLevel sl, float yawDeg, double length, float dmg) {
         float rad = yawDeg * Mth.DEG_TO_RAD;
         Vec3 dir = new Vec3(-Math.sin(rad), 0.0D, Math.cos(rad));
-        Vec3 start = position().add(0.0D, 1.4D, 0.0D);
-        for (double step = 2.0D; step <= length; step += 1.6D) {
+        Vec3 start = position().add(0.0D, 1.2D, 0.0D);
+        // Ground-scorch frost crystal shatter trail along the beam path
+        for (double step = 3.0D; step <= length; step += 2.2D) {
             Vec3 pt = start.add(dir.scale(step));
-            sl.sendParticles(ParticleTypes.SNOWFLAKE, pt.x, pt.y, pt.z, 2, 0.18D, 0.18D, 0.18D, 0.01D);
+            sl.sendParticles(ParticleTypes.SNOWFLAKE, pt.x, getY() + 0.25D, pt.z, 3, 0.25D, 0.2D, 0.25D, 0.04D);
+            if (step > 8.0D) {
+                sl.sendParticles(ParticleTypes.ITEM_SNOWBALL, pt.x, getY() + 0.2D, pt.z, 1, 0.2D, 0.2D, 0.2D, 0.06D);
+            }
         }
         AABB sweepBox = getBoundingBox().inflate(length, 3.0D, length);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, sweepBox, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
             Vec3 mid = e.position().add(0.0D, e.getBbHeight() * 0.5D, 0.0D);
             double proj = mid.subtract(start).dot(dir);
             if (proj > 1.0D && proj <= length) {
-                if (mid.distanceToSqr(start.add(dir.scale(proj))) <= 2.25D) {
-                    StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.25F);
+                if (mid.distanceToSqr(start.add(dir.scale(proj))) <= 2.4D) {
+                    StavesElementBridge.dealElementalDamage(e, this, "CRYO", dmg, 1.0F, false, 0.20F);
                 }
-            }
-        }
-    }
-
-    private void tickBlizzardZones(ServerLevel sl) {
-        Iterator<BlizzardZone> it = blizzardZones.iterator();
-        while (it.hasNext()) {
-            BlizzardZone z = it.next();
-            z.ticksLeft--;
-            if (z.ticksLeft > 0) {
-                if (z.ticksLeft % 3 == 0) {
-                    sl.sendParticles(ParticleTypes.SNOWFLAKE, z.x, z.y + 0.15D, z.z, 8, 1.5D, 0.1D, 1.5D, 0.01D);
-                }
-            } else {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, z.x, z.y + 1.0D, z.z, 28, 1.4D, 1.2D, 1.4D, 0.1D);
-                sl.playSound(null, z.x, z.y, z.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.9F, 1.1F);
-                AABB box = new AABB(z.x - 2.6D, z.y - 1.0D, z.z - 2.6D, z.x + 2.6D, z.y + 3.2D, z.z + 2.6D);
-                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && !(le instanceof CryoRegisvineEntity))) {
-                    StavesElementBridge.dealElementalDamage(e, this, "CRYO", 15.0F, 1.0F, false, 0.25F);
-                }
-                it.remove();
             }
         }
     }
@@ -610,15 +788,16 @@ public class CryoRegisvineEntity extends Monster {
     private void updateBossBar(int st) {
         bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
         if (st == STATE_STUNNED) {
+            int secsLeft = Math.max(1, (STUN_DURATION_TICKS - stateTicks + 19) / 20);
             bossEvent.setColor(BossEvent.BossBarColor.WHITE);
             bossEvent.setName(Component.translatable("entity.velorise_teyvat_bosses.cryo_regisvine")
-                    .append(Component.literal(" — STUNNED (1.35x DMG)")));
+                    .append(Component.literal(String.format(Locale.ROOT, " — STUNNED (%ds | 1.55x DMG)", secsLeft))));
         } else {
             bossEvent.setColor(BossEvent.BossBarColor.BLUE);
             int pct = Math.round(getShieldProgress() * 100.0F);
-            String phase = getCorollaPhase() == 0 ? "Roots" : "Corolla";
+            String phase = getCorollaPhase() == 0 ? "Roots Core" : "Corolla Core";
             bossEvent.setName(Component.translatable("entity.velorise_teyvat_bosses.cryo_regisvine")
-                    .append(Component.literal(String.format(Locale.ROOT, " [%s Cryo Shield: %d%%]", phase, pct))));
+                    .append(Component.literal(String.format(Locale.ROOT, " [%s: %d%%]", phase, pct))));
         }
     }
 
@@ -669,6 +848,7 @@ public class CryoRegisvineEntity extends Monster {
         tag.putDouble("AnchorZ", anchorPos.z);
         tag.putBoolean("AnchorInit", anchorInitialized);
         tag.putInt("CorollaPhase", getCorollaPhase());
+        tag.putFloat("RootYaw", getRootYaw());
     }
 
     @Override
@@ -679,5 +859,6 @@ public class CryoRegisvineEntity extends Monster {
             anchorInitialized = true;
         }
         entityData.set(DATA_COROLLA_PHASE, tag.getInt("CorollaPhase"));
+        if (tag.contains("RootYaw")) entityData.set(DATA_ROOT_YAW, tag.getFloat("RootYaw"));
     }
 }

@@ -1,6 +1,8 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -90,7 +92,7 @@ public class TheOpenEyedEntity extends Monster {
     };
 
     public static final int[] ANIM_DURATIONS_TICKS = {
-            80, 44, 32, 35, 40, 38, 32, 42, 64, 80, 50, 60
+            80, 44, 42, 46, 52, 50, 42, 54, 64, 80, 50, 60
     };
 
     private static final float BASE_ATK = 34.0F;
@@ -108,6 +110,8 @@ public class TheOpenEyedEntity extends Monster {
             SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_FURY_PROGRESS =
             SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> DATA_OVERSEER_ELEMENT =
+            SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.INT);
 
     private static volatile boolean ELEMENT_LISTENER_REGISTERED = false;
 
@@ -146,6 +150,7 @@ public class TheOpenEyedEntity extends Monster {
         super(type, level);
         this.xpReward = 400;
         this.setPersistenceRequired();
+        this.addTag("VeloriseInnateChecked");
         this.setNoGravity(true);
         ensureElementListener();
     }
@@ -188,8 +193,8 @@ public class TheOpenEyedEntity extends Monster {
                 .add(Attributes.MAX_HEALTH, 650.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.30D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.ARMOR, 14.0D)
-                .add(Attributes.ARMOR_TOUGHNESS, 8.0D)
+                .add(Attributes.ARMOR, 6.0D)
+                .add(Attributes.ARMOR_TOUGHNESS, 4.0D)
                 .add(Attributes.FOLLOW_RANGE, 36.0D)
                 .add(Attributes.ATTACK_DAMAGE, BASE_ATK);
     }
@@ -202,6 +207,7 @@ public class TheOpenEyedEntity extends Monster {
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_ANIM_HOLD_AT, -1);
         builder.define(DATA_FURY_PROGRESS, 0.0F);
+        builder.define(DATA_OVERSEER_ELEMENT, ElementalStarEntity.ELEM_INERT_GEO);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -210,6 +216,17 @@ public class TheOpenEyedEntity extends Monster {
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getAnimHoldAt() { return entityData.get(DATA_ANIM_HOLD_AT); }
     public float getFuryProgress() { return entityData.get(DATA_FURY_PROGRESS); }
+    public int getOverseerElement() { return entityData.get(DATA_OVERSEER_ELEMENT); }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (level().isClientSide() && DATA_ANIM_EPOCH.equals(key)) {
+            lastSyncedAnimId = getAnimId();
+            lastSyncedEpoch = getAnimEpoch();
+            clientAnimTick = 0;
+        }
+    }
 
     public String getCurrentAnimName() {
         int id = getAnimId();
@@ -286,7 +303,6 @@ public class TheOpenEyedEntity extends Monster {
         if (source.getEntity() instanceof LivingEntity && !(source.getEntity() instanceof Player)) {
             amount *= 0.50F;
         }
-        amount = Math.min(amount, 28.0F);
         return super.hurt(source, amount);
     }
 
@@ -298,6 +314,10 @@ public class TheOpenEyedEntity extends Monster {
             if (level() instanceof ServerLevel sl) {
                 clearActiveStars(sl);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_DEATH, SoundSource.HOSTILE, 1.3F, 1.15F);
+                if (!cause.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+                    if (TeyvatBossesItems.openEyedDisc() != null) spawnAtLocation(TeyvatBossesItems.openEyedDisc());
+                    BossRespawnAnchorEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_THE_OPEN_EYED, arenaInit ? arenaCenter : position(), getYRot(), BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
+                }
             }
         }
         super.die(cause);
@@ -321,6 +341,7 @@ public class TheOpenEyedEntity extends Monster {
     private void finishOverseerMonitoring(ServerLevel sl, int recordedElem) {
         overseerSweepPending = true;
         overseerSweepElement = recordedElem;
+        entityData.set(DATA_OVERSEER_ELEMENT, recordedElem);
         if (overseerCount < 2) {
             recordedElements[overseerCount] = recordedElem;
         }
@@ -410,7 +431,7 @@ public class TheOpenEyedEntity extends Monster {
             }
             if (stateTicks >= ANIM_DURATIONS_TICKS[ANIM_DESCEND]) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 22;
+                attackCooldown = 36;
             }
             return;
         }
@@ -428,7 +449,7 @@ public class TheOpenEyedEntity extends Monster {
                 recordedElements[1] = ElementalStarEntity.ELEM_INERT_GEO;
                 attacksSinceOverseer = 0;
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 24;
+                attackCooldown = 44;
             }
             return;
         }
@@ -464,8 +485,13 @@ public class TheOpenEyedEntity extends Monster {
         } else {
             executeCombatTick(sl, target, anim, aTick);
             if (aTick >= ANIM_DURATIONS_TICKS[anim]) {
-                playAnim(ANIM_IDLE);
-                attackCooldown = 20 + random.nextInt(14);
+                if (anim == ANIM_FORCED_TELEPORT) {
+                    faceTarget(target, 180.0F);
+                    playAnim(ANIM_SPEAR_SLAM);
+                } else {
+                    playAnim(ANIM_IDLE);
+                    attackCooldown = 44 + random.nextInt(24);
+                }
             }
         }
     }
@@ -505,6 +531,7 @@ public class TheOpenEyedEntity extends Monster {
         attacksSinceOverseer = 0;
         overseerSweepPending = false;
         overseerSweepElement = ElementalStarEntity.ELEM_INERT_GEO;
+        entityData.set(DATA_OVERSEER_ELEMENT, ElementalStarEntity.ELEM_INERT_GEO);
         for (int i = 0; i < monitorHits.length; i++) monitorHits[i] = 0;
         entityData.set(DATA_FURY_PROGRESS, 0.0F);
         faceTarget(target, 180.0F);
@@ -541,7 +568,7 @@ public class TheOpenEyedEntity extends Monster {
             if (t >= ANIM_DURATIONS_TICKS[ANIM_SUPREME_OVERSEER]) {
                 entityData.set(DATA_FURY_PROGRESS, 0.0F);
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 24;
+                attackCooldown = 44;
             }
         }
     }
@@ -558,8 +585,8 @@ public class TheOpenEyedEntity extends Monster {
         float starHp = getMaxHealth() / 6.0F;
         float rad = getYRot() * Mth.DEG_TO_RAD;
         Vec3 right = new Vec3(Math.cos(rad), 0.0D, Math.sin(rad));
-        Vec3 leftPos = arenaCenter.add(right.scale(-5.5D)).add(0.0D, 2.2D, 0.0D);
-        Vec3 rightPos = arenaCenter.add(right.scale(5.5D)).add(0.0D, 2.2D, 0.0D);
+        Vec3 leftPos = arenaCenter.add(right.scale(-4.0D)).add(0.0D, 0.15D, 0.0D);
+        Vec3 rightPos = arenaCenter.add(right.scale(4.0D)).add(0.0D, 0.15D, 0.0D);
 
         ElementalStarEntity s1 = ElementalStarEntity.spawnForBoss(sl, this, leftPos, recordedElements[0], starHp);
         ElementalStarEntity s2 = ElementalStarEntity.spawnForBoss(sl, this, rightPos, recordedElements[1], starHp);
@@ -590,11 +617,8 @@ public class TheOpenEyedEntity extends Monster {
                 for (UUID uid : remaining) {
                     if (sl.getEntity(uid) instanceof ElementalStarEntity star && star.isAlive()) {
                         String elem = ElementalStarEntity.elementName(star.getElementId());
-                        Vec3 strikePos = target.position();
-                        sl.sendParticles(ElementalStarEntity.particleForElement(star.getElementId()),
-                                strikePos.x, strikePos.y + 1.5D, strikePos.z, 48, 2.2D, 3.0D, 2.2D, 0.14D);
-                        sl.playSound(null, strikePos.x, strikePos.y, strikePos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.5F, 0.85F);
-                        aoeDamage(sl, strikePos, 5.5D, BASE_ATK * 1.00F, elem, 0.35F, 0.15F);
+                        Vec3 strikePos = target.position().add((random.nextDouble() - 0.5D) * 2.4D, 0.0D, (random.nextDouble() - 0.5D) * 2.4D);
+                        SkySpearEntity.spawn(sl, this, strikePos.x, arenaCenter.y, strikePos.z, star.getElementId(), BASE_ATK * 1.00F, 5.6F);
                         star.discard();
                     }
                 }
@@ -607,7 +631,7 @@ public class TheOpenEyedEntity extends Monster {
                 attacksSinceOverseer = 0;
                 entityData.set(DATA_FURY_PROGRESS, 0.0F);
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 30;
+                attackCooldown = 50;
             }
         }
     }
@@ -624,48 +648,51 @@ public class TheOpenEyedEntity extends Monster {
     private void executeCombatTick(ServerLevel sl, LivingEntity target, int anim, int t) {
         switch (anim) {
             case ANIM_SPEAR_SLAM -> {
-                if (t < 12) faceTarget(target, 12.0F);
-                if (t == 11) spawnWarningRing(sl, forwardPoint(4.0D), 3.6D);
-                if (t == 16) {
-                    aoeDamage(sl, forwardPoint(4.0D), 4.0D, BASE_ATK * 0.60F, "GEO", 0.25F, 0.0F);
+                if (t < 16) faceTarget(target, 10.0F);
+                if (t == 14) spawnWarningRing(sl, forwardPoint(4.0D), 3.6D);
+                if (t == 21) {
+                    aoeDamage(sl, forwardPoint(4.0D), 4.0D, BASE_ATK * 0.60F, "GEO", 0.22F, 0.0F);
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.1F, 0.8F);
                 }
             }
             case ANIM_SPEAR_THRUST -> {
-                if (t < 14) faceTarget(target, 12.0F);
-                if (t == 18) {
+                if (t < 18) faceTarget(target, 10.0F);
+                if (t >= 20 && t <= 26) dashForwardInArena(0.82D);
+                if (t == 23) {
                     lineThrustDamage(sl, 11.0D, BASE_ATK * 0.60F, "GEO");
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.35F, 0.85F);
                 }
             }
             case ANIM_DOUBLE_LUNGE -> {
-                if (t < 9 || (t > 16 && t < 22)) faceTarget(target, 14.0F);
-                if (t == 12) {
-                    lineThrustDamage(sl, 7.5D, BASE_ATK * 0.41F, "GEO");
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.1F, 1.1F);
+                if (t < 12 || (t > 21 && t < 29)) faceTarget(target, 12.0F);
+                if (t >= 13 && t <= 18) dashForwardInArena(0.75D);
+                if (t == 16) {
+                    lineThrustDamage(sl, 7.8D, BASE_ATK * 0.41F, "GEO");
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.15F, 1.1F);
                 }
-                if (t == 26) {
-                    lineThrustDamage(sl, 9.5D, BASE_ATK * 0.47F, "GEO");
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.3F, 0.9F);
+                if (t >= 31 && t <= 37) dashForwardInArena(0.92D);
+                if (t == 34) {
+                    lineThrustDamage(sl, 9.8D, BASE_ATK * 0.47F, "GEO");
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.35F, 0.88F);
                 }
             }
             case ANIM_DOUBLE_SLASH -> {
-                if (t < 8 || (t > 14 && t < 19)) faceTarget(target, 14.0F);
-                if (t == 10) {
+                if (t < 11 || (t > 19 && t < 26)) faceTarget(target, 12.0F);
+                if (t == 14) {
                     arcAttack(sl, 6.2D, 0.15D, BASE_ATK * 0.32F, "GEO");
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.25F, 1.0F);
                 }
-                if (t == 22) {
+                if (t == 29) {
                     arcAttack(sl, 6.8D, 0.10D, BASE_ATK * 0.34F, "GEO");
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.35F, 0.85F);
                 }
             }
             case ANIM_FORCED_TELEPORT -> {
-                faceTarget(target, 12.0F);
-                if (t == 12) {
+                faceTarget(target, 10.0F);
+                if (t == 15) {
                     sl.sendParticles(ParticleTypes.PORTAL, target.getX(), target.getY() + 1.0D, target.getZ(), 28, 0.6D, 0.8D, 0.6D, 0.1D);
                 }
-                if (t == 19) {
+                if (t == 25) {
                     Vec3 dest = forwardPoint(3.2D);
                     target.teleportTo(dest.x, arenaCenter.y + 0.2D, dest.z);
                     sl.sendParticles(ParticleTypes.REVERSE_PORTAL, dest.x, arenaCenter.y + 1.0D, dest.z, 36, 0.6D, 0.9D, 0.6D, 0.08D);
@@ -673,12 +700,12 @@ public class TheOpenEyedEntity extends Monster {
                 }
             }
             case ANIM_LEAPING_SLAM -> {
-                if (t < 18) {
-                    faceTarget(target, 12.0F);
+                if (t < 24) {
+                    faceTarget(target, 10.0F);
                     leapTargetPos = target.position();
                 }
-                if (t == 18 || t == 22) spawnWarningRing(sl, leapTargetPos, 4.8D);
-                if (t == 27) {
+                if (t == 23 || t == 29) spawnWarningRing(sl, leapTargetPos, 4.8D);
+                if (t == 35) {
                     setPos(leapTargetPos.x, arenaCenter.y, leapTargetPos.z);
                     aoeDamage(sl, leapTargetPos, 5.2D, BASE_ATK * 0.60F, "GEO", 0.28F, 0.05F);
                     sl.sendParticles(ParticleTypes.EXPLOSION, leapTargetPos.x, leapTargetPos.y + 0.5D, leapTargetPos.z, 4, 0.8D, 0.2D, 0.8D, 0.01D);
@@ -687,6 +714,21 @@ public class TheOpenEyedEntity extends Monster {
             }
             default -> {}
         }
+    }
+
+    private void dashForwardInArena(double stepDist) {
+        float rad = getYRot() * Mth.DEG_TO_RAD;
+        double nx = getX() - Math.sin(rad) * stepDist;
+        double nz = getZ() + Math.cos(rad) * stepDist;
+        double dx = nx - arenaCenter.x;
+        double dz = nz - arenaCenter.z;
+        double distSq = dx * dx + dz * dz;
+        if (distSq > 15.5D * 15.5D) {
+            double scale = 15.5D / Math.sqrt(distSq);
+            nx = arenaCenter.x + dx * scale;
+            nz = arenaCenter.z + dz * scale;
+        }
+        setPos(nx, arenaCenter.y, nz);
     }
 
     private Vec3 forwardPoint(double dist) {

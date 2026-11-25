@@ -1,0 +1,18 @@
+{
+  "music.cryo_regisvine_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/cryo_regisvine_theme",
+        "stream": true
+      }
+    ]
+  },
+  "music.the_open_eyed_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/the_open_eyed_theme",
+        "stream": true
+      }
+    ]
+  }
+}

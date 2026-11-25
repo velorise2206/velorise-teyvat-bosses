@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "velorise_teyvat_bosses:cryo_regisvine_arena",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 36,
+    "separation": 16,
+    "salt": 73194021
+  }
+}
