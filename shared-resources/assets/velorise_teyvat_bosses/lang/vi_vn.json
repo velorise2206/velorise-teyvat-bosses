@@ -1,3 +1,9 @@
 {
-  "itemGroup.velorise_teyvat_bosses.main": "Velorise: Teyvat Bosses"
+  "itemGroup.velorise_teyvat_bosses.main": "Velorise: Teyvat Bosses",
+  "entity.velorise_teyvat_bosses.cryo_regisvine": "Cây Cấp Đông",
+  "entity.velorise_teyvat_bosses.cryo_icicle": "Băng Trùy",
+  "entity.velorise_teyvat_bosses.the_open_eyed": "Người Mở Mắt",
+  "entity.velorise_teyvat_bosses.elemental_star": "Tinh Tú Nguyên Tố",
+  "item.velorise_teyvat_bosses.cryo_regisvine_spawn_egg": "Trứng Triệu Hồi Cây Cấp Đông",
+  "item.velorise_teyvat_bosses.the_open_eyed_spawn_egg": "Trứng Triệu Hồi Người Mở Mắt"
 }

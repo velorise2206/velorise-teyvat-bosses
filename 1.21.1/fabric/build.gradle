@@ -40,6 +40,8 @@ dependencies {
 
     modCompileOnly "maven.modrinth:jade:15.10.6+fabric"
     modRuntimeOnly "maven.modrinth:jade:15.10.6+fabric"
+
+    modRuntimeOnly fileTree(dir: 'run/dev-mods', include: '*.jar')
 }
 
 sourceSets.main.java {
