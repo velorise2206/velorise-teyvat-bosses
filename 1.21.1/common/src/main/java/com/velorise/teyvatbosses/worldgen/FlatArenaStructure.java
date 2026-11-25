@@ -207,7 +207,8 @@ public class FlatArenaStructure extends Structure {
         BlockPos adjustedOrigin = new BlockPos(cx - rawCenterX, placeY, cz - rawCenterZ);
         BoundingBox placedBox = element.getBoundingBox(context.structureTemplateManager(), adjustedOrigin, rotation);
 
-        BlockPos stubPos = new BlockPos(cx, placeY, cz);
+        int safeLocateY = this.undergroundCave ? (placeY + 5) : (anchorSurfaceY + 2);
+        BlockPos stubPos = new BlockPos(cx, safeLocateY, cz);
         return Optional.of(new GenerationStub(stubPos, builder -> builder.addPiece(
                 new PoolElementStructurePiece(
                         context.structureTemplateManager(),
@@ -294,7 +295,7 @@ public class FlatArenaStructure extends Structure {
                 double dx = x - centerX;
                 double dz = z - centerZ;
                 double dist = Math.sqrt(dx * dx + dz * dz);
-                double organicNoise = smoothNoise2D(x * 0.13D, z * 0.13D) * 2.1D;
+                double organicNoise = smoothNoise2D(x * 0.16D, z * 0.16D) * 3.2D;
 
                 if (dist <= this.sampleRadius + 0.5D) {
                     boolean isArenaColumn = hasStructureBlockNearSurface(level, pos, x, z, placeY, targetGroundY);
@@ -343,13 +344,18 @@ public class FlatArenaStructure extends Structure {
                     continue;
                 }
 
-                double t = Mth.clamp((dist - this.sampleRadius) / Math.max(1.0D, outerLimit - this.sampleRadius), 0.0D, 1.0D);
-                double s = t * t * t * (t * (t * 6.0D - 15.0D) + 10.0D);
-
                 SurfaceColumn nat = sampleNaturalSurface(level, x, z, targetGroundY);
                 if (nat == null) {
                     continue;
                 }
+
+                // Leave natural terrain untouched when it is already within 1 block of the arena rim (eliminates flat circular halo!)
+                if (dist > this.sampleRadius + 0.5D && Math.abs(nat.y - targetGroundY) <= 1) {
+                    continue;
+                }
+
+                double t = Mth.clamp((dist - (this.sampleRadius - 0.5D)) / Math.max(1.0D, outerLimit - (this.sampleRadius - 0.5D)), 0.0D, 1.0D);
+                double s = Math.pow(t, 1.15D);
 
                 int blendedY = (int) Math.round(targetGroundY + (nat.y - targetGroundY) * s);
                 if (blendedY == nat.y) {

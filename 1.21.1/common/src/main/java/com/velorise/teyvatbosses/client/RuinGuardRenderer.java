@@ -35,7 +35,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss_emissive.png");
     private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.ruin_guard_theme");
 
-    private static final float BLEND_TICKS = 5.0F;
+    private static final float BLEND_TICKS = 7.0F;
 
     private static final class AnimSM {
         String prevClip = null;
@@ -275,7 +275,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         poseStack.pushPose();
         poseStack.translate(0.0D, heightY, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(leftToRight ? -9.0F : 9.0F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(leftToRight ? -28.0F : 28.0F));
         Matrix4f mat = poseStack.last().pose();
 
         float alphaF = Mth.sin(Mth.clamp(progress, 0.0F, 1.0F) * (float) Math.PI);

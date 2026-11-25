@@ -453,29 +453,42 @@ public class RuinGuardEntity extends Monster {
         double dist = Math.hypot(target.getX() - getX(), target.getZ() - getZ());
 
         if (anim == ANIM_IDLE || anim == ANIM_WALK) {
-            faceTarget(target, 5.5F);
-            // Smooth walk/idle hysteresis so the boss never stutters at a single distance threshold
-            boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 3.5D) : (dist > 4.6D);
+            double dxT = target.getX() - getX();
+            double dzT = target.getZ() - getZ();
+            float desiredYaw = (float) (Math.atan2(dzT, dxT) * (180.0D / Math.PI)) - 90.0F;
+            float yawDiff = Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
+
+            // Heavy mechanical turn inertia + automatic pivot-step so feet lift when turning in place!
+            faceTarget(target, 3.8F);
+            boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 3.4D) : (dist > 4.4D);
+            boolean needsPivotStep = (anim == ANIM_WALK) ? (yawDiff > 7.5F) : (yawDiff > 16.0F);
             Vec3 cur = getDeltaMovement();
 
-            if (shouldWalk) {
+            if (shouldWalk || needsPivotStep) {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
-                Vec3 dir = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
-                // Stride-synced speed modulation matching 1.60s (32-tick) heavy mechanical march
-                double stridePhase = Math.abs(Math.sin((stateTick / 16.0D) * Math.PI));
-                double speed = 0.11D + 0.09D * stridePhase;
-                setDeltaMovement(
-                        Mth.lerp(0.24D, cur.x, dir.x * speed),
-                        cur.y,
-                        Mth.lerp(0.24D, cur.z, dir.z * speed)
-                );
-                if (stateTick % 16 == 8) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.25F, 0.62F);
-                    sl.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, getX(), getY() + 0.1D, getZ(), 4, 0.5D, 0.05D, 0.5D, 0.02D);
+                if (shouldWalk) {
+                    Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
+                    // Exact 1.80s (36-tick, 18 ticks/step) stride-locked velocity: surges during swing, anchors on footplant!
+                    double stepPhase = (stateTick % 18) / 18.0D;
+                    double speed = (stepPhase < 0.55D)
+                            ? (0.042D + 0.098D * Math.sin((stepPhase / 0.55D) * Math.PI))
+                            : 0.032D;
+                    setDeltaMovement(
+                            Mth.lerp(0.22D, cur.x, dir.x * speed),
+                            cur.y,
+                            Mth.lerp(0.22D, cur.z, dir.z * speed)
+                    );
+                } else {
+                    // Turning in place: hold position while legs lift & step cleanly
+                    setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
+                }
+                if (stateTick % 18 == 9) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.15F : 0.85F, 0.60F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 3 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
                 }
             } else {
                 if (anim != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
-                setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
+                setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
             }
 
             if (--attackCooldown <= 0) {
@@ -579,9 +592,17 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.36D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.36D));
         } else if (stateTick >= 29 && stateTick <= 31) {
             setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.36D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.36D));
-        } else if (stateTick >= 42 && stateTick <= 49) {
-            double hopVy = (stateTick == 42) ? 0.42D : cur.y;
-            setDeltaMovement(Mth.lerp(0.4D, cur.x, forward.x * 0.24D), hopVy, Mth.lerp(0.4D, cur.z, forward.z * 0.24D));
+        } else if (stateTick >= 40 && stateTick <= 49) {
+            // Authentic Genshin Combo Hit 3: dramatic high airborne leap at tick 40 -> violent downward slam at tick 47-49!
+            double hopVy = cur.y;
+            if (stateTick == 40) {
+                hopVy = 0.78D;
+                sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.72F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 10, 0.7D, 0.08D, 0.7D, 0.04D);
+            } else if (stateTick >= 47) {
+                hopVy = -0.82D;
+            }
+            setDeltaMovement(Mth.lerp(0.42D, cur.x, forward.x * 0.34D), hopVy, Mth.lerp(0.42D, cur.z, forward.z * 0.34D));
         } else {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }

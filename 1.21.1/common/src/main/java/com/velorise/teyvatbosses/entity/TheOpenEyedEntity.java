@@ -317,8 +317,7 @@ public class TheOpenEyedEntity extends Monster {
                 clearActiveStars(sl);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_DEATH, SoundSource.HOSTILE, 1.3F, 1.15F);
                 if (!cause.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-                    if (TeyvatBossesItems.openEyedDisc() != null) spawnAtLocation(TeyvatBossesItems.openEyedDisc());
-                    BossRespawnAnchorEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_THE_OPEN_EYED, arenaInit ? arenaCenter : position(), getYRot(), BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
+                    TrounceBlossomEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_THE_OPEN_EYED, arenaInit ? arenaCenter : position(), getYRot());
                 }
             }
         }

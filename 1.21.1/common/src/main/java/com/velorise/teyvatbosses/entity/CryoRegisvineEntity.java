@@ -327,8 +327,7 @@ public class CryoRegisvineEntity extends Monster {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.7F, 0.52F);
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.5D, getZ(), 65, 2.5D, 2.0D, 2.5D, 0.12D);
                 if (!cause.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-                    if (TeyvatBossesItems.cryoDisc() != null) spawnAtLocation(TeyvatBossesItems.cryoDisc());
-                    BossRespawnAnchorEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE, anchorInitialized ? anchorPos : position(), getRootYaw(), BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
+                    TrounceBlossomEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE, anchorInitialized ? anchorPos : position(), getRootYaw());
                 }
             }
         }
