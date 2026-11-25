@@ -242,8 +242,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     }
 
     private static float computeImpactShudder(int animId, float sec) {
-        if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && sec >= 3.88F && sec <= 4.18F) {
-            return 0.12F * (1.0F - (sec - 3.88F) / 0.30F);
+        if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && sec >= 4.28F && sec <= 4.58F) {
+            return 0.12F * (1.0F - (sec - 4.28F) / 0.30F);
         }
         if (animId == RuinGuardEntity.ANIM_LEAP_SLAM && sec >= 1.78F && sec <= 2.12F) {
             return 0.14F * (1.0F - (sec - 1.78F) / 0.34F);
@@ -251,11 +251,11 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         if (animId == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && sec >= 1.23F && sec <= 1.55F) {
             return 0.15F * (1.0F - (sec - 1.23F) / 0.32F);
         }
-        if (animId == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && sec >= 0.88F && sec <= 1.08F) {
-            return 0.08F * (1.0F - (sec - 0.88F) / 0.20F);
+        if (animId == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && sec >= 0.98F && sec <= 1.22F) {
+            return 0.09F * (1.0F - (sec - 0.98F) / 0.24F);
         }
-        if (animId == RuinGuardEntity.ANIM_DOUBLE_CLAP && sec >= 1.03F && sec <= 1.20F) {
-            return 0.07F * (1.0F - (sec - 1.03F) / 0.17F);
+        if (animId == RuinGuardEntity.ANIM_DOUBLE_CLAP && sec >= 1.13F && sec <= 1.34F) {
+            return 0.08F * (1.0F - (sec - 1.13F) / 0.21F);
         }
         return 0.0F;
     }
@@ -298,9 +298,10 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
         if (anim == RuinGuardEntity.ANIM_CYCLONE_ACTIVE) {
             float spinYaw = liveTick * 54.0F;
-            drawSpinWindArc(vc, poseStack, spinYaw, 2.05D, 3.4F, 4.75F, 165, 255, 238, 195);
-            drawSpinWindArc(vc, poseStack, spinYaw + 180.0F, 2.05D, 3.4F, 4.75F, 165, 255, 238, 195);
-            drawSpinWindArc(vc, poseStack, spinYaw + 90.0F, 1.75D, 3.9F, 4.90F, 100, 255, 190, 95);
+            // Low-sweeping wind arcs matching Genshin's downward-hanging flailing fists (~44 deg)
+            drawSpinWindArc(vc, poseStack, spinYaw, 1.35D, 2.7F, 4.15F, 165, 255, 238, 195);
+            drawSpinWindArc(vc, poseStack, spinYaw + 180.0F, 1.35D, 2.7F, 4.15F, 165, 255, 238, 195);
+            drawSpinWindArc(vc, poseStack, spinYaw + 90.0F, 1.10D, 3.1F, 4.35F, 100, 255, 190, 95);
         } else if (anim == RuinGuardEntity.ANIM_CYCLONE_RECOVER && currSec < 1.15F) {
             float p = currSec / 1.15F;
             float decay = 1.0F - p;
@@ -308,23 +309,22 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             float coastYaw = (currSec * 1080.0F) * (1.0F - 0.48F * p);
             int mainA = (int) (155 * easeDecay);
             int subA = (int) (90 * easeDecay);
-            drawSpinWindArc(vc, poseStack, coastYaw, 2.00D - p * 0.40D, 3.4F, 4.65F - p * 0.55F, mainA, 255, 235, 185);
-            drawSpinWindArc(vc, poseStack, coastYaw + 180.0F, 2.00D - p * 0.40D, 3.4F, 4.65F - p * 0.55F, subA, 255, 210, 130);
+            drawSpinWindArc(vc, poseStack, coastYaw, 1.32D - p * 0.30D, 2.7F, 4.05F - p * 0.50F, mainA, 255, 235, 185);
+            drawSpinWindArc(vc, poseStack, coastYaw + 180.0F, 1.32D - p * 0.30D, 2.7F, 4.05F - p * 0.50F, subA, 255, 210, 130);
         }
 
         if (anim == RuinGuardEntity.ANIM_MELEE_3HIT) {
-            if (currSec >= 0.94F && currSec <= 1.26F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.90D, (currSec - 0.94F) / 0.32F, false);
-            } else if (currSec >= 2.08F && currSec <= 2.42F) {
-                // Hit 2 continues the 360-deg right-arm spin into a wide diagonal-downward cleave
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.70D, (currSec - 2.08F) / 0.34F, false);
-            } else if (currSec >= 3.88F && currSec <= 4.46F) {
-                drawExpandingShockwave(vc, poseStack, 5.8F, (currSec - 3.88F) / 0.58F);
+            if (currSec >= 1.28F && currSec <= 1.58F) {
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.90D, (currSec - 1.28F) / 0.30F, false);
+            } else if (currSec >= 2.38F && currSec <= 2.70F) {
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.70D, (currSec - 2.38F) / 0.32F, false);
+            } else if (currSec >= 4.28F && currSec <= 4.88F) {
+                drawExpandingShockwave(vc, poseStack, 5.8F, (currSec - 4.28F) / 0.60F);
             }
         }
 
-        if (anim == RuinGuardEntity.ANIM_DOUBLE_CLAP && currSec >= 1.02F && currSec <= 1.38F) {
-            float p = (currSec - 1.02F) / 0.36F;
+        if (anim == RuinGuardEntity.ANIM_DOUBLE_CLAP && currSec >= 1.12F && currSec <= 1.50F) {
+            float p = (currSec - 1.12F) / 0.38F;
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
             poseStack.translate(0.0D, 1.85D, -2.2D - p * 1.4D);
@@ -337,8 +337,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             poseStack.popPose();
         }
 
-        if (anim == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && currSec >= 0.88F && currSec <= 1.32F) {
-            drawExpandingShockwave(vc, poseStack, 5.2F, (currSec - 0.88F) / 0.44F);
+        if (anim == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && currSec >= 0.98F && currSec <= 1.46F) {
+            drawExpandingShockwave(vc, poseStack, 5.2F, (currSec - 0.98F) / 0.48F);
         } else if (anim == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.78F && currSec <= 2.42F) {
             drawExpandingShockwave(vc, poseStack, 7.0F, (currSec - 1.78F) / 0.64F);
         } else if (anim == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && currSec >= 1.23F && currSec <= 1.95F) {

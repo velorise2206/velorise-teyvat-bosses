@@ -561,17 +561,17 @@ public class RuinGuardEntity extends Monster {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
                 if (shouldWalk) {
                     Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
-                    // Exact 1.50s (30-tick, 15 ticks/step) zero-slide velocity matched to 1.04 blocks/step leg sweep:
-                    // Footplant stomp occurs at tick 8 (phase 0.50); anchors on stomp (0.46..0.64) for crisp non-sliding grip
-                    double stepPhase = (stateTick % 15) / 15.0D;
+                    // Exact 2.40s (48-tick, 24 ticks/step) Genshin zero-slide velocity matched to 1.04 blocks/step leg sweep:
+                    // Footplant stomp occurs at tick 12 (phase 0.50); anchors firmly on stomp (0.46..0.66) for zero foot sliding
+                    double stepPhase = (stateTick % 24) / 24.0D;
                     double phaseMul = isPhase2() ? 1.08D : 1.0D;
                     double speed;
-                    if (stepPhase >= 0.46D && stepPhase <= 0.64D) {
-                        speed = 0.010D;
+                    if (stepPhase >= 0.46D && stepPhase <= 0.66D) {
+                        speed = 0.008D;
                     } else if (stepPhase < 0.46D) {
-                        speed = 0.056D + 0.034D * Math.sin((stepPhase / 0.46D) * Math.PI);
+                        speed = 0.036D + 0.024D * Math.sin((stepPhase / 0.46D) * Math.PI);
                     } else {
-                        speed = 0.058D + 0.028D * Math.sin(((stepPhase - 0.64D) / 0.36D) * Math.PI);
+                        speed = 0.038D + 0.020D * Math.sin(((stepPhase - 0.66D) / 0.34D) * Math.PI);
                     }
                     speed *= phaseMul;
                     setDeltaMovement(
@@ -582,8 +582,8 @@ public class RuinGuardEntity extends Monster {
                 } else {
                     setDeltaMovement(cur.x * 0.32D, cur.y, cur.z * 0.32D);
                 }
-                if (stateTick % 15 == 8) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.3F : 0.85F, 0.54F);
+                if (stateTick % 24 == 12) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.35F : 0.85F, 0.52F);
                     sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 6 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
                 }
             } else {
@@ -723,19 +723,21 @@ public class RuinGuardEntity extends Monster {
     }
 
     private void tickMissileBarrage(ServerLevel sl, LivingEntity target) {
-        faceTarget(target, 5.5F);
+        if (stateTick < 17 || stateTick > 45) {
+            faceTarget(target, 5.0F);
+        }
         setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
-        if (stateTick == 10) {
-            sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.3F, 0.80F);
+        if (stateTick == 8 || stateTick == 46) {
+            sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.65F);
         }
-        int totalMissiles = isPhase2() ? 6 : 4;
-        if (stateTick >= 23 && stateTick < 23 + totalMissiles * 2 && (stateTick - 23) % 2 == 0) {
-            int idx = (stateTick - 23) / 2;
-            launchPodMissile(sl, target, idx, 8.5F);
+        int totalMissiles = 6;
+        if (stateTick >= 20 && stateTick < 20 + totalMissiles * 3 && (stateTick - 20) % 3 == 0) {
+            int idx = (stateTick - 20) / 3;
+            launchPodMissile(sl, target, idx, isPhase2() ? 9.0F : 8.0F);
         }
-        if (stateTick >= 48) {
+        if (stateTick >= 64) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 34;
+            attackCooldown = 36;
         }
     }
 
@@ -753,29 +755,29 @@ public class RuinGuardEntity extends Monster {
     }
 
     /**
-     * Authentic Genshin Ruin Guard 3-Hit Combo (112 ticks = 5.60s):
-     * Hit 1 right-arm horizontal beam sweep @ tick 21 (1.05s),
-     * Hit 2 360-deg spin-through right-arm diagonal cleave @ tick 44 (2.20s),
-     * Deep pre-jump crouch 51..60, terrain-aware parabolic jump arc 61..77 (0.80s),
-     * Gorilla-crater ground-contact slam @ tick 78 (3.90s), crater lock 78..93, slow hydraulic stand-up 93..112.
+     * Exact frame-matched Genshin Ruin Guard 3-Hit Combo (128 ticks = 6.40s):
+     * Fist-clap spark opener @ tick 7 (0.35s), Hit 1 sweep @ tick 28 (1.40s),
+     * Hit 2 360-deg spin-through cleave @ tick 50 (2.50s), crouch 58..68,
+     * feet-first parabolic jump 69..85 (0.80s), ground slam @ tick 86 (4.30s),
+     * crater hold 86..103, slow hydraulic stand-up 103..128.
      */
     private void tickMelee3Hit(ServerLevel sl, LivingEntity target) {
         Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-        if (stateTick < 17 || (stateTick > 26 && stateTick < 39) || (stateTick >= 51 && stateTick < 61)) {
+        if (stateTick < 24 || (stateTick > 32 && stateTick < 45) || (stateTick >= 58 && stateTick < 69)) {
             faceTarget(target, 6.5F);
         }
 
         Vec3 cur = getDeltaMovement();
-        if (stateTick >= 18 && stateTick <= 21) {
+        if (stateTick >= 25 && stateTick <= 28) {
             setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.34D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.34D));
-        } else if (stateTick >= 41 && stateTick <= 44) {
+        } else if (stateTick >= 47 && stateTick <= 50) {
             setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.38D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.38D));
-        } else if (stateTick >= 51 && stateTick < 61) {
+        } else if (stateTick >= 58 && stateTick < 69) {
             setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
-            if (stateTick == 52) {
+            if (stateTick == 59) {
                 sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.56F);
             }
-            if (stateTick >= 52 && stateTick <= 59) {
+            if (stateTick >= 59 && stateTick <= 67) {
                 Vec3 toT = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
                 double dist = toT.length();
                 double maxHopDist = 6.5D;
@@ -788,16 +790,16 @@ public class RuinGuardEntity extends Monster {
                 setTelegraph(leapTarget, 5.2F);
             }
             leapStart = position();
-        } else if (stateTick >= 61 && stateTick <= 77) {
-            if (stateTick == 61) {
+        } else if (stateTick >= 69 && stateTick <= 85) {
+            if (stateTick == 69) {
                 sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.70F);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.5F, 0.48F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 14, 0.8D, 0.08D, 0.8D, 0.05D);
             }
-            float f = (stateTick - 61) / 16.0F;
+            float f = (stateTick - 69) / 16.0F;
             float horizF = f * f * (3.0F - 2.0F * f);
             double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
-            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.2D;
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.0D;
             double nx = Mth.lerp(horizF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(horizF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
@@ -805,7 +807,7 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(next.subtract(position()));
             setPos(nx, ny, nz);
             this.fallDistance = 0.0F;
-        } else if (stateTick == 78) {
+        } else if (stateTick == 86) {
             clearTelegraph();
             setDeltaMovement(Vec3.ZERO);
             setPos(leapTarget.x, leapTarget.y, leapTarget.z);
@@ -821,25 +823,30 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }
 
-        if (stateTick == 15 || stateTick == 36) {
+        if (stateTick == 7) {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 0.85F, 0.82F);
+            Vec3 clapSpot = position().add(forward.scale(1.4D));
+            sl.sendParticles(ParticleTypes.FLAME, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 10, 0.25D, 0.2D, 0.25D, 0.05D);
+            sl.sendParticles(ParticleTypes.CRIT, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 8, 0.3D, 0.25D, 0.3D, 0.12D);
+        } else if (stateTick == 21 || stateTick == 42) {
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.15F, 0.60F);
-        } else if (stateTick == 21) {
+        } else if (stateTick == 28) {
             dealArcDamage(sl, 5.0D, 155.0F, 11.0F, 0.95D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.65F, 0.52F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.35F, 0.64F);
             Vec3 front = position().add(forward.scale(2.8D));
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.6D, front.z, 3, 1.2D, 0.2D, 1.2D, 0.0D);
-        } else if (stateTick == 44) {
+        } else if (stateTick == 50) {
             dealArcDamage(sl, 5.2D, 165.0F, 12.5F, 1.05D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.75F, 0.45F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.45F, 0.58F);
             Vec3 front = position().add(forward.scale(2.9D));
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.5D, front.z, 4, 1.3D, 0.25D, 1.3D, 0.0D);
-        } else if (stateTick == 93) {
+        } else if (stateTick == 103) {
             sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 0.9F, 0.52F);
         }
 
-        if (stateTick >= 112) {
+        if (stateTick >= 128) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
             attackCooldown = 32;
         }
@@ -847,52 +854,51 @@ public class RuinGuardEntity extends Monster {
 
     private void tickDoubleClap(ServerLevel sl, LivingEntity target) {
         Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-        if (stateTick < 18) faceTarget(target, 6.5F);
-        if (stateTick == 12) {
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.68F);
+        if (stateTick < 20) faceTarget(target, 6.0F);
+        if (stateTick == 13) {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.3F, 0.62F);
         }
         Vec3 cur = getDeltaMovement();
-        if (stateTick >= 19 && stateTick <= 21) {
+        if (stateTick >= 21 && stateTick <= 23) {
             setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.34D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.34D));
         } else {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }
-        if (stateTick == 21) {
-            dealArcDamage(sl, 5.0D, 95.0F, 14.5F, 1.30D);
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.4F, 0.55F);
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.78F);
+        if (stateTick == 23) {
+            dealArcDamage(sl, 5.2D, 105.0F, 14.5F, 1.35D);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5F, 0.52F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.45F, 0.74F);
             Vec3 clapPos = position().add(forward.scale(2.4D));
             sl.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, clapPos.x, clapPos.y + 1.7D, clapPos.z, 3, 0.8D, 0.4D, 0.8D, 0.0D);
-            sl.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, clapPos.x, clapPos.y + 1.6D, clapPos.z, 18, 1.1D, 0.5D, 1.1D, 0.08D);
+            sl.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, clapPos.x, clapPos.y + 1.6D, clapPos.z, 20, 1.1D, 0.5D, 1.1D, 0.08D);
         }
-        if (stateTick >= 42) {
+        if (stateTick >= 52) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 26;
+            attackCooldown = 28;
         }
     }
 
     private void tickStompShockwave(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
         if (stateTick == 10) {
-            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.62F);
+            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.58F);
         }
-        if (stateTick == 12) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 5.0F);
-        if (stateTick == 18) {
+        if (stateTick == 13) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 5.0F);
+        if (stateTick == 20) {
             clearTelegraph();
             dealRadialDamage(sl, 5.0D, 13.5F, 1.15D, 0.55D);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.55F, 0.65F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.7F, 0.48F);
-            spawnGroundDustRing(sl, 4.6D, 32);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.62F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.75F, 0.46F);
+            spawnGroundDustRing(sl, 4.6D, 34);
         }
-        if (stateTick >= 36) {
-            // Official Genshin Ruin Guard Stomp-and-Clap combo: chains into Double Clap if target stays in melee range
+        if (stateTick >= 44) {
             double dist = Math.hypot(target.getX() - getX(), target.getZ() - getZ());
             if (dist <= 5.4D && random.nextFloat() < 0.65F) {
                 lastAttack = ANIM_DOUBLE_CLAP;
                 transitionTo(STATE_COMBAT, ANIM_DOUBLE_CLAP);
             } else {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 24;
+                attackCooldown = 26;
             }
         }
     }
