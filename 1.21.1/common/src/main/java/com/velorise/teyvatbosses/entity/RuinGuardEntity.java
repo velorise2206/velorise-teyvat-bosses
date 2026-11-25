@@ -2,6 +2,8 @@ package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -28,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -593,22 +596,32 @@ public class RuinGuardEntity extends Monster {
             case ANIM_DOUBLE_CLAP -> tickDoubleClap(sl, target);
             case ANIM_STOMP_SHOCKWAVE -> tickStompShockwave(sl, target);
             case ANIM_CYCLONE_WINDUP -> {
-                faceTarget(target, 6.5F);
+                faceTarget(target, 5.5F);
                 setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
-                if (stateTick == 1) sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.4F, 0.72F);
-                if (stateTick >= 22) transitionTo(STATE_COMBAT, ANIM_CYCLONE_ACTIVE);
+                if (stateTick == 1) {
+                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.4F, 0.64F);
+                } else if (stateTick == 22) {
+                    sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.3F, 0.58F);
+                }
+                if (stateTick >= 28) transitionTo(STATE_COMBAT, ANIM_CYCLONE_ACTIVE);
             }
             case ANIM_CYCLONE_ACTIVE -> tickCycloneActive(sl, target);
             case ANIM_CYCLONE_RECOVER -> {
-                setDeltaMovement(getDeltaMovement().x * 0.75D, getDeltaMovement().y, getDeltaMovement().z * 0.75D);
-                if (stateTick >= 24) {
+                double drag = (stateTick < 18) ? 0.86D : 0.65D;
+                setDeltaMovement(getDeltaMovement().x * drag, getDeltaMovement().y, getDeltaMovement().z * drag);
+                if (stateTick == 17) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.45F, 0.52F);
+                    sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.0F, 0.56F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.12D, getZ(), 10, 0.8D, 0.08D, 0.8D, 0.03D);
+                }
+                if (stateTick >= 40) {
                     if (isPhase2() && finisherCooldown <= 0) {
                         startOverdriveFinisher(sl, target);
                     } else if (isPhase2()) {
                         startLeapSlam(sl, target);
                     } else {
                         transitionTo(STATE_COMBAT, ANIM_IDLE);
-                        attackCooldown = 28;
+                        attackCooldown = 30;
                     }
                 }
             }
@@ -647,20 +660,47 @@ public class RuinGuardEntity extends Monster {
 
     private void startLeapSlam(ServerLevel sl, LivingEntity target) {
         leapStart = position();
-        leapTarget = clampTargetToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
+        Vec3 clamped = clampTargetToArena(new Vec3(target.getX(), target.getY(), target.getZ()));
+        double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
+        leapTarget = new Vec3(clamped.x, groundY, clamped.z);
         transitionTo(STATE_COMBAT, ANIM_LEAP_SLAM);
         setTelegraph(leapTarget, 6.0F);
-        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.2F, 0.68F);
-        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.62F);
+        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.2F, 0.65F);
+        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.58F);
     }
 
     private void startOverdriveFinisher(ServerLevel sl, LivingEntity target) {
         finisherCooldown = 260;
         faceTarget(target, 180.0F);
         transitionTo(STATE_COMBAT, ANIM_OVERDRIVE_FINISHER);
-        setTelegraph(new Vec3(getX(), arenaCenter.y, getZ()), 7.8F);
+        double groundY = sampleGroundY(sl, getX(), getZ(), getY());
+        setTelegraph(new Vec3(getX(), groundY, getZ()), 7.8F);
         sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.2F, 0.85F);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.4F, 0.68F);
+    }
+
+    /**
+     * Samples the exact solid ground surface Y near referenceY at (x, z) so jump slams
+     * and ground telegraphs always land flush on hills, slopes, or valleys.
+     */
+    private double sampleGroundY(ServerLevel sl, double x, double z, double referenceY) {
+        int bx = Mth.floor(x);
+        int bz = Mth.floor(z);
+        int startY = Mth.floor(referenceY) + 4;
+        int minY = Math.max(sl.getMinBuildHeight(), Mth.floor(referenceY) - 8);
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = startY; y >= minY; y--) {
+            pos.set(bx, y, bz);
+            BlockState state = sl.getBlockState(pos);
+            if (!state.getCollisionShape(sl, pos).isEmpty()) {
+                double topY = y + state.getCollisionShape(sl, pos).max(Direction.Axis.Y);
+                BlockPos above = pos.above();
+                if (sl.getBlockState(above).getCollisionShape(sl, above).isEmpty()) {
+                    return topY;
+                }
+            }
+        }
+        return referenceY;
     }
 
     private Vec3 clampTargetToArena(Vec3 pos) {
@@ -705,58 +745,96 @@ public class RuinGuardEntity extends Monster {
         sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 8, 0.15D, 0.15D, 0.15D, 0.05D);
     }
 
+    /**
+     * Genshin-accurate weighted 3-Hit Combo (96 ticks = 4.80s):
+     * Hit 1 @ tick 19 (0.95s), Hit 2 @ tick 39 (1.95s), deep pre-jump crouch 45..52,
+     * terrain-aware parabolic jump arc 53..69 (0.80s), guaranteed ground-contact slam @ tick 70 (3.50s),
+     * crater impact hold 70..80, and slow weighted hydraulic stand-up recovery 80..96.
+     */
     private void tickMelee3Hit(ServerLevel sl, LivingEntity target) {
         Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-        if (stateTick < 14 || (stateTick > 20 && stateTick < 28) || (stateTick > 34 && stateTick < 42)) {
-            faceTarget(target, 7.0F);
+        if (stateTick < 15 || (stateTick > 24 && stateTick < 35) || (stateTick >= 44 && stateTick < 53)) {
+            faceTarget(target, 6.5F);
         }
 
         Vec3 cur = getDeltaMovement();
-        if (stateTick >= 15 && stateTick <= 17) {
-            setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.36D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.36D));
-        } else if (stateTick >= 29 && stateTick <= 31) {
-            setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.36D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.36D));
-        } else if (stateTick >= 40 && stateTick <= 49) {
-            double hopVy = cur.y;
-            if (stateTick == 40) {
-                hopVy = 0.78D;
-                sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.72F);
-                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 10, 0.7D, 0.08D, 0.7D, 0.04D);
-            } else if (stateTick >= 47) {
-                hopVy = -0.82D;
+        if (stateTick >= 16 && stateTick <= 19) {
+            setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.34D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.34D));
+        } else if (stateTick >= 36 && stateTick <= 39) {
+            setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.34D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.34D));
+        } else if (stateTick >= 45 && stateTick < 53) {
+            setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
+            if (stateTick == 46) {
+                sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.58F);
             }
-            setDeltaMovement(Mth.lerp(0.42D, cur.x, forward.x * 0.34D), hopVy, Mth.lerp(0.42D, cur.z, forward.z * 0.34D));
+            if (stateTick >= 46 && stateTick <= 51) {
+                Vec3 toT = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
+                double dist = toT.length();
+                double maxHopDist = 6.5D;
+                Vec3 rawDest = (dist > maxHopDist && dist > 0.01D)
+                        ? position().add(toT.scale(maxHopDist / dist))
+                        : new Vec3(target.getX(), target.getY(), target.getZ());
+                Vec3 clamped = clampTargetToArena(rawDest);
+                double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
+                leapTarget = new Vec3(clamped.x, groundY, clamped.z);
+                setTelegraph(leapTarget, 5.2F);
+            }
+            leapStart = position();
+        } else if (stateTick >= 53 && stateTick <= 69) {
+            if (stateTick == 53) {
+                sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.72F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.4F, 0.50F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 14, 0.8D, 0.08D, 0.8D, 0.05D);
+            }
+            float f = (stateTick - 53) / 16.0F;
+            float horizF = f * f * (3.0F - 2.0F * f);
+            // Asymmetric heavy gravity curve: crisp launch, weighty apex hang, accelerating meteor slam
+            double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.0D;
+            double nx = Mth.lerp(horizF, leapStart.x, leapTarget.x);
+            double nz = Mth.lerp(horizF, leapStart.z, leapTarget.z);
+            double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
+            Vec3 next = new Vec3(nx, ny, nz);
+            setDeltaMovement(next.subtract(position()));
+            setPos(nx, ny, nz);
+            this.fallDistance = 0.0F;
+        } else if (stateTick == 70) {
+            clearTelegraph();
+            setDeltaMovement(Vec3.ZERO);
+            setPos(leapTarget.x, leapTarget.y, leapTarget.z);
+            setOnGround(true);
+            this.fallDistance = 0.0F;
+            dealRadialDamage(sl, 5.2D, 16.0F, 1.25D, 0.58D);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.7F, 0.58F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.52F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.1F, 0.48F);
+            sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.4D, getZ(), 5, 2.0D, 0.25D, 2.0D, 0.0D);
+            spawnGroundDustRing(sl, 4.8D, 34);
         } else {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }
 
-        if (stateTick == 12 || stateTick == 26) {
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.1F, 0.65F);
-        } else if (stateTick == 17) {
+        if (stateTick == 13 || stateTick == 33) {
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.15F, 0.62F);
+        } else if (stateTick == 19) {
             dealArcDamage(sl, 4.8D, 145.0F, 11.0F, 0.95D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.54F);
-            sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.35F, 0.68F);
+            sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.35F, 0.66F);
             Vec3 front = position().add(forward.scale(2.6D));
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.6D, front.z, 3, 1.1D, 0.2D, 1.1D, 0.0D);
-        } else if (stateTick == 31) {
+        } else if (stateTick == 39) {
             dealArcDamage(sl, 4.8D, 145.0F, 12.0F, 1.00D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.48F);
-            sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.4F, 0.62F);
+            sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.4F, 0.60F);
             Vec3 front = position().add(forward.scale(2.6D));
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.6D, front.z, 3, 1.1D, 0.2D, 1.1D, 0.0D);
-        } else if (stateTick == 38) {
-            setTelegraph(new Vec3(getX() + forward.x * 1.4D, arenaCenter.y, getZ() + forward.z * 1.4D), 5.2F);
-        } else if (stateTick == 50) {
-            clearTelegraph();
-            dealRadialDamage(sl, 5.2D, 16.0F, 1.25D, 0.58D);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.65F, 0.62F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.45F, 0.55F);
-            sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.4D, getZ(), 4, 2.0D, 0.3D, 2.0D, 0.0D);
-            spawnGroundDustRing(sl, 4.4D, 28);
+        } else if (stateTick == 81) {
+            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 0.85F, 0.54F);
         }
-        if (stateTick >= 68) {
+
+        if (stateTick >= 96) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 28;
+            attackCooldown = 30;
         }
     }
 
@@ -791,7 +869,7 @@ public class RuinGuardEntity extends Monster {
         if (stateTick == 10) {
             sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.62F);
         }
-        if (stateTick == 12) setTelegraph(new Vec3(getX(), arenaCenter.y, getZ()), 5.0F);
+        if (stateTick == 12) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 5.0F);
         if (stateTick == 18) {
             clearTelegraph();
             dealRadialDamage(sl, 5.0D, 13.5F, 1.15D, 0.55D);
@@ -815,60 +893,88 @@ public class RuinGuardEntity extends Monster {
     private void tickCycloneActive(ServerLevel sl, LivingEntity target) {
         Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
         if (toTarget.lengthSqr() > 0.25D) {
-            Vec3 desired = toTarget.normalize().scale(0.28D);
+            Vec3 desired = toTarget.normalize().scale(isPhase2() ? 0.28D : 0.25D);
             Vec3 cur = getDeltaMovement();
-            setDeltaMovement(Mth.lerp(0.18D, cur.x, desired.x), cur.y, Mth.lerp(0.18D, cur.z, desired.z));
+            setDeltaMovement(Mth.lerp(0.16D, cur.x, desired.x), cur.y, Mth.lerp(0.16D, cur.z, desired.z));
         }
         if (stateTick % 8 == 0) {
             dealRadialDamage(sl, 4.8D, 7.5F, 0.85D, 0.34D);
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.4F, 0.72F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.4F, 0.68F);
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.9D, getZ(), 4, 2.4D, 0.3D, 2.4D, 0.0D);
         }
-        int maxSpinTicks = isPhase2() ? 112 : 84;
+        if (stateTick % 12 == 6) {
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.15F, 0.56F);
+            sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.1D, getZ(), 4, 0.55D, 0.05D, 0.55D, 0.02D);
+        }
+        // Exact integer multiples of the 24-tick (1.20s = 3 revs) spin clip so waist hands off at 0 deg to recovery
+        int maxSpinTicks = isPhase2() ? 120 : 96;
         if (stateTick >= maxSpinTicks) {
             transitionTo(STATE_COMBAT, ANIM_CYCLONE_RECOVER);
         }
     }
 
+    /**
+     * Weighted Terrain-Aware Leap Slam (68 ticks = 3.40s):
+     * Deep hydraulic crouch 0..15, asymmetric parabolic arc 16..33 (0.85s),
+     * guaranteed ground-contact slam @ tick 34 (1.70s), crater hold 34..46, slow hydraulic recovery 46..68.
+     */
     private void tickLeapSlam(ServerLevel sl, LivingEntity target) {
-        if (stateTick < 13) {
-            faceTarget(target, 7.5F);
+        if (stateTick < 16) {
+            faceTarget(target, 7.0F);
             setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-            if (stateTick < 10) {
-                leapTarget = clampTargetToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
+            if (stateTick == 8) {
+                sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.56F);
+            }
+            if (stateTick < 12) {
+                Vec3 clamped = clampTargetToArena(new Vec3(target.getX(), target.getY(), target.getZ()));
+                double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
+                leapTarget = new Vec3(clamped.x, groundY, clamped.z);
                 setTelegraph(leapTarget, 6.0F);
             }
             leapStart = position();
-        } else if (stateTick >= 13 && stateTick <= 26) {
-            float f = (stateTick - 13) / 13.0F;
+        } else if (stateTick >= 16 && stateTick <= 33) {
+            if (stateTick == 16) {
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.6F, 0.48F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 16, 0.9D, 0.1D, 0.9D, 0.05D);
+            }
+            float f = (stateTick - 16) / 17.0F;
             float smoothF = f * f * (3.0F - 2.0F * f);
+            double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 5.0D;
             double nx = Mth.lerp(smoothF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(smoothF, leapStart.z, leapTarget.z);
-            double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + Math.sin(f * Math.PI) * 4.5D;
+            double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
             Vec3 next = new Vec3(nx, ny, nz);
             setDeltaMovement(next.subtract(position()));
             setPos(nx, ny, nz);
-        } else if (stateTick == 27) {
+            this.fallDistance = 0.0F;
+        } else if (stateTick == 34) {
             clearTelegraph();
             setDeltaMovement(Vec3.ZERO);
-            setPos(leapTarget.x, arenaCenter.y, leapTarget.z);
+            setPos(leapTarget.x, leapTarget.y, leapTarget.z);
+            setOnGround(true);
+            this.fallDistance = 0.0F;
             dealRadialDamage(sl, 6.2D, 17.5F, 1.45D, 0.68D);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.8F, 0.55F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.52F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.85F, 0.54F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.55F, 0.50F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.2F, 0.46F);
             sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 0.5D, getZ(), 1, 0.5D, 0.2D, 0.5D, 0.0D);
-            spawnGroundDustRing(sl, 5.6D, 40);
+            spawnGroundDustRing(sl, 5.8D, 44);
         } else {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
+            if (stateTick == 46) {
+                sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 0.85F, 0.52F);
+            }
         }
-        if (stateTick >= 54) {
+        if (stateTick >= 68) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 32;
+            attackCooldown = 34;
         }
     }
 
     private void tickPhase2Overdrive(ServerLevel sl) {
         setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-        if (stateTick == 1) setTelegraph(new Vec3(getX(), arenaCenter.y, getZ()), 8.0F);
+        if (stateTick == 1) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 8.0F);
         if (stateTick == 23) {
             clearTelegraph();
             dealRadialDamage(sl, 8.0D, 12.5F, 1.65D, 0.60D);
