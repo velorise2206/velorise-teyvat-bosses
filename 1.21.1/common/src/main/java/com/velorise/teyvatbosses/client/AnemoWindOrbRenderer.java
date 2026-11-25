@@ -56,13 +56,21 @@ public class AnemoWindOrbRenderer extends EntityRenderer<AnemoWindOrbEntity> {
 
     private static void drawOctahedron(VertexConsumer vc, Matrix4f mat, float r, int cr, int cg, int cb, int ca) {
         float[][] pts = {{r, 0}, {0, r}, {-r, 0}, {0, -r}};
+        float tipY = r * 1.35F;
         for (int i = 0; i < 4; i++) {
             float[] a = pts[i];
             float[] b = pts[(i + 1) % 4];
-            vc.addVertex(mat, 0.0F, r * 1.35F, 0.0F).setColor(cr, cg, cb, ca);
+            // Upper pyramid face (RenderType.lightning() uses QUADS, so emit 1 quad per triangle)
+            vc.addVertex(mat, 0.0F, tipY, 0.0F).setColor(cr, cg, cb, ca);
             vc.addVertex(mat, a[0], 0.0F, a[1]).setColor(cr, cg, cb, ca);
             vc.addVertex(mat, b[0], 0.0F, b[1]).setColor(cr, cg, cb, ca);
-            vc.addVertex(mat, 0.0F, -r * 1.35F, 0.0F).setColor(cr, cg, cb, ca);
+            vc.addVertex(mat, b[0], 0.0F, b[1]).setColor(cr, cg, cb, ca);
+
+            // Lower pyramid face
+            vc.addVertex(mat, 0.0F, -tipY, 0.0F).setColor(cr, cg, cb, ca);
+            vc.addVertex(mat, b[0], 0.0F, b[1]).setColor(cr, cg, cb, ca);
+            vc.addVertex(mat, a[0], 0.0F, a[1]).setColor(cr, cg, cb, ca);
+            vc.addVertex(mat, a[0], 0.0F, a[1]).setColor(cr, cg, cb, ca);
         }
     }
 

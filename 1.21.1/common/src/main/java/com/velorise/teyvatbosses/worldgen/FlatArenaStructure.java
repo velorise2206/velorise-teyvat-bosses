@@ -569,15 +569,15 @@ public class FlatArenaStructure extends Structure {
                 continue;
             }
 
-            int ixMin = Math.max(chunkBox.minX(), (int) Math.floor(cx - 3.6D));
-            int ixMax = Math.min(chunkBox.maxX(), (int) Math.ceil(cx + 3.6D));
-            int izMin = Math.max(chunkBox.minZ(), (int) Math.floor(cz - 3.6D));
-            int izMax = Math.min(chunkBox.maxZ(), (int) Math.ceil(cz + 3.6D));
+            int ixMin = Math.max(chunkBox.minX(), (int) Math.floor(cx - 4.0D));
+            int ixMax = Math.min(chunkBox.maxX(), (int) Math.ceil(cx + 4.0D));
+            int izMin = Math.max(chunkBox.minZ(), (int) Math.floor(cz - 4.0D));
+            int izMax = Math.min(chunkBox.maxZ(), (int) Math.ceil(cz + 4.0D));
 
             for (int x = ixMin; x <= ixMax; x++) {
                 for (int z = izMin; z <= izMax; z++) {
                     double hd = Math.hypot(x - cx, z - cz);
-                    if (hd > 3.5D) {
+                    if (hd > 3.85D) {
                         continue;
                     }
 
@@ -589,7 +589,7 @@ public class FlatArenaStructure extends Structure {
                     boolean coldBiome = level.getBiome(pos.set(x, Math.min(maxBuildY, localSurfY), z))
                             .value().coldEnoughToSnow(pos);
 
-                    if (hd <= 2.45D) {
+                    if (hd <= 2.75D) {
                         // Natural walkable stone/andesite/mossy floor + solid subfloor
                         pos.set(x, floorY, z);
                         BlockState curFloor = level.getBlockState(pos);
@@ -608,9 +608,9 @@ public class FlatArenaStructure extends Structure {
                             }
                         }
 
-                        // Arched cavern headroom (5 blocks tall at center, tapering cleanly at sides)
-                        int archH = (int) Math.round(4.6D * Math.sqrt(Math.max(0.0D, 1.0D - (hd / 2.75D) * (hd / 2.75D))));
-                        archH = Math.max(3, archH);
+                        // Spacious arched cavern headroom (~6 blocks tall at center, >=4 blocks at sides)
+                        int archH = (int) Math.round(5.8D * Math.sqrt(Math.max(0.0D, 1.0D - (hd / 3.05D) * (hd / 3.05D))));
+                        archH = Math.max(4, archH);
                         int carveTop = floorY + archH;
                         boolean emergingToSurface = (carveTop >= localSurfY - 1);
                         int clearTop = emergingToSurface ? Math.min(maxBuildY, localSurfY + 8) : Math.min(maxBuildY, carveTop);
@@ -631,9 +631,9 @@ public class FlatArenaStructure extends Structure {
                                 level.setBlock(pos, pickCaveRoofBlock(x, carveTop + 1, z, coldBiome, true), Block.UPDATE_CLIENTS);
                             }
                         }
-                    } else if (floorY + 3 < localSurfY) {
+                    } else if (floorY + 4 < localSurfY) {
                         // Outer stone/ice wall jacket so underground aquifers/caves never flood the tunnel
-                        for (int y = floorY; y <= Math.min(localSurfY - 1, floorY + 4); y++) {
+                        for (int y = floorY; y <= Math.min(localSurfY - 1, floorY + 5); y++) {
                             pos.set(x, y, z);
                             BlockState wall = level.getBlockState(pos);
                             if (!wall.getFluidState().isEmpty() || wall.is(Blocks.GRAVEL) || wall.is(Blocks.SAND)) {

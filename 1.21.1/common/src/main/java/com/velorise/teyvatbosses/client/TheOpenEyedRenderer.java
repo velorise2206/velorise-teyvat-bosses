@@ -111,8 +111,14 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         int currEpoch = entity.getAnimEpoch();
         float liveT = entity.tickCount + partialTicks;
 
-        boolean musicActive = entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
+        boolean dormant = entity.getBossState() == TheOpenEyedEntity.STATE_DORMANT;
+        boolean musicActive = !dormant && entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
         BossMusicManager.update(entity, MUSIC_ID, musicActive);
+        if (dormant) {
+            this.shadowRadius = 0.0F;
+            return;
+        }
+        this.shadowRadius = 1.45F;
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {
             if (sm.hasLastPose) {
@@ -138,7 +144,11 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         poseStack.pushPose();
         poseStack.translate(0.0D, sm.currentAscendY, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
-        poseStack.scale(-BOSS_RENDER_SCALE, -BOSS_RENDER_SCALE, BOSS_RENDER_SCALE);
+        float appearMul = (entity.getBossState() == TheOpenEyedEntity.STATE_DESCEND)
+                ? Mth.clamp((animTicksF - 5.0F) / 9.0F, 0.02F, 1.0F)
+                : 1.0F;
+        float finalScale = BOSS_RENDER_SCALE * appearMul;
+        poseStack.scale(-finalScale, -finalScale, finalScale);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
         TheOpenEyedAnimations.apply(model, currClip, currSec);

@@ -110,11 +110,14 @@ public class AnemoHypostasisEntity extends Monster {
     private int lastSyncedAnimId = -1;
     private int lastSyncedEpoch = -1;
 
+    private boolean innateAnemoSynced = false;
+
     public AnemoHypostasisEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
         this.xpReward = 450;
         this.setNoGravity(true);
         this.noPhysics = false;
+        this.addTag("VeloriseInnateChecked");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -353,6 +356,10 @@ public class AnemoHypostasisEntity extends Monster {
         }
 
         ServerLevel sl = (ServerLevel) level();
+        if (!innateAnemoSynced) {
+            innateAnemoSynced = true;
+            StavesElementBridge.setInnateElement(this, "ANEMO");
+        }
         stateTick++;
         setDeltaMovement(Vec3.ZERO);
 

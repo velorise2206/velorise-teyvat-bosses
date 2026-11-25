@@ -62,6 +62,7 @@ public class TheOpenEyedEntity extends Monster {
     public static final int STATE_DELIRIUM = 3;
     public static final int STATE_STUNNED  = 4;
     public static final int STATE_DEATH    = 5;
+    public static final int STATE_DORMANT  = 6;
 
     public static final int ANIM_IDLE               = 0;
     public static final int ANIM_DESCEND            = 1;
@@ -124,6 +125,7 @@ public class TheOpenEyedEntity extends Monster {
     private Vec3 arenaCenter = Vec3.ZERO;
     private boolean arenaInit = false;
     private int stateTicks = 0;
+    private int noTargetTicks = 0;
     private int serverAnimTick = 0;
     private int clientAnimTick = 0;
     private int lastSyncedAnimId = -1;
@@ -202,8 +204,8 @@ public class TheOpenEyedEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(DATA_STATE, STATE_DESCEND);
-        builder.define(DATA_ANIM_ID, ANIM_DESCEND);
+        builder.define(DATA_STATE, STATE_DORMANT);
+        builder.define(DATA_ANIM_ID, ANIM_IDLE);
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_ANIM_HOLD_AT, -1);
         builder.define(DATA_FURY_PROGRESS, 0.0F);
@@ -279,7 +281,7 @@ public class TheOpenEyedEntity extends Monster {
     @Override
     public boolean hurt(DamageSource source, float amount) {
         int st = getBossState();
-        if (st == STATE_DEATH || st == STATE_DESCEND) return false;
+        if (st == STATE_DEATH || st == STATE_DESCEND || st == STATE_DORMANT) return false;
 
         // Vanilla fallback hit monitoring during Supreme Overseer if Velorise's Staves is absent
         if (st == STATE_OVERSEER && !StavesElementBridge.isAvailable() && level() instanceof ServerLevel sl) {
@@ -414,6 +416,26 @@ public class TheOpenEyedEntity extends Monster {
             return;
         }
 
+        if (st == STATE_DORMANT) {
+            if (arenaInit && distanceToSqr(arenaCenter) > 0.25D) {
+                setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+            }
+            if (getHealth() < getMaxHealth()) {
+                setHealth(getMaxHealth());
+            }
+            LivingEntity near = findActiveTarget(sl, 15.0D);
+            if (near != null) {
+                noTargetTicks = 0;
+                faceTarget(near, 180.0F);
+                transitionTo(STATE_DESCEND, ANIM_DESCEND);
+                sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.5F, 0.72F);
+                sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.2F, 0.9F);
+                sl.sendParticles(ParticleTypes.CRIMSON_SPORE, getX(), getY() + 3.0D, getZ(), 42, 1.8D, 1.6D, 1.8D, 0.08D);
+                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 3.0D, getZ(), 24, 1.2D, 1.2D, 1.2D, 0.09D);
+            }
+            return;
+        }
+
         LivingEntity target = findActiveTarget(sl, 36.0D);
 
         if (st == STATE_DESCEND) {
@@ -437,9 +459,25 @@ public class TheOpenEyedEntity extends Monster {
         }
 
         if (target == null) {
+            noTargetTicks++;
             serverAnimTick = (serverAnimTick + 1) % ANIM_DURATIONS_TICKS[ANIM_IDLE];
+            if (noTargetTicks >= 200) {
+                noTargetTicks = 0;
+                clearActiveStars(sl);
+                setHealth(getMaxHealth());
+                overseerCount = 0;
+                recordedElements[0] = ElementalStarEntity.ELEM_INERT_GEO;
+                recordedElements[1] = ElementalStarEntity.ELEM_INERT_GEO;
+                attacksSinceOverseer = 0;
+                entityData.set(DATA_FURY_PROGRESS, 0.0F);
+                if (arenaInit) {
+                    setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+                }
+                transitionTo(STATE_DORMANT, ANIM_IDLE);
+            }
             return;
         }
+        noTargetTicks = 0;
 
         if (st == STATE_STUNNED) {
             serverAnimTick = (serverAnimTick + 1) % ANIM_DURATIONS_TICKS[ANIM_STUNNED];
@@ -797,6 +835,7 @@ public class TheOpenEyedEntity extends Monster {
     }
 
     private void updateBossBar(int st) {
+        bossEvent.setVisible(st != STATE_DORMANT && st != STATE_DEATH);
         bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
         Component base = Component.translatable("entity.velorise_teyvat_bosses.the_open_eyed");
         if (st == STATE_OVERSEER) {

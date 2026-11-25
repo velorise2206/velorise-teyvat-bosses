@@ -190,13 +190,11 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         int anim = entity.getAnimId();
 
         if (anim == RuinGuardEntity.ANIM_CYCLONE_ACTIVE) {
-            poseStack.pushPose();
-            poseStack.translate(0.0D, 2.05D, 0.0D);
-            poseStack.mulPose(Axis.YP.rotationDegrees(liveTick * 34.6F));
-            Matrix4f m = poseStack.last().pose();
-            drawHorizontalRing(vc, m, 3.25F, 4.75F, 32, 255, 220, 145, 145);
-            drawHorizontalRing(vc, m, 4.35F, 4.85F, 32, 255, 140, 45, 195);
-            poseStack.popPose();
+            // Sleek staggered wind-blade motion trails (matching Genshin's crisp swirling ribbons, no flat UFO plate)
+            float spinYaw = liveTick * 50.0F;
+            drawSpinWindArc(vc, poseStack, spinYaw, 2.05D, 3.4F, 4.55F, 155, 255, 238, 195);
+            drawSpinWindArc(vc, poseStack, spinYaw + 180.0F, 2.05D, 3.4F, 4.55F, 155, 255, 238, 195);
+            drawSpinWindArc(vc, poseStack, spinYaw + 90.0F, 1.75D, 3.9F, 4.70F, 95, 255, 190, 95);
         }
 
         if (anim == RuinGuardEntity.ANIM_MELEE_3HIT) {
@@ -228,6 +226,42 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         } else if (anim == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.33F && currSec <= 1.85F) {
             drawExpandingShockwave(vc, poseStack, 6.6F, (currSec - 1.33F) / 0.52F);
         }
+    }
+
+    private static void drawSpinWindArc(
+            VertexConsumer vc, PoseStack poseStack, float yawDeg, double heightY,
+            float rInBase, float rOut, int maxAlpha, int cr, int cg, int cb
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.0D, heightY, 0.0D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
+        Matrix4f mat = poseStack.last().pose();
+        int segs = 16;
+        float arcRad = (float) (Math.PI * 0.72D);
+        for (int i = 0; i < segs; i++) {
+            float f0 = (float) i / segs;
+            float f1 = (float) (i + 1) / segs;
+            float a0 = f0 * arcRad;
+            float a1 = f1 * arcRad;
+            float w0 = (rOut - rInBase) * Mth.sin(f0 * (float) Math.PI);
+            float w1 = (rOut - rInBase) * Mth.sin(f1 * (float) Math.PI);
+            float rIn0 = rOut - Math.max(0.08F, w0);
+            float rIn1 = rOut - Math.max(0.08F, w1);
+            int al0 = (int) (maxAlpha * f0);
+            int al1 = (int) (maxAlpha * f1);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            vc.addVertex(mat, c0 * rIn0, 0.0F, s0 * rIn0).setColor(cr, cg, cb, al0 / 4);
+            vc.addVertex(mat, c0 * rOut, 0.0F, s0 * rOut).setColor(cr, cg, cb, al0);
+            vc.addVertex(mat, c1 * rOut, 0.0F, s1 * rOut).setColor(cr, cg, cb, al1);
+            vc.addVertex(mat, c1 * rIn1, 0.0F, s1 * rIn1).setColor(cr, cg, cb, al1 / 4);
+
+            vc.addVertex(mat, c1 * rIn1, 0.0F, s1 * rIn1).setColor(cr, cg, cb, al1 / 4);
+            vc.addVertex(mat, c1 * rOut, 0.0F, s1 * rOut).setColor(cr, cg, cb, al1);
+            vc.addVertex(mat, c0 * rOut, 0.0F, s0 * rOut).setColor(cr, cg, cb, al0);
+            vc.addVertex(mat, c0 * rIn0, 0.0F, s0 * rIn0).setColor(cr, cg, cb, al0 / 4);
+        }
+        poseStack.popPose();
     }
 
     private static void drawMeleeCrescentSlash(
