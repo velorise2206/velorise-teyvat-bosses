@@ -5,9 +5,9 @@
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/velorise2206)
 [![Addon For](https://img.shields.io/badge/Addon%20For-Velorise's%20Staves-8b5cf6.svg)](https://github.com/velorise2206/velorise-staves)
 
-The official **Endgame Boss Expansion Addon** for **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
+The official **Endgame Boss Expansion Addon** for **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1** *(works standalone, or unlocks full elemental reaction & shield synergy when paired together)*.
 
-Built directly on top of **`VeloriseElementAPI`** (Elemental Gauge Theory, Elemental Shield Gauges, and Innate Auras) and tuned to pair seamlessly with **`Camera Lock-On`** and **`Velorise Simple Map`**, **Velorise: Teyvat Bosses** brings action-focused boss encounters, biome-matched Overworld arenas, and high-value endgame progression without inventory bloat.
+**Velorise: Teyvat Bosses** brings action-focused elemental boss encounters, biome-matched Overworld arenas, original boss music, and high-value endgame progression without inventory bloat.
 
 ---
 
@@ -78,7 +78,7 @@ cmd.exe /c "set NONINTERACTIVE=1 && build-all.bat"
 
 Enhance your boss-hunting experience with companion mods by **velorise2206**:
 
-- **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)**: Core elemental weapons, EGT reaction engine, 3D Wall Climbing, Wind Glider, and Plunging Attacks *(Required Core)*.
+- **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)**: Core elemental weapons, EGT reaction engine, 3D Wall Climbing, Wind Glider, and Plunging Attacks *(Recommended Core Addon Target — optional soft dependency)*.
 - **[Camera Lock-On](https://github.com/velorise2206/camera-lock-on)**: Zelda/Souls-style target locking — ideal for strafing swift bosses and aiming spells cleanly.
 - **[Velorise Simple Map](https://github.com/velorise2206/Simple-Map)**: Clean, lightweight minimap and world map for locating Overworld boss arenas.
 

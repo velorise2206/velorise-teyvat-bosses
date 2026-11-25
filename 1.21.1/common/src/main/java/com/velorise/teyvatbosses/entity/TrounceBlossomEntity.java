@@ -126,7 +126,7 @@ public class TrounceBlossomEntity extends Entity {
             dropReward(sl, new ItemStack(Items.GOLD_INGOT, 10 + random.nextInt(6)));
             dropReward(sl, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         }
-        ExperienceOrb.award(sl, position().add(0.0D, 1.0D, 0.0D), 140);
+        ExperienceOrb.award(sl, position().add(0.0D, 1.0D, 0.0D), 280);
         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.claimed")
                 .withStyle(ChatFormatting.GREEN), true);
     }

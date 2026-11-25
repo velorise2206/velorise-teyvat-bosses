@@ -93,6 +93,7 @@ public class AnemoHypostasisEntity extends Monster {
     private float savedSpawnYaw = 0.0F;
 
     private int stateTick = 0;
+    private int noTargetTicks = 0;
     private int attackCooldown = 30;
     private int lastAttackAnim = -1;
     private int attacksSinceTornado = 0;
@@ -111,7 +112,7 @@ public class AnemoHypostasisEntity extends Monster {
 
     public AnemoHypostasisEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
-        this.xpReward = 150;
+        this.xpReward = 450;
         this.setNoGravity(true);
         this.noPhysics = false;
     }
@@ -217,6 +218,10 @@ public class AnemoHypostasisEntity extends Monster {
             return false;
         }
         if (st == STATE_DORMANT && !level().isClientSide()) {
+            if (source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
+                setLastHurtByMob(attacker);
+                setTarget(attacker);
+            }
             awaken((ServerLevel) level());
             return false;
         }
@@ -370,8 +375,7 @@ public class AnemoHypostasisEntity extends Monster {
             return;
         }
 
-        Player nearest = sl.getNearestPlayer(getX(), getY(), getZ(), 32.0D,
-                e -> e instanceof Player p && p.isAlive() && !p.isCreative() && !p.isSpectator());
+        LivingEntity nearest = findCombatTarget(sl);
 
         if (st == STATE_DORMANT) {
             bossEvent.setVisible(false);
@@ -386,8 +390,8 @@ public class AnemoHypostasisEntity extends Monster {
         updateBossBar();
 
         if (nearest == null) {
-            // Reset cleanly to dormant at arena center if player leaves
-            if (stateTick > 160) {
+            if (++noTargetTicks > 180) {
+                noTargetTicks = 0;
                 setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
                 setHealth(getMaxHealth());
                 revivalUsed = false;
@@ -395,6 +399,7 @@ public class AnemoHypostasisEntity extends Monster {
             }
             return;
         }
+        noTargetTicks = 0;
         setTarget(nearest);
         faceTarget(nearest);
 
@@ -443,7 +448,7 @@ public class AnemoHypostasisEntity extends Monster {
         }
     }
 
-    private void tickCombat(ServerLevel sl, Player target) {
+    private void tickCombat(ServerLevel sl, LivingEntity target) {
         int anim = getAnimId();
         if (anim == ANIM_IDLE) {
             // Gently float near arena center
@@ -467,7 +472,7 @@ public class AnemoHypostasisEntity extends Monster {
         }
     }
 
-    private void chooseNextAttack(ServerLevel sl, Player target) {
+    private void chooseNextAttack(ServerLevel sl, LivingEntity target) {
         attacksSinceTornado++;
         int chosen;
         if (attacksSinceTornado >= 4) {
@@ -495,7 +500,7 @@ public class AnemoHypostasisEntity extends Monster {
         sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.BREEZE_INHALE, SoundSource.HOSTILE, 1.15F, 1.15F);
     }
 
-    private void tickButterflySweep(ServerLevel sl, Player target) {
+    private void tickButterflySweep(ServerLevel sl, LivingEntity target) {
         if (stateTick == 26 || stateTick == 46 || stateTick == 66) {
             Vec3 origin = position().add(0.0D, 3.0D, 0.0D);
             Vec3 dir = target.position().add(0.0D, 0.9D, 0.0D).subtract(origin).normalize();
@@ -508,7 +513,7 @@ public class AnemoHypostasisEntity extends Monster {
         }
     }
 
-    private void tickMissileCircle(ServerLevel sl, Player target) {
+    private void tickMissileCircle(ServerLevel sl, LivingEntity target) {
         if (stateTick >= 36 && stateTick <= 116 && (stateTick - 36) % 16 == 0) {
             Vec3 origin = position().add(0.0D, 3.2D, 0.0D);
             Vec3 dir = target.position().add(0.0D, 0.85D, 0.0D).subtract(origin).normalize();
@@ -520,7 +525,7 @@ public class AnemoHypostasisEntity extends Monster {
         }
     }
 
-    private void tickPillarEruption(ServerLevel sl, Player target) {
+    private void tickPillarEruption(ServerLevel sl, LivingEntity target) {
         // 3 sequential ground telegraphs -> eruptions
         if (stateTick == 12 || stateTick == 42 || stateTick == 72) {
             setTelegraph(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
@@ -534,7 +539,7 @@ public class AnemoHypostasisEntity extends Monster {
 
             AABB blast = new AABB(telegraphPos.x - 3.2D, telegraphPos.y - 0.5D, telegraphPos.z - 3.2D,
                     telegraphPos.x + 3.2D, telegraphPos.y + 4.5D, telegraphPos.z + 3.2D);
-            for (Player p : sl.getEntitiesOfClass(Player.class, blast, pl -> pl.isAlive() && !pl.isCreative() && !pl.isSpectator())) {
+            for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, blast, this::isValidCombatTarget)) {
                 StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 13.0F, 1.0F, false, 0.30F);
                 p.setDeltaMovement(p.getDeltaMovement().x, 0.68D, p.getDeltaMovement().z);
                 p.hurtMarked = true;
@@ -568,7 +573,7 @@ public class AnemoHypostasisEntity extends Monster {
         }
     }
 
-    private void tickClapSlam(ServerLevel sl, Player target) {
+    private void tickClapSlam(ServerLevel sl, LivingEntity target) {
         // Snap impact at tick 38 (1.9s)
         if (stateTick == 38) {
             sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.35F, 0.95F);
@@ -578,7 +583,7 @@ public class AnemoHypostasisEntity extends Monster {
 
             AABB crushBox = new AABB(getX() - 4.0D, getY() - 0.5D, getZ() - 4.0D,
                     getX() + 4.0D, getY() + 4.2D, getZ() + 4.0D);
-            for (Player p : sl.getEntitiesOfClass(Player.class, crushBox, pl -> pl.isAlive() && !pl.isCreative() && !pl.isSpectator())) {
+            for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, crushBox, this::isValidCombatTarget)) {
                 StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 18.0F, 1.5F, true, 0.35F);
                 Vec3 push = p.position().subtract(position()).normalize().scale(1.1D);
                 p.setDeltaMovement(push.x, 0.45D, push.z);
@@ -603,7 +608,7 @@ public class AnemoHypostasisEntity extends Monster {
         if (stateTick >= 12 && stateTick <= 68) {
             AABB pullArea = new AABB(getX() - 14.0D, getY() - 2.0D, getZ() - 14.0D,
                     getX() + 14.0D, getY() + 6.0D, getZ() + 14.0D);
-            for (Player p : sl.getEntitiesOfClass(Player.class, pullArea, pl -> pl.isAlive() && !pl.isCreative() && !pl.isSpectator())) {
+            for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, pullArea, this::isValidCombatTarget)) {
                 Vec3 toBoss = position().subtract(p.position());
                 double dist = toBoss.length();
                 if (dist > 2.4D && dist < 14.0D) {
@@ -622,7 +627,7 @@ public class AnemoHypostasisEntity extends Monster {
             sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 1.6F, 0.72F);
             sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, getX(), getY() + 1.5D, getZ(), 4, 2.5D, 1.0D, 2.5D, 0.0D);
             AABB blast = new AABB(getX() - 8.5D, getY() - 1.0D, getZ() - 8.5D, getX() + 8.5D, getY() + 5.0D, getZ() + 8.5D);
-            for (Player p : sl.getEntitiesOfClass(Player.class, blast, pl -> pl.isAlive() && !pl.isCreative() && !pl.isSpectator())) {
+            for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, blast, this::isValidCombatTarget)) {
                 StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 14.5F, 1.0F, false, 0.30F);
                 Vec3 push = p.position().subtract(position()).normalize().scale(1.25D);
                 p.setDeltaMovement(push.x, 0.52D, push.z);
@@ -633,6 +638,23 @@ public class AnemoHypostasisEntity extends Monster {
             pendingRecallOrbs = 0;
             transitionTo(STATE_VULNERABLE, ANIM_VULNERABLE);
         }
+    }
+
+    private boolean isValidCombatTarget(LivingEntity le) {
+        if (le == null || !le.isAlive() || le == this || le instanceof AnemoHypostasisEntity) return false;
+        if (le instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        return le.distanceToSqr(this) <= 34.0D * 34.0D;
+    }
+
+    private LivingEntity findCombatTarget(ServerLevel sl) {
+        Player nearestPlayer = sl.getNearestPlayer(getX(), getY(), getZ(), 32.0D,
+                e -> e instanceof Player p && p.isAlive() && !p.isCreative() && !p.isSpectator());
+        if (nearestPlayer != null) return nearestPlayer;
+        if (isValidCombatTarget(getTarget())) return getTarget();
+        if (isValidCombatTarget(getLastHurtByMob())) return getLastHurtByMob();
+        List<Mob> aggroMobs = sl.getEntitiesOfClass(Mob.class, getBoundingBox().inflate(28.0D),
+                m -> isValidCombatTarget(m) && m.getTarget() == this);
+        return aggroMobs.isEmpty() ? null : aggroMobs.get(0);
     }
 
     private void updateBossBar() {

@@ -131,7 +131,7 @@ public class CryoRegisvineEntity extends Monster {
 
     public CryoRegisvineEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
-        this.xpReward = 280;
+        this.xpReward = 600;
         this.setPersistenceRequired();
         this.addTag("VeloriseInnateChecked");
         ensureShieldBreakListener();
@@ -284,6 +284,11 @@ public class CryoRegisvineEntity extends Monster {
             setTarget(attacker);
         }
         if (st == STATE_DORMANT && !level().isClientSide()) {
+            if (source.getEntity() instanceof LivingEntity attacker && attacker != this
+                    && !(attacker instanceof Player p && (p.isCreative() || p.isSpectator()))) {
+                setLastHurtByMob(attacker);
+                setTarget(attacker);
+            }
             awaken((ServerLevel) level());
             return false;
         }

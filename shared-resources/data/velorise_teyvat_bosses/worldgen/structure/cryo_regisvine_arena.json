@@ -2,11 +2,14 @@
   "type": "velorise_teyvat_bosses:flat_arena",
   "biomes": "#velorise_teyvat_bosses:has_structure/cryo_regisvine_arena",
   "step": "surface_structures",
-  "terrain_adaptation": "bury",
+  "terrain_adaptation": "none",
   "start_pool": "velorise_teyvat_bosses:cryo_regisvine_arena",
-  "sample_radius": 22,
-  "max_height_variance": 4,
+  "sample_radius": 24,
+  "max_height_variance": 6,
   "y_offset": -37,
   "min_surface_y": 64,
+  "blend_radius": 12,
+  "underground_cave": true,
+  "clear_interior_radius": 0,
   "spawn_overrides": {}
 }

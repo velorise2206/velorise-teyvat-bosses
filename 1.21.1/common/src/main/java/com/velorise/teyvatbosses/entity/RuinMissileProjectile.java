@@ -8,7 +8,6 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,15 +21,20 @@ import java.util.UUID;
 
 /**
  * Genshin-accurate homing missile fired from the Ruin Guard's back shoulder pods.
- * Launches upward in a dramatic arc for 12 ticks, then smoothly steers toward its locked target,
- * detonating in a fiery mechanical blast on impact.
+ * <ul>
+ *   <li>Ticks 0..7: Crisp upward/outward launch pop from shoulder pods.</li>
+ *   <li>Ticks 8..26: Adaptive high-authority homing dive toward target.</li>
+ *   <li>Terminal Lock-In (tick > 26 or within 5.5 blocks): locks straight vector into the ground/target
+ *       so missiles NEVER orbit in circles and remain cleanly dodgeable.</li>
+ * </ul>
  */
 public class RuinMissileProjectile extends Entity {
 
     private UUID ownerUuid;
     private UUID targetUuid;
-    private float damage = 11.5F;
-    private int maxLife = 110;
+    private float damage = 8.5F;
+    private int maxLife = 90;
+    private boolean terminalLocked = false;
 
     public RuinMissileProjectile(EntityType<? extends RuinMissileProjectile> type, Level level) {
         super(type, level);
@@ -72,20 +76,40 @@ public class RuinMissileProjectile extends Entity {
         Vec3 vel = getDeltaMovement();
 
         if (!level().isClientSide() && level() instanceof ServerLevel sl) {
-            // Homing guidance after initial 10-tick upward launch arc
-            if (tickCount >= 10 && tickCount <= 80 && targetUuid != null) {
+            if (tickCount < 8) {
+                // Phase 1: Brief upward launch arc with gentle drag so apex stays compact
+                vel = vel.scale(0.95D).add(0.0D, -0.02D, 0.0D);
+                setDeltaMovement(vel);
+            } else if (!terminalLocked && tickCount <= 26 && targetUuid != null) {
+                // Phase 2: Tight responsive homing dive
                 Entity te = sl.getEntity(targetUuid);
                 if (te instanceof LivingEntity target && target.isAlive()) {
-                    Vec3 aimPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
-                    Vec3 desired = aimPos.subtract(position()).normalize().scale(0.86D);
-                    double turnRate = (tickCount < 28) ? 0.16D : 0.11D;
-                    vel = vel.lerp(desired, turnRate);
-                    if (vel.lengthSqr() > 1e-4D) {
-                        vel = vel.normalize().scale(0.88D);
+                    Vec3 aimPos = target.position().add(0.0D, target.getBbHeight() * 0.45D, 0.0D);
+                    Vec3 toTarget = aimPos.subtract(position());
+                    double dist = toTarget.length();
+                    if (dist < 5.5D) {
+                        // Phase 3: Terminal lock-in — fly straight through impact, zero orbiting!
+                        vel = toTarget.normalize().scale(0.92D);
+                        terminalLocked = true;
+                    } else {
+                        double speed = Math.min(0.94D, 0.58D + (tickCount - 8) * 0.024D);
+                        Vec3 desired = toTarget.normalize().scale(speed);
+                        vel = vel.lerp(desired, 0.28D);
+                        if (vel.lengthSqr() > 1e-4D) {
+                            vel = vel.normalize().scale(speed);
+                        }
                     }
                     setDeltaMovement(vel);
+                } else {
+                    terminalLocked = true;
                 }
+            } else {
+                // Terminal flight: maintain crisp straight dive with slight gravity so it always hits ground
+                terminalLocked = true;
+                vel = vel.add(0.0D, -0.015D, 0.0D);
+                setDeltaMovement(vel);
             }
+            hasImpulse = true;
         }
 
         setPos(getX() + vel.x, getY() + vel.y, getZ() + vel.z);
@@ -100,7 +124,6 @@ public class RuinMissileProjectile extends Entity {
         ServerLevel sl = (ServerLevel) level();
         boolean impacted = false;
 
-        // Check entity hit
         AABB box = new AABB(getX() - 0.95D, getY() - 0.95D, getZ() - 0.95D,
                 getX() + 0.95D, getY() + 0.95D, getZ() + 0.95D);
         List<LivingEntity> hits = sl.getEntitiesOfClass(LivingEntity.class, box,
@@ -129,7 +152,7 @@ public class RuinMissileProjectile extends Entity {
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, blast,
                 ent -> ent.isAlive() && !(ent instanceof RuinGuardEntity)
                         && !(ent instanceof Player p && (p.isCreative() || p.isSpectator())))) {
-            StavesElementBridge.dealElementalDamage(e, owner, "PYRO", damage, 0.5F, false, 0.25F);
+            StavesElementBridge.dealElementalDamage(e, owner, "PYRO", damage, 0.5F, false, 0.20F);
             Vec3 push = e.position().subtract(position()).normalize().scale(0.55D);
             e.setDeltaMovement(e.getDeltaMovement().add(push.x, 0.32D, push.z));
             e.hurtMarked = true;

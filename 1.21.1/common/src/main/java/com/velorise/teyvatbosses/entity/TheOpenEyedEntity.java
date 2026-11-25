@@ -148,7 +148,7 @@ public class TheOpenEyedEntity extends Monster {
 
     public TheOpenEyedEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
-        this.xpReward = 400;
+        this.xpReward = 900;
         this.setPersistenceRequired();
         this.addTag("VeloriseInnateChecked");
         this.setNoGravity(true);
