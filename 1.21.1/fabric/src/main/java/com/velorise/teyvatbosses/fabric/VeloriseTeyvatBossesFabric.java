@@ -18,6 +18,9 @@ import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
+import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
+import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -143,6 +146,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("ruin_guard_theme")))));
 
+    public static final StructureType<FlatArenaStructure> FLAT_ARENA = Registry.register(
+            BuiltInRegistries.STRUCTURE_TYPE, TeyvatBossesConstants.id("flat_arena"),
+            () -> FlatArenaStructure.CODEC);
+
     public static final CreativeModeTab MAIN_TAB = Registry.register(
             BuiltInRegistries.CREATIVE_MODE_TAB,
             TeyvatBossesConstants.id("main"),
@@ -183,6 +190,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> RUIN_MISSILE
         );
 
+        TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE,
                 () -> MUSIC_DISC_THE_OPEN_EYED,

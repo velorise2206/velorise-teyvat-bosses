@@ -368,8 +368,10 @@ public final class RuinGuardAnimations {
             if (part == null || tr.times.length == 0) continue;
             sampleTrack(tr, t, clip.loop, v);
             if (tr.channel == CH_ROT) {
-                part.xRot += v[0] * DEG2RAD * weight;
-                part.yRot += v[1] * DEG2RAD * weight;
+                boolean isLeg = tr.bone.startsWith("hip_") || tr.bone.startsWith("knee_") || tr.bone.startsWith("foot_");
+                float signXY = isLeg ? 1.0F : -1.0F;
+                part.xRot += signXY * v[0] * DEG2RAD * weight;
+                part.yRot += signXY * v[1] * DEG2RAD * weight;
                 part.zRot += v[2] * DEG2RAD * weight;
             } else if (tr.channel == CH_POS) {
                 part.x += v[0] * weight;

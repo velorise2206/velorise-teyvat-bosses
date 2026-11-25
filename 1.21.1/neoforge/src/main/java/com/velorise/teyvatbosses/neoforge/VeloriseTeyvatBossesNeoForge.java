@@ -18,6 +18,9 @@ import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
+import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
+import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -46,6 +49,11 @@ public class VeloriseTeyvatBossesNeoForge {
             DeferredRegister.create(Registries.SOUND_EVENT, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, TeyvatBossesConstants.MOD_ID);
+    public static final DeferredRegister<StructureType<?>> STRUCTURE_TYPES =
+            DeferredRegister.create(Registries.STRUCTURE_TYPE, TeyvatBossesConstants.MOD_ID);
+
+    public static final DeferredHolder<StructureType<?>, StructureType<FlatArenaStructure>> FLAT_ARENA =
+            STRUCTURE_TYPES.register("flat_arena", () -> () -> FlatArenaStructure.CODEC);
 
     public static final DeferredHolder<EntityType<?>, EntityType<CryoRegisvineEntity>> CRYO_REGISVINE =
             ENTITIES.register("cryo_regisvine", () -> EntityType.Builder.of(CryoRegisvineEntity::new, MobCategory.MONSTER)
@@ -167,6 +175,8 @@ public class VeloriseTeyvatBossesNeoForge {
         ITEMS.register(modEventBus);
         SOUNDS.register(modEventBus);
         TABS.register(modEventBus);
+        STRUCTURE_TYPES.register(modEventBus);
+        TeyvatBossesStructures.bind(FLAT_ARENA);
 
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,
