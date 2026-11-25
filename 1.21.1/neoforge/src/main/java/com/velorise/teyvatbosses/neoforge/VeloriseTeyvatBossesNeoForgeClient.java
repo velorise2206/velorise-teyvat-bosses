@@ -1,15 +1,26 @@
 package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
+import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
+import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
+import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
 import com.velorise.teyvatbosses.client.BossRespawnAnchorRenderer;
 import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
+import com.velorise.teyvatbosses.client.RuinGuardRenderer;
+import com.velorise.teyvatbosses.client.RuinMissileRenderer;
 import com.velorise.teyvatbosses.client.SkySpearRenderer;
 import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
+import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
+import com.velorise.teyvatbosses.client.WindCurrentRenderer;
+import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
+import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
+import com.velorise.teyvatbosses.client.model.TrounceBlossomModel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -24,6 +35,9 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
     public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(CryoRegisvineModel.LAYER_LOCATION, CryoRegisvineModel::createBodyLayer);
         event.registerLayerDefinition(TheOpenEyedModel.LAYER_LOCATION, TheOpenEyedModel::createBodyLayer);
+        event.registerLayerDefinition(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
+        event.registerLayerDefinition(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
+        event.registerLayerDefinition(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -35,5 +49,15 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ELEMENTAL_STAR.get(), ElementalStarRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.SKY_SPEAR.get(), SkySpearRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_RESPAWN_ANCHOR.get(), BossRespawnAnchorRenderer::new);
+
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_HYPOSTASIS.get(), AnemoHypostasisRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_WIND_ORB.get(), AnemoWindOrbRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_TORNADO.get(), AnemoTornadoRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_MISSILE.get(), AnemoMissileRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.WIND_CURRENT.get(), WindCurrentRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.TROUNCE_BLOSSOM.get(), TrounceBlossomRenderer::new);
+
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_GUARD.get(), RuinGuardRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MISSILE.get(), RuinMissileRenderer::new);
     }
 }

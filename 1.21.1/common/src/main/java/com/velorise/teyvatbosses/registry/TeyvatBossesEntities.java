@@ -1,12 +1,20 @@
 package com.velorise.teyvatbosses.registry;
 
+import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
+import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
+import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
+import com.velorise.teyvatbosses.entity.AnemoWindOrbEntity;
 import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
 import com.velorise.teyvatbosses.entity.CryoIceSpikeEntity;
 import com.velorise.teyvatbosses.entity.CryoIcicleProjectile;
 import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.ElementalStarEntity;
+import com.velorise.teyvatbosses.entity.RuinGuardEntity;
+import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
+import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
+import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import net.minecraft.world.entity.EntityType;
 
 import java.util.function.Supplier;
@@ -23,6 +31,16 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<SkySpearEntity>> skySpear;
     private static Supplier<EntityType<BossRespawnAnchorEntity>> bossRespawnAnchor;
 
+    private static Supplier<EntityType<AnemoHypostasisEntity>> anemoHypostasis;
+    private static Supplier<EntityType<AnemoWindOrbEntity>> anemoWindOrb;
+    private static Supplier<EntityType<AnemoTornadoEntity>> anemoTornado;
+    private static Supplier<EntityType<AnemoMissileProjectile>> anemoMissile;
+    private static Supplier<EntityType<WindCurrentEntity>> windCurrent;
+    private static Supplier<EntityType<TrounceBlossomEntity>> trounceBlossom;
+
+    private static Supplier<EntityType<RuinGuardEntity>> ruinGuard;
+    private static Supplier<EntityType<RuinMissileProjectile>> ruinMissile;
+
     private TeyvatBossesEntities() {}
 
     public static void bind(
@@ -32,7 +50,15 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<TheOpenEyedEntity>> theOpenEyedSupplier,
             Supplier<EntityType<ElementalStarEntity>> elementalStarSupplier,
             Supplier<EntityType<SkySpearEntity>> skySpearSupplier,
-            Supplier<EntityType<BossRespawnAnchorEntity>> bossRespawnAnchorSupplier
+            Supplier<EntityType<BossRespawnAnchorEntity>> bossRespawnAnchorSupplier,
+            Supplier<EntityType<AnemoHypostasisEntity>> anemoHypostasisSupplier,
+            Supplier<EntityType<AnemoWindOrbEntity>> anemoWindOrbSupplier,
+            Supplier<EntityType<AnemoTornadoEntity>> anemoTornadoSupplier,
+            Supplier<EntityType<AnemoMissileProjectile>> anemoMissileSupplier,
+            Supplier<EntityType<WindCurrentEntity>> windCurrentSupplier,
+            Supplier<EntityType<TrounceBlossomEntity>> trounceBlossomSupplier,
+            Supplier<EntityType<RuinGuardEntity>> ruinGuardSupplier,
+            Supplier<EntityType<RuinMissileProjectile>> ruinMissileSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -41,6 +67,14 @@ public final class TeyvatBossesEntities {
         elementalStar = elementalStarSupplier;
         skySpear = skySpearSupplier;
         bossRespawnAnchor = bossRespawnAnchorSupplier;
+        anemoHypostasis = anemoHypostasisSupplier;
+        anemoWindOrb = anemoWindOrbSupplier;
+        anemoTornado = anemoTornadoSupplier;
+        anemoMissile = anemoMissileSupplier;
+        windCurrent = windCurrentSupplier;
+        trounceBlossom = trounceBlossomSupplier;
+        ruinGuard = ruinGuardSupplier;
+        ruinMissile = ruinMissileSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -50,4 +84,12 @@ public final class TeyvatBossesEntities {
     public static EntityType<ElementalStarEntity> elementalStar() { return elementalStar.get(); }
     public static EntityType<SkySpearEntity> skySpear() { return skySpear.get(); }
     public static EntityType<BossRespawnAnchorEntity> bossRespawnAnchor() { return bossRespawnAnchor.get(); }
+    public static EntityType<AnemoHypostasisEntity> anemoHypostasis() { return anemoHypostasis.get(); }
+    public static EntityType<AnemoWindOrbEntity> anemoWindOrb() { return anemoWindOrb.get(); }
+    public static EntityType<AnemoTornadoEntity> anemoTornado() { return anemoTornado.get(); }
+    public static EntityType<AnemoMissileProjectile> anemoMissile() { return anemoMissile.get(); }
+    public static EntityType<WindCurrentEntity> windCurrent() { return windCurrent.get(); }
+    public static EntityType<TrounceBlossomEntity> trounceBlossom() { return trounceBlossom.get(); }
+    public static EntityType<RuinGuardEntity> ruinGuard() { return ruinGuard.get(); }
+    public static EntityType<RuinMissileProjectile> ruinMissile() { return ruinMissile.get(); }
 }

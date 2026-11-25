@@ -1,0 +1,8 @@
+{
+  "comparator_output": 13,
+  "description": {
+    "translate": "jukebox_song.velorise_teyvat_bosses.ruin_guard_theme"
+  },
+  "length_in_seconds": 145.7,
+  "sound_event": "velorise_teyvat_bosses:music.ruin_guard_theme"
+}

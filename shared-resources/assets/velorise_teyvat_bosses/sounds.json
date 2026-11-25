@@ -14,5 +14,21 @@
         "stream": true
       }
     ]
+  },
+  "music.anemo_hypostasis_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/anemo_hypostasis_theme",
+        "stream": true
+      }
+    ]
+  },
+  "music.ruin_guard_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/ruin_guard_theme_mech",
+        "stream": true
+      }
+    ]
   }
 }

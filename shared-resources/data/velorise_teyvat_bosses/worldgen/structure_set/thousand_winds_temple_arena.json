@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "velorise_teyvat_bosses:thousand_winds_temple_arena",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 40,
+    "separation": 18,
+    "salt": 62918451
+  }
+}

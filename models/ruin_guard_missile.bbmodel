@@ -1,0 +1,514 @@
+{
+  "meta": {
+    "format_version": "4.10",
+    "model_format": "modded_entity",
+    "box_uv": true
+  },
+  "name": "ruin_guard_missile",
+  "model_identifier": "ruin_guard_missile",
+  "visible_box": [
+    4,
+    5,
+    0
+  ],
+  "variable_placeholders": "",
+  "variable_placeholder_buttons": [],
+  "timeline_setups": [],
+  "unhandled_root_fields": {},
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "missile_body_c0",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -1.0,
+        3.0,
+        -10.0
+      ],
+      "to": [
+        1.0,
+        5.0,
+        -7.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        0,
+        0
+      ],
+      "uuid": "2c1ec691-8f3b-54a1-9744-e34b595c824f"
+    },
+    {
+      "name": "missile_body_c1",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -2.0,
+        2.0,
+        -7.5
+      ],
+      "to": [
+        2.0,
+        6.0,
+        -4.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        11,
+        0
+      ],
+      "uuid": "1e7cf11f-540c-53b6-a184-d5c6975b3d0c"
+    },
+    {
+      "name": "missile_body_c2",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -2.5,
+        1.5,
+        -5.0
+      ],
+      "to": [
+        2.5,
+        6.5,
+        3.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        26,
+        0
+      ],
+      "uuid": "a0a7e418-b99b-543b-b561-2b0856d86463"
+    },
+    {
+      "name": "missile_body_c3",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -3.0,
+        2.5,
+        -4.0
+      ],
+      "to": [
+        3.0,
+        5.5,
+        2.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": -0.02,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        0,
+        14
+      ],
+      "uuid": "f4d95e6d-f0c4-50fb-8bf6-80c3d747b015"
+    },
+    {
+      "name": "missile_body_c4",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -1.5,
+        1.0,
+        -4.0
+      ],
+      "to": [
+        1.5,
+        7.0,
+        2.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": -0.02,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        25,
+        14
+      ],
+      "uuid": "abd05326-629e-5135-a2d6-b8c859ad3b0c"
+    },
+    {
+      "name": "missile_body_c5",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -2.5,
+        1.5,
+        2.5
+      ],
+      "to": [
+        2.5,
+        6.5,
+        4.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        44,
+        14
+      ],
+      "uuid": "ea1e6d3e-e56b-58b4-b710-47d0ea660f6f"
+    },
+    {
+      "name": "missile_body_c6",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -2.0,
+        2.0,
+        4.0
+      ],
+      "to": [
+        2.0,
+        6.0,
+        8.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        0,
+        27
+      ],
+      "uuid": "c9fd44de-9ee5-5ca8-b57e-bdb0cc0e436f"
+    },
+    {
+      "name": "missile_body_c7",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -0.5,
+        6.0,
+        4.5
+      ],
+      "to": [
+        0.5,
+        10.0,
+        8.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        17,
+        27
+      ],
+      "uuid": "474ca3a4-f53f-5bef-b1d5-a83ebbe2d658"
+    },
+    {
+      "name": "missile_body_c8",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -0.5,
+        -2.0,
+        4.5
+      ],
+      "to": [
+        0.5,
+        2.0,
+        8.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        28,
+        27
+      ],
+      "uuid": "ba47272a-1558-54d5-bda6-a63abae545c7"
+    },
+    {
+      "name": "missile_body_c9",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        2.0,
+        3.5,
+        4.5
+      ],
+      "to": [
+        6.0,
+        4.5,
+        8.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        39,
+        27
+      ],
+      "uuid": "2ef7092e-4d2f-559d-b6a6-7b8fc1ae7394"
+    },
+    {
+      "name": "missile_body_c10",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -6.0,
+        3.5,
+        4.5
+      ],
+      "to": [
+        -2.0,
+        4.5,
+        8.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "uv_offset": [
+        0,
+        36
+      ],
+      "uuid": "d0dc8ed7-53ea-54d4-920b-58b85637ec2e"
+    },
+    {
+      "name": "thruster_flame_c11",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -1.5,
+        2.5,
+        8.0
+      ],
+      "to": [
+        1.5,
+        5.5,
+        11.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        9.0
+      ],
+      "uv_offset": [
+        17,
+        36
+      ],
+      "uuid": "72c6ceab-4968-5033-8606-f2ed9664a29f"
+    },
+    {
+      "name": "thruster_flame_c12",
+      "box_uv": true,
+      "rescale": false,
+      "locked": false,
+      "from": [
+        -1.0,
+        3.0,
+        10.5
+      ],
+      "to": [
+        1.0,
+        5.0,
+        13.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "inflate": 0.0,
+      "origin": [
+        0.0,
+        4.0,
+        9.0
+      ],
+      "uv_offset": [
+        30,
+        36
+      ],
+      "uuid": "d3cd0bb6-d167-5559-aa33-4cf362c6f693"
+    }
+  ],
+  "outliner": [
+    {
+      "name": "root",
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": 0,
+      "uuid": "3cc0b34f-ba78-5cac-ae04-eed1ed114317",
+      "export": true,
+      "mirror_uv": false,
+      "isOpen": false,
+      "locked": false,
+      "visibility": true,
+      "autouv": 0,
+      "children": [
+        {
+          "name": "missile_body",
+          "origin": [
+            0.0,
+            4.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "color": 0,
+          "uuid": "3dccb840-f9a1-5f05-9988-3637c0b4245f",
+          "export": true,
+          "mirror_uv": false,
+          "isOpen": false,
+          "locked": false,
+          "visibility": true,
+          "autouv": 0,
+          "children": [
+            {
+              "name": "thruster_flame",
+              "origin": [
+                0.0,
+                4.0,
+                9.0
+              ],
+              "rotation": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "color": 0,
+              "uuid": "2d3b7e42-61b5-5982-803a-c3cb2d626aed",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": false,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "72c6ceab-4968-5033-8606-f2ed9664a29f",
+                "d3cd0bb6-d167-5559-aa33-4cf362c6f693"
+              ]
+            },
+            "2c1ec691-8f3b-54a1-9744-e34b595c824f",
+            "1e7cf11f-540c-53b6-a184-d5c6975b3d0c",
+            "a0a7e418-b99b-543b-b561-2b0856d86463",
+            "f4d95e6d-f0c4-50fb-8bf6-80c3d747b015",
+            "abd05326-629e-5135-a2d6-b8c859ad3b0c",
+            "ea1e6d3e-e56b-58b4-b710-47d0ea660f6f",
+            "c9fd44de-9ee5-5ca8-b57e-bdb0cc0e436f",
+            "474ca3a4-f53f-5bef-b1d5-a83ebbe2d658",
+            "ba47272a-1558-54d5-bda6-a63abae545c7",
+            "2ef7092e-4d2f-559d-b6a6-7b8fc1ae7394",
+            "d0dc8ed7-53ea-54d4-920b-58b85637ec2e"
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "path": "ruin_guard_missile.png",
+      "name": "ruin_guard_missile.png",
+      "folder": "",
+      "namespace": "",
+      "id": "0",
+      "width": 64,
+      "height": 64,
+      "uv_width": 64,
+      "uv_height": 64,
+      "particle": false,
+      "use_as_default": true,
+      "layers_enabled": false,
+      "sync_to_project": "",
+      "render_mode": "default",
+      "render_sides": "auto",
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "uuid": "9350208a-e25c-5846-a9c6-9bf56911891c",
+      "source": "data:image/png;base64,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"
+    }
+  ],
+  "animations": []
+}

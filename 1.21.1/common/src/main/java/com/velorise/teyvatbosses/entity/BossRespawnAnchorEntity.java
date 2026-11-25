@@ -22,15 +22,14 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Genshin-style Ley Line Respawn Blossom left behind when a World Boss is defeated.
- * Counts down (default 2 minutes / 2400 ticks) and automatically respawns the boss at its exact arena anchor.
- *
- * <p>Creative-mode convenience: Right-click to respawn immediately; Left-click to remove permanently.
  */
 public class BossRespawnAnchorEntity extends Entity {
 
-    public static final int BOSS_CRYO_REGISVINE = 0;
-    public static final int BOSS_THE_OPEN_EYED  = 1;
-    public static final int DEFAULT_RESPAWN_TICKS = 2400; // 2 minutes
+    public static final int BOSS_CRYO_REGISVINE   = 0;
+    public static final int BOSS_THE_OPEN_EYED    = 1;
+    public static final int BOSS_ANEMO_HYPOSTASIS = 2;
+    public static final int BOSS_RUIN_GUARD       = 3;
+    public static final int DEFAULT_RESPAWN_TICKS = 2400;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
             SynchedEntityData.defineId(BossRespawnAnchorEntity.class, EntityDataSerializers.INT);
@@ -91,7 +90,12 @@ public class BossRespawnAnchorEntity extends Entity {
         super.tick();
         if (level().isClientSide()) {
             if (tickCount % 4 == 0) {
-                var p = (getBossKind() == BOSS_CRYO_REGISVINE) ? ParticleTypes.SNOWFLAKE : ParticleTypes.END_ROD;
+                var p = switch (getBossKind()) {
+                    case BOSS_CRYO_REGISVINE -> ParticleTypes.SNOWFLAKE;
+                    case BOSS_ANEMO_HYPOSTASIS -> ParticleTypes.GLOW;
+                    case BOSS_RUIN_GUARD -> ParticleTypes.FLAME;
+                    default -> ParticleTypes.END_ROD;
+                };
                 level().addParticle(p,
                         getX() + (random.nextDouble() - 0.5D) * 1.2D,
                         getY() + 0.6D + random.nextDouble() * 1.2D,
@@ -104,36 +108,56 @@ public class BossRespawnAnchorEntity extends Entity {
         ServerLevel sl = (ServerLevel) level();
         int left = getTicksLeft() - 1;
         entityData.set(DATA_TICKS_LEFT, Math.max(0, left));
-
-        if (left % 20 == 0) {
-            updateTimerName();
-        }
-        if (left <= 0) {
-            respawnBossNow(sl);
-        }
+        if (left % 20 == 0) updateTimerName();
+        if (left <= 0) respawnBossNow(sl);
     }
 
     private void updateTimerName() {
         int secs = Math.max(0, (getTicksLeft() + 19) / 20);
         int mins = secs / 60;
         int rem = secs % 60;
-        String bossKey = (getBossKind() == BOSS_CRYO_REGISVINE)
-                ? "entity.velorise_teyvat_bosses.cryo_regisvine"
-                : "entity.velorise_teyvat_bosses.the_open_eyed";
-        ChatFormatting col = (getBossKind() == BOSS_CRYO_REGISVINE) ? ChatFormatting.AQUA : ChatFormatting.GOLD;
+        String bossKey = switch (getBossKind()) {
+            case BOSS_CRYO_REGISVINE -> "entity.velorise_teyvat_bosses.cryo_regisvine";
+            case BOSS_ANEMO_HYPOSTASIS -> "entity.velorise_teyvat_bosses.anemo_hypostasis";
+            case BOSS_RUIN_GUARD -> "entity.velorise_teyvat_bosses.ruin_guard";
+            default -> "entity.velorise_teyvat_bosses.the_open_eyed";
+        };
+        ChatFormatting col = switch (getBossKind()) {
+            case BOSS_CRYO_REGISVINE -> ChatFormatting.AQUA;
+            case BOSS_ANEMO_HYPOSTASIS -> ChatFormatting.GREEN;
+            case BOSS_RUIN_GUARD -> ChatFormatting.GOLD;
+            default -> ChatFormatting.YELLOW;
+        };
         setCustomName(Component.translatable(bossKey)
                 .append(Component.literal(String.format(" — %d:%02d", mins, rem)))
                 .withStyle(col));
     }
 
     private void respawnBossNow(ServerLevel sl) {
-        if (getBossKind() == BOSS_CRYO_REGISVINE) {
+        int kind = getBossKind();
+        if (kind == BOSS_CRYO_REGISVINE) {
             CryoRegisvineEntity boss = TeyvatBossesEntities.cryoRegisvine().create(sl);
             if (boss != null) {
                 boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
                 sl.addFreshEntity(boss);
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.5D, getZ(), 48, 1.8D, 1.5D, 1.8D, 0.1D);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.4F, 0.9F);
+            }
+        } else if (kind == BOSS_ANEMO_HYPOSTASIS) {
+            AnemoHypostasisEntity boss = TeyvatBossesEntities.anemoHypostasis().create(sl);
+            if (boss != null) {
+                boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
+                sl.addFreshEntity(boss);
+                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.8D, getZ(), 48, 1.6D, 1.6D, 1.6D, 0.1D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 1.4F, 1.15F);
+            }
+        } else if (kind == BOSS_RUIN_GUARD) {
+            RuinGuardEntity boss = TeyvatBossesEntities.ruinGuard().create(sl);
+            if (boss != null) {
+                boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
+                sl.addFreshEntity(boss);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.0D, getZ(), 48, 1.6D, 1.8D, 1.6D, 0.09D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.5F, 0.72F);
             }
         } else {
             TheOpenEyedEntity boss = TeyvatBossesEntities.theOpenEyed().create(sl);

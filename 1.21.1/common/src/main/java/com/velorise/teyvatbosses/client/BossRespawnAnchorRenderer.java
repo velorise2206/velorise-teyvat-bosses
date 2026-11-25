@@ -27,13 +27,17 @@ public class BossRespawnAnchorRenderer extends EntityRenderer<BossRespawnAnchorE
     @Override
     public void render(BossRespawnAnchorEntity entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
         float t = entity.tickCount + partialTicks;
-        boolean cryo = entity.getBossKind() == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE;
-        int r = cryo ? 110 : 255;
-        int g = cryo ? 230 : 210;
-        int b = cryo ? 255 : 100;
+        int kind = entity.getBossKind();
+        int r, g, b;
+        if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
+            r = 110; g = 230; b = 255;
+        } else if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
+            r = 107; g = 245; b = 212;
+        } else {
+            r = 255; g = 210; b = 100;
+        }
         int argb = 0xFF000000 | (r << 16) | (g << 8) | b;
 
-        // 1. Solid Opaque 3D Ley Line Blossom Crystal (entityCutoutNoCull, zero see-through!)
         poseStack.pushPose();
         poseStack.translate(0.0D, 1.35D + Mth.sin(t * 0.1F) * 0.16D, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(t * 2.5F));
@@ -41,7 +45,6 @@ public class BossRespawnAnchorRenderer extends EntityRenderer<BossRespawnAnchorE
         ElementalStarRenderer.renderSolid3DStar(poseStack, tvc, 0.92F, 0.66F, 0.25F, argb);
         poseStack.popPose();
 
-        // 2. Ground double-sided sigil ring
         VertexConsumer lvc = bufferSource.getBuffer(RenderType.lightning());
         poseStack.pushPose();
         drawRingDS(lvc, poseStack.last().pose(), 1.05F, 1.25F, 24, r, g, b, 155);
@@ -60,7 +63,6 @@ public class BossRespawnAnchorRenderer extends EntityRenderer<BossRespawnAnchorE
             vc.addVertex(mat, c0 * rOut, 0.06F, s0 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c1 * rOut, 0.06F, s1 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c1 * rIn, 0.06F, s1 * rIn).setColor(r, g, b, a);
-
             vc.addVertex(mat, c1 * rIn, 0.06F, s1 * rIn).setColor(r, g, b, a);
             vc.addVertex(mat, c1 * rOut, 0.06F, s1 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c0 * rOut, 0.06F, s0 * rOut).setColor(r, g, b, a);
