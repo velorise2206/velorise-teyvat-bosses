@@ -62,10 +62,17 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
 
     public ModelPart getBone(String name) { return bones.get(name); }
 
+    public java.util.Set<String> getBoneNames() { return bones.keySet(); }
+
     public void resetPose() {
         for (Map.Entry<String, PartPose> e : initialPoses.entrySet()) {
             ModelPart p = bones.get(e.getKey());
-            if (p != null) p.loadPose(e.getValue());
+            if (p != null) {
+                p.loadPose(e.getValue());
+                p.xScale = 1.0F;
+                p.yScale = 1.0F;
+                p.zScale = 1.0F;
+            }
         }
     }
 

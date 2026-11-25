@@ -17,6 +17,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -33,9 +34,9 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
- * Boss-tier Ruin Guard (GN/Hu-24601 — Thousand Winds Overlord) with full multi-target combat
- * (fights Players, Iron Golems, and hostile mobs), world-locked Leap Slam telegraph rings,
- * smooth stride-synced movement with hysteresis, and balanced mid-late progression stats.
+ * Boss-tier Ruin Guard (GN/Hu-24601 — Thousand Winds Overlord) with deterministic state machine,
+ * full-length death animation, weakpoint immunity runes after stun recovery, Stomp-to-Clap Genshin chain,
+ * Phase 2 Cataclysmic Overdrive Finisher, world-locked telegraph rings, and stride-synced arena movement.
  */
 public class RuinGuardEntity extends Monster {
 
@@ -45,21 +46,29 @@ public class RuinGuardEntity extends Monster {
     public static final int STATE_STUNNED = 3;
     public static final int STATE_DEATH   = 4;
 
-    public static final int ANIM_DORMANT          = 0;
-    public static final int ANIM_AWAKEN           = 1;
-    public static final int ANIM_IDLE             = 2;
-    public static final int ANIM_WALK             = 3;
-    public static final int ANIM_MISSILE_BARRAGE  = 4;
-    public static final int ANIM_MELEE_3HIT       = 5;
-    public static final int ANIM_DOUBLE_CLAP      = 6;
-    public static final int ANIM_STOMP_SHOCKWAVE  = 7;
-    public static final int ANIM_CYCLONE_WINDUP   = 8;
-    public static final int ANIM_CYCLONE_ACTIVE   = 9;
-    public static final int ANIM_CYCLONE_RECOVER  = 10;
-    public static final int ANIM_LEAP_SLAM        = 11;
-    public static final int ANIM_PHASE2_OVERDRIVE = 12;
-    public static final int ANIM_STUNNED          = 13;
-    public static final int ANIM_DEATH            = 14;
+    public static final int ANIM_DORMANT            = 0;
+    public static final int ANIM_AWAKEN             = 1;
+    public static final int ANIM_IDLE               = 2;
+    public static final int ANIM_WALK               = 3;
+    public static final int ANIM_MISSILE_BARRAGE    = 4;
+    public static final int ANIM_MELEE_3HIT         = 5;
+    public static final int ANIM_DOUBLE_CLAP        = 6;
+    public static final int ANIM_STOMP_SHOCKWAVE    = 7;
+    public static final int ANIM_CYCLONE_WINDUP     = 8;
+    public static final int ANIM_CYCLONE_ACTIVE     = 9;
+    public static final int ANIM_CYCLONE_RECOVER    = 10;
+    public static final int ANIM_LEAP_SLAM          = 11;
+    public static final int ANIM_PHASE2_OVERDRIVE   = 12;
+    public static final int ANIM_STUNNED            = 13;
+    public static final int ANIM_DEATH              = 14;
+    public static final int ANIM_STUN_RECOVERY      = 15;
+    public static final int ANIM_OVERDRIVE_FINISHER = 16;
+
+    private static final int DEATH_DURATION_TICKS    = 58;
+    private static final int STUN_COLLAPSE_TICKS     = 122;
+    private static final int STUN_RECOVERY_TICKS     = 28;
+    private static final int WEAKPOINT_IMMUNE_TICKS  = 80;
+    private static final double ARENA_LEASH_RADIUS   = 24.0D;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_STATE =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
@@ -91,14 +100,17 @@ public class RuinGuardEntity extends Monster {
     private int stateTick = 0;
     private int noTargetTicks = 0;
     private int attackCooldown = 26;
+    private int finisherCooldown = 0;
     private int lastAttack = -1;
     private int eyeHits = 0;
     private int eyeResetTimer = 0;
+    private int weakpointImmuneTicks = 0;
+    private boolean pendingPhase2 = false;
     private boolean customDeathHandled = false;
     private Vec3 leapStart = Vec3.ZERO;
     private Vec3 leapTarget = Vec3.ZERO;
 
-    // Client-side smooth animation tick
+    // Client-side smooth animation tick (reset immediately on epoch packet arrival)
     private int clientAnimTick = 0;
     private int lastSyncedAnim = -1;
     private int lastSyncedEpoch = -1;
@@ -116,7 +128,8 @@ public class RuinGuardEntity extends Monster {
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.23D)
                 .add(Attributes.ATTACK_DAMAGE, 14.0D)
-                .add(Attributes.FOLLOW_RANGE, 42.0D);
+                .add(Attributes.FOLLOW_RANGE, 42.0D)
+                .add(Attributes.STEP_HEIGHT, 1.25D);
     }
 
     @Override
@@ -130,6 +143,16 @@ public class RuinGuardEntity extends Monster {
         builder.define(DATA_TELEGRAPH_X, 0.0F);
         builder.define(DATA_TELEGRAPH_Y, 0.0F);
         builder.define(DATA_TELEGRAPH_Z, 0.0F);
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (level().isClientSide() && DATA_ANIM_EPOCH.equals(key)) {
+            lastSyncedAnim = getAnimId();
+            lastSyncedEpoch = getAnimEpoch();
+            clientAnimTick = 0;
+        }
     }
 
     @Override
@@ -172,6 +195,8 @@ public class RuinGuardEntity extends Monster {
             case ANIM_PHASE2_OVERDRIVE -> "phase2_overdrive";
             case ANIM_STUNNED -> "stunned_collapse";
             case ANIM_DEATH -> "death_shutdown";
+            case ANIM_STUN_RECOVERY -> "stunned_recovery";
+            case ANIM_OVERDRIVE_FINISHER -> "overdrive_finisher";
             default -> "idle_combat";
         };
     }
@@ -211,10 +236,6 @@ public class RuinGuardEntity extends Monster {
         return le.distanceToSqr(this) <= 36.0D * 36.0D;
     }
 
-    /**
-     * Finds the active combat target: nearest Survival Player, else last attacker (e.g. Iron Golem),
-     * else any nearby Mob actively targeting this boss. Prevents the wake-sleep-music loop when golems attack!
-     */
     private LivingEntity findCombatTarget(ServerLevel sl) {
         Player nearestPlayer = sl.getNearestPlayer(getX(), getY(), getZ(), 34.0D,
                 e -> e instanceof Player p && p.isAlive() && !p.isCreative() && !p.isSpectator());
@@ -255,7 +276,6 @@ public class RuinGuardEntity extends Monster {
         int st = getBossState();
         if (st == STATE_DEATH) return false;
         if (st == STATE_AWAKEN) {
-            // Still record attacker during bootup so aggro is locked as soon as it stands up
             if (!level().isClientSide() && source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
                 setLastHurtByMob(attacker);
                 setTarget(attacker);
@@ -271,8 +291,9 @@ public class RuinGuardEntity extends Monster {
             return false;
         }
 
-        // Eye & Back-Reactor Weakpoint Detection: projectile hitting front eye or rear core (Y +2.35..+4.15)
-        if (st == STATE_COMBAT && !level().isClientSide() && source.getDirectEntity() instanceof Projectile proj) {
+        // Eye & Back-Reactor Weakpoint Detection (respects Genshin post-stun rune immunity)
+        if (st == STATE_COMBAT && weakpointImmuneTicks <= 0 && !level().isClientSide()
+                && source.getDirectEntity() instanceof Projectile proj) {
             if (proj.getY() >= getY() + 2.35D && proj.getY() <= getY() + 4.15D) {
                 Vec3 toProj = new Vec3(proj.getX() - getX(), 0.0D, proj.getZ() - getZ());
                 Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
@@ -296,7 +317,7 @@ public class RuinGuardEntity extends Monster {
             }
         }
 
-        // Balanced 45% Physical Resistance while active; 1.5x bonus damage while Eye-Stunned!
+        // 45% Physical Resistance while active; 1.5x bonus damage while Eye-Stunned
         if (st == STATE_STUNNED) {
             amount *= 1.50F;
         } else if (!source.is(DamageTypeTags.BYPASSES_ARMOR) && !source.is(DamageTypeTags.WITCH_RESISTANT_TO)) {
@@ -308,6 +329,7 @@ public class RuinGuardEntity extends Monster {
 
     private void triggerEyeStun(ServerLevel sl) {
         eyeHits = 0;
+        eyeResetTimer = 0;
         transitionTo(STATE_STUNNED, ANIM_STUNNED);
         sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.6F, 0.62F);
         sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 1.35F, 0.78F);
@@ -315,6 +337,15 @@ public class RuinGuardEntity extends Monster {
         for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(32.0D))) {
             p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_guard.weakpoint_stun")
                     .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
+        }
+    }
+
+    @Override
+    protected void tickDeath() {
+        this.deathTime++;
+        if (this.deathTime >= DEATH_DURATION_TICKS && !this.level().isClientSide() && !this.isRemoved()) {
+            this.level().broadcastEntityEvent(this, (byte) 60);
+            this.remove(Entity.RemovalReason.KILLED);
         }
     }
 
@@ -341,6 +372,26 @@ public class RuinGuardEntity extends Monster {
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.4F, 0.75F);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.5F, 0.65F);
+    }
+
+    private void resetToDormant() {
+        noTargetTicks = 0;
+        eyeHits = 0;
+        eyeResetTimer = 0;
+        weakpointImmuneTicks = 0;
+        pendingPhase2 = false;
+        finisherCooldown = 0;
+        lastAttack = -1;
+        attackCooldown = 26;
+        setTarget(null);
+        setDeltaMovement(Vec3.ZERO);
+        setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+        setYRot(savedSpawnYaw);
+        yBodyRot = savedSpawnYaw;
+        yHeadRot = savedSpawnYaw;
+        setHealth(getMaxHealth());
+        entityData.set(DATA_PHASE2, false);
+        transitionTo(STATE_DORMANT, ANIM_DORMANT);
     }
 
     @Override
@@ -370,9 +421,16 @@ public class RuinGuardEntity extends Monster {
         if (eyeResetTimer > 0 && --eyeResetTimer == 0) {
             eyeHits = 0;
         }
+        if (weakpointImmuneTicks > 0) {
+            weakpointImmuneTicks--;
+        }
+        if (finisherCooldown > 0) {
+            finisherCooldown--;
+        }
 
         int st = getBossState();
         if (st == STATE_DEATH) {
+            setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             bossEvent.setVisible(false);
             return;
         }
@@ -393,20 +451,25 @@ public class RuinGuardEntity extends Monster {
 
         if (combatTarget == null) {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
+            // Cleanly cancel any lingering attack animation into idle while waiting for reset
+            if (st == STATE_COMBAT && getAnimId() != ANIM_IDLE && onGround()) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+            }
             if (++noTargetTicks > 180) {
-                noTargetTicks = 0;
-                setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
-                setHealth(getMaxHealth());
-                entityData.set(DATA_PHASE2, false);
-                transitionTo(STATE_DORMANT, ANIM_DORMANT);
+                resetToDormant();
             }
             return;
         }
         noTargetTicks = 0;
         setTarget(combatTarget);
 
-        // Trigger Phase 2 Overdrive at < 50% HP!
-        if (!isPhase2() && getHealth() <= getMaxHealth() * 0.5F && st == STATE_COMBAT && getAnimId() != ANIM_PHASE2_OVERDRIVE) {
+        // Queue Phase 2 Overdrive at <= 50% HP; only trigger when grounded & not mid-attack!
+        if (!isPhase2() && !pendingPhase2 && getHealth() <= getMaxHealth() * 0.5F) {
+            pendingPhase2 = true;
+        }
+        if (pendingPhase2 && st == STATE_COMBAT && onGround()
+                && (getAnimId() == ANIM_IDLE || getAnimId() == ANIM_WALK)) {
+            pendingPhase2 = false;
             entityData.set(DATA_PHASE2, true);
             transitionTo(STATE_COMBAT, ANIM_PHASE2_OVERDRIVE);
             sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.3F, 0.72F);
@@ -425,16 +488,44 @@ public class RuinGuardEntity extends Monster {
             }
             case STATE_STUNNED -> {
                 setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-                if (stateTick % 12 == 0) {
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.0D, getZ(), 8, 0.7D, 0.5D, 0.7D, 0.05D);
-                }
-                if (stateTick >= 150) {
-                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.25F, 0.85F);
-                    transitionTo(STATE_COMBAT, ANIM_IDLE);
-                    attackCooldown = 24;
+                if (getAnimId() == ANIM_STUNNED) {
+                    if (stateTick % 12 == 0) {
+                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.0D, getZ(), 8, 0.7D, 0.5D, 0.7D, 0.05D);
+                    }
+                    if (stateTick >= STUN_COLLAPSE_TICKS) {
+                        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.25F, 0.85F);
+                        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.68F);
+                        transitionTo(STATE_STUNNED, ANIM_STUN_RECOVERY);
+                    }
+                } else if (getAnimId() == ANIM_STUN_RECOVERY) {
+                    faceTarget(combatTarget, 4.0F);
+                    if (stateTick == 18) {
+                        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.3F, 0.62F);
+                    }
+                    if (stateTick >= STUN_RECOVERY_TICKS) {
+                        weakpointImmuneTicks = WEAKPOINT_IMMUNE_TICKS;
+                        transitionTo(STATE_COMBAT, ANIM_IDLE);
+                        attackCooldown = 20;
+                    }
                 }
             }
             case STATE_COMBAT -> tickCombat(sl, combatTarget);
+        }
+
+        // Enforce arena leash so the Ruin Guard stays inside its combat zone
+        if (st == STATE_COMBAT && getAnimId() != ANIM_LEAP_SLAM) {
+            clampToArenaLeash();
+        }
+    }
+
+    private void clampToArenaLeash() {
+        double dx = getX() - arenaCenter.x;
+        double dz = getZ() - arenaCenter.z;
+        double distSq = dx * dx + dz * dz;
+        if (distSq > ARENA_LEASH_RADIUS * ARENA_LEASH_RADIUS) {
+            double dist = Math.sqrt(distSq);
+            double scale = ARENA_LEASH_RADIUS / dist;
+            setPos(arenaCenter.x + dx * scale, getY(), arenaCenter.z + dz * scale);
         }
     }
 
@@ -458,8 +549,7 @@ public class RuinGuardEntity extends Monster {
             float desiredYaw = (float) (Math.atan2(dzT, dxT) * (180.0D / Math.PI)) - 90.0F;
             float yawDiff = Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
 
-            // Heavy mechanical turn inertia + automatic pivot-step so feet lift when turning in place!
-            faceTarget(target, 3.8F);
+            faceTarget(target, isPhase2() ? 4.4F : 3.8F);
             boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 3.4D) : (dist > 4.4D);
             boolean needsPivotStep = (anim == ANIM_WALK) ? (yawDiff > 7.5F) : (yawDiff > 16.0F);
             Vec3 cur = getDeltaMovement();
@@ -468,23 +558,23 @@ public class RuinGuardEntity extends Monster {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
                 if (shouldWalk) {
                     Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
-                    // Exact 1.80s (36-tick, 18 ticks/step) stride-locked velocity: surges during swing, anchors on footplant!
+                    // Exact 1.80s (36-tick, 18 ticks/step) stride-locked velocity: surges during swing, anchors on footplant
                     double stepPhase = (stateTick % 18) / 18.0D;
-                    double speed = (stepPhase < 0.55D)
-                            ? (0.042D + 0.098D * Math.sin((stepPhase / 0.55D) * Math.PI))
-                            : 0.032D;
+                    double phaseMul = isPhase2() ? 1.12D : 1.0D;
+                    double speed = ((stepPhase < 0.55D)
+                            ? (0.045D + 0.105D * Math.sin((stepPhase / 0.55D) * Math.PI))
+                            : 0.030D) * phaseMul;
                     setDeltaMovement(
-                            Mth.lerp(0.22D, cur.x, dir.x * speed),
+                            Mth.lerp(0.24D, cur.x, dir.x * speed),
                             cur.y,
-                            Mth.lerp(0.22D, cur.z, dir.z * speed)
+                            Mth.lerp(0.24D, cur.z, dir.z * speed)
                     );
                 } else {
-                    // Turning in place: hold position while legs lift & step cleanly
                     setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
                 }
                 if (stateTick % 18 == 9) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.15F : 0.85F, 0.60F);
-                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 3 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 4 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
                 }
             } else {
                 if (anim != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
@@ -501,7 +591,7 @@ public class RuinGuardEntity extends Monster {
             case ANIM_MISSILE_BARRAGE -> tickMissileBarrage(sl, target);
             case ANIM_MELEE_3HIT -> tickMelee3Hit(sl, target);
             case ANIM_DOUBLE_CLAP -> tickDoubleClap(sl, target);
-            case ANIM_STOMP_SHOCKWAVE -> tickStompShockwave(sl);
+            case ANIM_STOMP_SHOCKWAVE -> tickStompShockwave(sl, target);
             case ANIM_CYCLONE_WINDUP -> {
                 faceTarget(target, 6.5F);
                 setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
@@ -512,7 +602,9 @@ public class RuinGuardEntity extends Monster {
             case ANIM_CYCLONE_RECOVER -> {
                 setDeltaMovement(getDeltaMovement().x * 0.75D, getDeltaMovement().y, getDeltaMovement().z * 0.75D);
                 if (stateTick >= 24) {
-                    if (isPhase2()) {
+                    if (isPhase2() && finisherCooldown <= 0) {
+                        startOverdriveFinisher(sl, target);
+                    } else if (isPhase2()) {
                         startLeapSlam(sl, target);
                     } else {
                         transitionTo(STATE_COMBAT, ANIM_IDLE);
@@ -522,11 +614,18 @@ public class RuinGuardEntity extends Monster {
             }
             case ANIM_LEAP_SLAM -> tickLeapSlam(sl, target);
             case ANIM_PHASE2_OVERDRIVE -> tickPhase2Overdrive(sl);
+            case ANIM_OVERDRIVE_FINISHER -> tickOverdriveFinisher(sl, target);
             default -> transitionTo(STATE_COMBAT, ANIM_IDLE);
         }
     }
 
     private void chooseNextAttack(ServerLevel sl, LivingEntity target, double dist) {
+        if (isPhase2() && finisherCooldown <= 0 && dist <= 12.0D && random.nextFloat() < 0.35F) {
+            lastAttack = ANIM_OVERDRIVE_FINISHER;
+            startOverdriveFinisher(sl, target);
+            return;
+        }
+
         int chosen;
         if (dist >= 9.0D) {
             chosen = (random.nextFloat() < 0.55F) ? ANIM_MISSILE_BARRAGE
@@ -548,11 +647,32 @@ public class RuinGuardEntity extends Monster {
 
     private void startLeapSlam(ServerLevel sl, LivingEntity target) {
         leapStart = position();
-        leapTarget = new Vec3(target.getX(), arenaCenter.y, target.getZ());
+        leapTarget = clampTargetToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
         transitionTo(STATE_COMBAT, ANIM_LEAP_SLAM);
         setTelegraph(leapTarget, 6.0F);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.2F, 0.68F);
         sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.62F);
+    }
+
+    private void startOverdriveFinisher(ServerLevel sl, LivingEntity target) {
+        finisherCooldown = 260;
+        faceTarget(target, 180.0F);
+        transitionTo(STATE_COMBAT, ANIM_OVERDRIVE_FINISHER);
+        setTelegraph(new Vec3(getX(), arenaCenter.y, getZ()), 7.8F);
+        sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.2F, 0.85F);
+        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.4F, 0.68F);
+    }
+
+    private Vec3 clampTargetToArena(Vec3 pos) {
+        double dx = pos.x - arenaCenter.x;
+        double dz = pos.z - arenaCenter.z;
+        double dSq = dx * dx + dz * dz;
+        double maxR = ARENA_LEASH_RADIUS - 2.0D;
+        if (dSq > maxR * maxR) {
+            double s = maxR / Math.sqrt(dSq);
+            return new Vec3(arenaCenter.x + dx * s, pos.y, arenaCenter.z + dz * s);
+        }
+        return pos;
     }
 
     private void tickMissileBarrage(ServerLevel sl, LivingEntity target) {
@@ -564,21 +684,25 @@ public class RuinGuardEntity extends Monster {
         int totalMissiles = isPhase2() ? 6 : 4;
         if (stateTick >= 23 && stateTick < 23 + totalMissiles * 2 && (stateTick - 23) % 2 == 0) {
             int idx = (stateTick - 23) / 2;
-            double side = (idx % 2 == 0) ? -1.1D : 1.1D;
-            float yawRad = getYRot() * Mth.DEG_TO_RAD;
-            Vec3 right = new Vec3(Math.cos(yawRad), 0.0D, Math.sin(yawRad));
-            Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-            Vec3 origin = position().add(right.scale(side)).add(0.0D, 3.65D, 0.0D);
-            Vec3 launchVel = right.scale(side * 0.25D)
-                    .add(forward.scale(0.18D))
-                    .add(0.0D, 0.52D + (idx % 3) * 0.06D, 0.0D);
-            RuinMissileProjectile.launch(sl, this, target, origin, launchVel, 8.5F);
-            sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 8, 0.15D, 0.15D, 0.15D, 0.05D);
+            launchPodMissile(sl, target, idx, 8.5F);
         }
         if (stateTick >= 48) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
             attackCooldown = 34;
         }
+    }
+
+    private void launchPodMissile(ServerLevel sl, LivingEntity target, int idx, float damage) {
+        double side = (idx % 2 == 0) ? -1.1D : 1.1D;
+        float yawRad = getYRot() * Mth.DEG_TO_RAD;
+        Vec3 right = new Vec3(Math.cos(yawRad), 0.0D, Math.sin(yawRad));
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
+        Vec3 origin = position().add(right.scale(side)).add(0.0D, 3.65D, 0.0D);
+        Vec3 launchVel = right.scale(side * 0.25D)
+                .add(forward.scale(0.18D))
+                .add(0.0D, 0.52D + (idx % 3) * 0.06D, 0.0D);
+        RuinMissileProjectile.launch(sl, this, target, origin, launchVel, damage);
+        sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 8, 0.15D, 0.15D, 0.15D, 0.05D);
     }
 
     private void tickMelee3Hit(ServerLevel sl, LivingEntity target) {
@@ -593,7 +717,6 @@ public class RuinGuardEntity extends Monster {
         } else if (stateTick >= 29 && stateTick <= 31) {
             setDeltaMovement(Mth.lerp(0.5D, cur.x, forward.x * 0.36D), cur.y, Mth.lerp(0.5D, cur.z, forward.z * 0.36D));
         } else if (stateTick >= 40 && stateTick <= 49) {
-            // Authentic Genshin Combo Hit 3: dramatic high airborne leap at tick 40 -> violent downward slam at tick 47-49!
             double hopVy = cur.y;
             if (stateTick == 40) {
                 hopVy = 0.78D;
@@ -663,7 +786,7 @@ public class RuinGuardEntity extends Monster {
         }
     }
 
-    private void tickStompShockwave(ServerLevel sl) {
+    private void tickStompShockwave(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
         if (stateTick == 10) {
             sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.2F, 0.62F);
@@ -677,8 +800,15 @@ public class RuinGuardEntity extends Monster {
             spawnGroundDustRing(sl, 4.6D, 32);
         }
         if (stateTick >= 36) {
-            transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 24;
+            // Official Genshin Ruin Guard Stomp-and-Clap combo: chains into Double Clap if target stays in melee range
+            double dist = Math.hypot(target.getX() - getX(), target.getZ() - getZ());
+            if (dist <= 5.4D && random.nextFloat() < 0.65F) {
+                lastAttack = ANIM_DOUBLE_CLAP;
+                transitionTo(STATE_COMBAT, ANIM_DOUBLE_CLAP);
+            } else {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+                attackCooldown = 24;
+            }
         }
     }
 
@@ -704,9 +834,8 @@ public class RuinGuardEntity extends Monster {
         if (stateTick < 13) {
             faceTarget(target, 7.5F);
             setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-            // Smoothly track target until launch, keeping the telegraph locked on the ground at leapTarget!
             if (stateTick < 10) {
-                leapTarget = new Vec3(target.getX(), arenaCenter.y, target.getZ());
+                leapTarget = clampTargetToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
                 setTelegraph(leapTarget, 6.0F);
             }
             leapStart = position();
@@ -750,6 +879,37 @@ public class RuinGuardEntity extends Monster {
         if (stateTick >= 48) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
             attackCooldown = 16;
+        }
+    }
+
+    /** Phase 2 Cataclysmic Core Slam + Overdrive Missile Salvo Finisher (64 ticks = 3.20s). */
+    private void tickOverdriveFinisher(ServerLevel sl, LivingEntity target) {
+        setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
+        if (stateTick < 18) {
+            faceTarget(target, 7.0F);
+            if (stateTick % 4 == 0) {
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.6D, getZ(), 10, 0.9D, 0.7D, 0.9D, 0.06D);
+            }
+        }
+        if (stateTick == 16) {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.5F, 0.60F);
+        }
+        if (stateTick == 25) {
+            clearTelegraph();
+            dealRadialDamage(sl, 7.8D, 21.0F, 1.75D, 0.72D);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.0F, 0.48F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.6F, 0.50F);
+            sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 0.5D, getZ(), 2, 1.2D, 0.3D, 1.2D, 0.0D);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 0.8D, getZ(), 48, 3.2D, 0.6D, 3.2D, 0.14D);
+            spawnGroundDustRing(sl, 7.2D, 48);
+        }
+        if (stateTick == 27 || stateTick == 30 || stateTick == 33 || stateTick == 36) {
+            int idx = (stateTick - 27) / 3;
+            launchPodMissile(sl, target, idx, 9.0F);
+        }
+        if (stateTick >= 64) {
+            transitionTo(STATE_COMBAT, ANIM_IDLE);
+            attackCooldown = 36;
         }
     }
 

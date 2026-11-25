@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 import java.util.HashMap;
@@ -25,26 +26,25 @@ import java.util.WeakHashMap;
 /**
  * Overhauled Genshin-accurate AAA renderer for TheOpenEyedEntity (World-Watch Sentry):
  * <ul>
- *   <li><b>True 8-tick Shortest-Angle Pose-Snapshot State Machine:</b> Smoothly cross-fades all 18 bones between
- *       every combat/ritual/stun state with zero snap glitches.</li>
- *   <li><b>Double-Sided Additive VFX Geometry:</b> Every golden slash crescent, lance beam, ground telegraph ring,
- *       Supreme Overseer vertical clock-ring, and Delirium crimson 4-point eye renders double-sided so OpenGL backface
- *       culling never hides them from any camera angle.</li>
- *   <li><b>Authentic Elevation & Saturated Crimson Palette:</b> Floats cleanly above marble floor in combat and
- *       ascends gracefully (+2.2 blocks) during Phenomena's Delirium beneath a vivid blood-crimson 4-point eye.</li>
+ *   <li><b>Adaptive Shortest-Arc Pose-Snapshot State Machine:</b> Smoothly cross-fades all 23 bones
+ *       (including {@code elemental_star_left} and {@code elemental_star_right}) with clean dormant reset.</li>
+ *   <li><b>Procedural Flight Banking & Impact Shudder:</b> Subtle aerodynamic banking while gliding plus
+ *       tactile impact shudder on Spear Slam, Leaping Slam, Supreme Overseer Sweep, and Delirium Finisher.</li>
+ *   <li><b>Double-Sided World-Locked VFX:</b> Golden telegraphs, crescent slashes, lance beams,
+ *       Supreme Overseer vertical clock-ring & elemental sweep, and Delirium crimson 4-point judgment eye.</li>
  * </ul>
  */
 public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/the_open_eyed.png");
     private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.the_open_eyed_theme");
     private static final float BOSS_RENDER_SCALE = 1.18F;
-    private static final float BLEND_DURATION_TICKS = 8.0F;
 
     private static final String[] ALL_BONES = {
             "root", "body", "torso", "chest_eye", "head", "halo_inner", "halo_outer",
             "giant_wing_left", "giant_wing_left_lower", "broken_wing_right",
             "arm_left", "forearm_left", "arm_right", "corrupt_cubes_right", "forearm_right", "celestial_spear",
-            "skirt_front", "skirt_back", "lower_wing_left", "lower_wing_right", "cube_tail"
+            "skirt_front", "skirt_back", "lower_wing_left", "lower_wing_right", "cube_tail",
+            "elemental_star_left", "elemental_star_right"
     };
 
     private static final class BonePose {
@@ -65,10 +65,21 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         String lastClip = null;
         int lastEpoch = -1;
         float blendStartLiveTick = -100.0F;
+        float blendDurationTicks = 8.0F;
         boolean hasLastPose = false;
         float currentAscendY = 0.0F;
         final Map<String, BonePose> fromPose = new HashMap<>();
         final Map<String, BonePose> lastPose = new HashMap<>();
+
+        void reset() {
+            lastClip = null;
+            lastEpoch = -1;
+            blendStartLiveTick = -100.0F;
+            hasLastPose = false;
+            currentAscendY = 0.0F;
+            fromPose.clear();
+            lastPose.clear();
+        }
     }
 
     private final TheOpenEyedModel<TheOpenEyedEntity> model;
@@ -92,6 +103,35 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         return from + wrapRad(to - from) * alpha;
     }
 
+    private static float blendDurationFor(int animId) {
+        return switch (animId) {
+            case TheOpenEyedEntity.ANIM_OVERSEER_SWEEP,
+                 TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER,
+                 TheOpenEyedEntity.ANIM_STUNNED,
+                 TheOpenEyedEntity.ANIM_DEATH,
+                 TheOpenEyedEntity.ANIM_SPEAR_SLAM,
+                 TheOpenEyedEntity.ANIM_DOUBLE_SLASH,
+                 TheOpenEyedEntity.ANIM_DOUBLE_LUNGE -> 4.0F;
+            default -> 8.0F;
+        };
+    }
+
+    private static float computeImpactShudder(int animId, float t) {
+        if (animId == TheOpenEyedEntity.ANIM_SPEAR_SLAM && t >= 20.5F && t <= 25.0F) {
+            return 0.08F * (1.0F - (t - 20.5F) / 4.5F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_LEAPING_SLAM && t >= 34.5F && t <= 40.0F) {
+            return 0.12F * (1.0F - (t - 34.5F) / 5.5F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_OVERSEER_SWEEP && t >= 8.5F && t <= 14.0F) {
+            return 0.10F * (1.0F - (t - 8.5F) / 5.5F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER && t >= 14.5F && t <= 24.0F) {
+            return 0.14F * (1.0F - (t - 14.5F) / 9.5F);
+        }
+        return 0.0F;
+    }
+
     @Override
     public void render(
             TheOpenEyedEntity entity,
@@ -108,32 +148,37 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         float animTicksF = holding ? (float) holdAt : (rawTick + partialTicks);
         float currSec = animTicksF / 20.0F;
         String currClip = entity.getCurrentAnimName();
+        int animId = entity.getAnimId();
         int currEpoch = entity.getAnimEpoch();
         float liveT = entity.tickCount + partialTicks;
 
         boolean dormant = entity.getBossState() == TheOpenEyedEntity.STATE_DORMANT;
         boolean musicActive = !dormant && entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
         BossMusicManager.update(entity, MUSIC_ID, musicActive);
+        AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (dormant) {
             this.shadowRadius = 0.0F;
+            sm.reset();
             return;
         }
         this.shadowRadius = 1.45F;
-        AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
+
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {
             if (sm.hasLastPose) {
                 for (Map.Entry<String, BonePose> e : sm.lastPose.entrySet()) {
                     sm.fromPose.computeIfAbsent(e.getKey(), k -> new BonePose()).copyFrom(e.getValue());
                 }
                 sm.blendStartLiveTick = liveT;
+                sm.blendDurationTicks = blendDurationFor(animId);
             }
         }
         sm.lastClip = currClip;
         sm.lastEpoch = currEpoch;
 
-        // Smooth visual elevation: +0.38 hover in combat, +2.25 regal ascension in Phenomena's Delirium (eye.mp4 01:08-01:25)
+        // Smooth visual elevation: +0.38 hover in combat, +2.25 regal ascension in Phenomena's Delirium
         float targetAscend = switch (entity.getBossState()) {
-            case TheOpenEyedEntity.STATE_DELIRIUM -> 2.25F;
+            case TheOpenEyedEntity.STATE_DELIRIUM ->
+                    (animId == TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER && animTicksF > 26.0F) ? 0.55F : 2.25F;
             case TheOpenEyedEntity.STATE_OVERSEER -> 0.85F;
             case TheOpenEyedEntity.STATE_STUNNED, TheOpenEyedEntity.STATE_DEATH -> 0.0F;
             default -> 0.38F + 0.12F * Mth.sin(liveT * 0.09F);
@@ -142,6 +187,10 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
 
         // 1. Render model first (entityCutoutNoCull)
         poseStack.pushPose();
+        float shudder = computeImpactShudder(animId, animTicksF);
+        if (shudder > 0.001F) {
+            poseStack.translate(Mth.sin(liveT * 33.0F) * shudder, 0.0D, Mth.cos(liveT * 29.0F) * shudder);
+        }
         poseStack.translate(0.0D, sm.currentAscendY, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
         float appearMul = (entity.getBossState() == TheOpenEyedEntity.STATE_DESCEND)
@@ -174,10 +223,22 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             }
         }
 
-        // Smooth 8-tick shortest-arc Pose-Snapshot cross-fade
+        // Procedural aerodynamic banking during move_glide
+        if (animId == TheOpenEyedEntity.ANIM_MOVE_GLIDE) {
+            double vx = entity.getX() - entity.xo;
+            double vz = entity.getZ() - entity.zo;
+            float rad = yaw * Mth.DEG_TO_RAD;
+            float rightX = Mth.cos(rad);
+            float rightZ = Mth.sin(rad);
+            float lateral = Mth.clamp((float) (vx * rightX + vz * rightZ) * 4.5F, -1.0F, 1.0F);
+            var torso = model.getBone("torso");
+            if (torso != null) torso.zRot += lateral * 0.16F;
+        }
+
+        // Adaptive shortest-arc Pose-Snapshot cross-fade across all 23 bones
         float blendElapsed = liveT - sm.blendStartLiveTick;
-        if (sm.hasLastPose && blendElapsed >= 0.0F && blendElapsed < BLEND_DURATION_TICKS) {
-            float rawA = Mth.clamp(blendElapsed / BLEND_DURATION_TICKS, 0.0F, 1.0F);
+        if (sm.hasLastPose && blendElapsed >= 0.0F && blendElapsed < sm.blendDurationTicks) {
+            float rawA = Mth.clamp(blendElapsed / sm.blendDurationTicks, 0.0F, 1.0F);
             float alpha = rawA * rawA * (3.0F - 2.0F * rawA);
             for (String bName : ALL_BONES) {
                 ModelPart part = model.getBone(bName);
@@ -208,21 +269,37 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
         poseStack.popPose();
 
-        // 2. Render all double-sided world-space combat & ritual VFX (fresh lightning buffer!)
-        renderCombatAndRitualVFX(entity, yaw, animTicksF, liveT, sm.currentAscendY, poseStack, bufferSource);
+        // 2. Render all double-sided world-space combat & ritual VFX
+        renderCombatAndRitualVFX(entity, yaw, partialTicks, animTicksF, liveT, sm.currentAscendY, poseStack, bufferSource);
 
         super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
     }
 
     private static void renderCombatAndRitualVFX(
-            TheOpenEyedEntity entity, float yaw, float t, float liveT, float ascendY,
+            TheOpenEyedEntity entity, float yaw, float partialTicks, float t, float liveT, float ascendY,
             PoseStack poseStack, MultiBufferSource bufferSource
     ) {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.lightning());
         int anim = entity.getAnimId();
         int st = entity.getBossState();
 
-        // 1. Descend Blood-Crimson 4-Point Celestial Star Rift (eye.mp4 00:13)
+        // 0. World-space locked golden ground telegraph ring (Spear Slam / Leaping Slam)
+        float teleR = entity.getTelegraphRadius();
+        if (teleR > 0.5F) {
+            Vec3 telePos = entity.getTelegraphPos();
+            double lerpX = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double lerpY = Mth.lerp(partialTicks, entity.yo, entity.getY());
+            double lerpZ = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            poseStack.pushPose();
+            poseStack.translate(telePos.x - lerpX, telePos.y - lerpY + 0.10D, telePos.z - lerpZ);
+            Matrix4f gm = poseStack.last().pose();
+            float pulse = 0.85F + 0.15F * Mth.sin(liveT * 0.65F);
+            drawHorizontalRing(vc, gm, teleR - 0.35F, teleR, 34, 255, 205, 85, (int) (205 * pulse));
+            drawHorizontalRing(vc, gm, 0.4F, teleR * pulse, 28, 255, 225, 115, 52);
+            poseStack.popPose();
+        }
+
+        // 1. Descend Blood-Crimson 4-Point Celestial Star Rift
         if (anim == TheOpenEyedEntity.ANIM_DESCEND && t < 30.0F) {
             float fade = t < 8.0F ? t / 8.0F : (t > 22.0F ? Math.max(0.0F, (30.0F - t) / 8.0F) : 1.0F);
             poseStack.pushPose();
@@ -233,7 +310,7 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             poseStack.popPose();
         }
 
-        // 2. Double Slash Blazing Double-Sided Golden Crescents (eye.mp4 00:21, 02:50, 03:04)
+        // 2. Double Slash Blazing Double-Sided Golden Crescents
         if (anim == TheOpenEyedEntity.ANIM_DOUBLE_SLASH) {
             if (t >= 11.0F && t <= 22.0F) {
                 float p = (t - 11.0F) / 11.0F;
@@ -249,7 +326,7 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             }
         }
 
-        // 3. Double Lunge & Spear Thrust Blazing Golden Lance Beam (eye.mp4 00:43, 01:41, 02:17)
+        // 3. Double Lunge & Spear Thrust Blazing Golden Lance Beam
         if (anim == TheOpenEyedEntity.ANIM_DOUBLE_LUNGE) {
             if (t >= 13.0F && t <= 23.0F) {
                 float fade = 1.0F - Math.abs((t - 13.0F) / 10.0F - 0.35F) * 1.4F;
@@ -264,33 +341,34 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             drawLanceBeam(poseStack, vc, yaw, 11.5F, 0.82F, 1.75F + ascendY, Mth.clamp(fade, 0.0F, 1.0F));
         }
 
-        // 4. Spear Slam & Leaping Slam Double-Sided Golden Ground Ring + Shockwave (eye.mp4 02:52-02:53)
-        if (anim == TheOpenEyedEntity.ANIM_SPEAR_SLAM && t >= 10.0F && t <= 32.0F) {
+        // 4. Spear Slam & Leaping Slam Impact Shockwave
+        if (anim == TheOpenEyedEntity.ANIM_SPEAR_SLAM && t >= 21.0F && t <= 32.0F) {
             float rad = yaw * Mth.DEG_TO_RAD;
             double fx = -Math.sin(rad) * 4.0D, fz = Math.cos(rad) * 4.0D;
+            float p = (t - 21.0F) / 11.0F;
             poseStack.pushPose();
-            poseStack.translate(fx, 0.08D, fz);
-            Matrix4f gm = poseStack.last().pose();
-            if (t < 21.0F) {
-                float p = (t - 10.0F) / 11.0F;
-                drawHorizontalRing(vc, gm, 3.75F, 4.15F, 30, 255, 205, 85, (int) (195 * p));
-            } else {
-                float p = (t - 21.0F) / 11.0F;
-                float rWave = 1.2F + 4.6F * p;
-                drawHorizontalRing(vc, gm, Math.max(0.2F, rWave - 0.65F), rWave, 30, 255, 225, 110, (int) (230 * (1.0F - p)));
-            }
+            poseStack.translate(fx, 0.12D, fz);
+            float rWave = 1.2F + 4.6F * p;
+            drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.2F, rWave - 0.65F), rWave, 30, 255, 225, 110, (int) (230 * (1.0F - p)));
+            poseStack.popPose();
+        } else if (anim == TheOpenEyedEntity.ANIM_LEAPING_SLAM && t >= 35.0F && t <= 47.0F) {
+            float p = (t - 35.0F) / 12.0F;
+            poseStack.pushPose();
+            poseStack.translate(0.0D, 0.14D, 0.0D);
+            float rWave = 1.4F + 5.6F * p;
+            drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.25F, rWave - 0.85F), rWave, 34, 255, 220, 95, (int) (235 * (1.0F - p)));
             poseStack.popPose();
         }
 
-        // 5. Forced Teleport Crimson Cube Vortex (eye.mp4 00:46, 01:33, 02:07)
+        // 5. Forced Teleport Crimson Cube Vortex
         if (anim == TheOpenEyedEntity.ANIM_FORCED_TELEPORT && t >= 8.0F && t <= 36.0F) {
             drawOrbitingCorruptionCubes(poseStack, vc, liveT, 2.2F + ascendY, 2.3F, 10, 1.0F);
         }
 
-        // 6. Supreme Overseer Double-Sided Golden Clock-Ring + Floor Boundary + Colored Elemental Sweep
+        // 6. Supreme Overseer Vertical Clock-Ring + Floor Boundary & Dedicated Overseer Sweep Crescent
         if (st == TheOpenEyedEntity.STATE_OVERSEER) {
             int[] rgb = colorForElement(entity.getOverseerElement());
-            if (t < 43.0F) {
+            if (anim == TheOpenEyedEntity.ANIM_SUPREME_OVERSEER) {
                 poseStack.pushPose();
                 float rad = yaw * Mth.DEG_TO_RAD;
                 poseStack.translate(-Math.sin(rad) * 1.45D, 2.9D + ascendY, Math.cos(rad) * 1.45D);
@@ -301,32 +379,46 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
                 drawVerticalRing(vc, cm, 1.25F, 1.42F, 22, rgb[0], rgb[1], rgb[2], 185);
                 poseStack.popPose();
 
-                // Wide golden floor monitoring boundary ring (double-sided!)
                 poseStack.pushPose();
                 poseStack.translate(0.0D, 0.08D, 0.0D);
                 drawHorizontalRing(vc, poseStack.last().pose(), 8.6F, 9.2F, 42, 255, 210, 95, 175);
                 poseStack.popPose();
-            } else if (t >= 48.0F && t <= 60.0F) {
-                float p = (t - 48.0F) / 12.0F;
+            } else if (anim == TheOpenEyedEntity.ANIM_OVERSEER_SWEEP && t >= 6.0F && t <= 20.0F) {
+                float p = (t - 6.0F) / 14.0F;
                 float fade = 1.0F - p * 0.85F;
-                drawSlashCrescent(poseStack, vc, yaw - p * 360.0F, 230.0F, 1.0F, 3.8F, 10.0F, 1.55F + ascendY,
+                drawSlashCrescent(poseStack, vc, yaw - p * 360.0F, 230.0F, 1.0F, 3.8F, 10.2F, 1.55F + ascendY,
                         255, 248, 225, rgb[0], rgb[1], rgb[2], Mth.clamp(fade, 0.0F, 1.0F));
             }
         }
 
-        // 7. Phenomena's Delirium Vivid Blood-Crimson 4-Point Eye + 12 Orbiting Corruption Cubes (eye.mp4 01:08-01:26)
+        // 7. Phenomena's Delirium Crimson 4-Point Eye + Orbiting Cubes + Finisher Judgment Shockwave
         if (st == TheOpenEyedEntity.STATE_DELIRIUM) {
             float prog = entity.getFuryProgress();
-            float eyeScale = 1.35F + 1.05F * prog + 0.12F * Mth.sin(liveT * 0.25F);
-            poseStack.pushPose();
-            poseStack.translate(0.0D, 5.4D + ascendY, 0.0D);
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
-            // Saturated blood-crimson outer + bright scarlet core (NO white additive blowout!)
-            drawDoubleSidedStar(vc, poseStack.last().pose(), 2.3F * eyeScale, 1.65F * eyeScale, 0.38F, 190, 10, 18, 215);
-            drawDoubleSidedStar(vc, poseStack.last().pose(), 1.25F * eyeScale, 0.85F * eyeScale, 0.17F, 255, 42, 48, 195);
-            poseStack.popPose();
+            boolean isFinisher = (anim == TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER);
+            float finisherFlare = isFinisher ? (t < 15.0F ? 1.0F + 0.45F * (t / 15.0F) : Math.max(0.0F, 1.45F * (1.0F - (t - 15.0F) / 28.0F))) : 1.0F;
+            float eyeScale = (1.35F + 1.05F * prog + 0.12F * Mth.sin(liveT * 0.25F)) * finisherFlare;
+            if (eyeScale > 0.05F) {
+                poseStack.pushPose();
+                poseStack.translate(0.0D, 5.4D + ascendY, 0.0D);
+                poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
+                drawDoubleSidedStar(vc, poseStack.last().pose(), 2.3F * eyeScale, 1.65F * eyeScale, 0.38F, 190, 10, 18, 215);
+                drawDoubleSidedStar(vc, poseStack.last().pose(), 1.25F * eyeScale, 0.85F * eyeScale, 0.17F, 255, 42, 48, 195);
+                poseStack.popPose();
+            }
 
-            drawOrbitingCorruptionCubes(poseStack, vc, liveT, 2.8F + ascendY, 3.5F, 12, 1.0F);
+            if (!isFinisher || t < 26.0F) {
+                float cubeAlpha = isFinisher ? Mth.clamp(1.0F - t / 26.0F, 0.0F, 1.0F) : 1.0F;
+                drawOrbitingCorruptionCubes(poseStack, vc, liveT, 2.8F + ascendY, 3.5F, 12, cubeAlpha);
+            }
+
+            if (isFinisher && t >= 14.0F && t <= 32.0F) {
+                float p = (t - 14.0F) / 18.0F;
+                poseStack.pushPose();
+                poseStack.translate(0.0D, 0.20D, 0.0D);
+                float rOut = 2.0F + p * 11.5F;
+                drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.3F, rOut - 1.2F), rOut, 40, 225, 30, 45, (int) (220 * (1.0F - p)));
+                poseStack.popPose();
+            }
         }
     }
 
@@ -348,6 +440,7 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
 
     private static void drawOrbitingCorruptionCubes(PoseStack poseStack, VertexConsumer vc, float liveT,
                                                     float yHeight, float radius, int count, float alphaMul) {
+        if (alphaMul <= 0.02F) return;
         poseStack.pushPose();
         poseStack.translate(0.0D, yHeight, 0.0D);
         for (int i = 0; i < count; i++) {

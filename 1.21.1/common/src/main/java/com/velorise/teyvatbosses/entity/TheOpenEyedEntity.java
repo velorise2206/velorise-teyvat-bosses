@@ -1,8 +1,6 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
-import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -37,21 +35,20 @@ import java.util.UUID;
 /**
  * The Open-Eyed (Watcher: Fallen Vigil / Nihilita) — Normal Boss (Velorise: Teyvat Bosses).
  *
- * <p>Implements official Genshin Impact mechanics:
+ * <p>Implements official Genshin Impact mechanics with deterministic epoch-synced animation state machine:
  * <ul>
  *   <li><b>10% Base All RES</b> (0.90x incoming damage multiplier).</li>
- *   <li><b>Standard Spear Moveset</b> (all ticks synced 1:1 to overhauled {@code the_open_eyed.bbmodel}):
- *       Descend (20% ATK Geo), Spear Slam (60%), Spear Thrust (60%), Double Lunge (41%+47%),
- *       Double Slash (32%+34%), Forced Teleport (wraps distant player in cubes & pulls them next to boss),
- *       Leaping Slam (60% AoE).</li>
+ *   <li><b>Standard Spear Moveset</b> (1:1 tick-synced to {@code TheOpenEyedAnimations}):
+ *       Descend (20% ATK Geo), Spear Slam (60%), Spear Thrust with backward retreat (60%),
+ *       Double Lunge (41%+47%), Double Slash (32%+34%), Forced Teleport (wraps distant target in cubes & pulls them in),
+ *       Leaping Slam with smooth parabolic aerial arc & world-locked telegraph (60% AoE),
+ *       and celestial hover-glide & orbital strafing movement.</li>
  *   <li><b>Supreme Overseer (2 Recordings per cycle):</b> Spins spear (40% ATK Geo), monitors Pyro/Hydro/Electro/Cryo
- *       hits for 5 seconds. 3 hits of the same element records it and unleashes a 68% ATK elemental sweep
- *       (9 hits required on the 2nd recording if targeting the already-recorded element; Geo sweep + empty record on timeout).</li>
- *   <li><b>Phenomena's Delirium:</b> After 2 Supreme Overseer instances, teleports to arena center, summons 2
- *       {@link ElementalStarEntity} orbs (Active or Inert Geo, 1/6 Max HP each), and charges for 20 seconds (400 ticks).
- *       Destroying Star 1 / Star 2 deals True DMG + True CRIT DMG (3% / 9% Max HP each) of that Star's element.
- *       Destroying both Stars interrupts the ritual and stuns the Watcher for 6 seconds (120 ticks).
- *       Otherwise, surviving Stars transform into sky spears dealing 100% ATK Elemental DMG each.</li>
+ *       hits for 5 seconds, then transitions via epoch-synced {@code ANIM_OVERSEER_SWEEP} for a 68% ATK elemental cleave.</li>
+ *   <li><b>Phenomena's Delirium & Judgment Finisher:</b> After 2 Supreme Overseer instances, teleports to arena center,
+ *       summons 2 {@link ElementalStarEntity} orbs (1/6 Max HP each), and charges for 20 seconds (400 ticks).
+ *       Destroying both Stars interrupts the ritual and stuns for 6 seconds; otherwise transitions via epoch-synced
+ *       {@code ANIM_DELIRIUM_FINISHER} to call down massive Elemental Sky Spears dealing 100% ATK each.</li>
  * </ul>
  */
 public class TheOpenEyedEntity extends Monster {
@@ -76,6 +73,9 @@ public class TheOpenEyedEntity extends Monster {
     public static final int ANIM_PHENOMENA_DELIRIUM = 9;
     public static final int ANIM_STUNNED            = 10;
     public static final int ANIM_DEATH              = 11;
+    public static final int ANIM_MOVE_GLIDE         = 12;
+    public static final int ANIM_OVERSEER_SWEEP     = 13;
+    public static final int ANIM_DELIRIUM_FINISHER  = 14;
 
     public static final String[] ANIM_NAMES = {
             "animation.the_open_eyed.idle",
@@ -89,17 +89,21 @@ public class TheOpenEyedEntity extends Monster {
             "animation.the_open_eyed.supreme_overseer",
             "animation.the_open_eyed.phenomena_delirium",
             "animation.the_open_eyed.stunned",
-            "animation.the_open_eyed.death"
+            "animation.the_open_eyed.death",
+            "animation.the_open_eyed.move_glide",
+            "animation.the_open_eyed.overseer_sweep",
+            "animation.the_open_eyed.delirium_finisher"
     };
 
     public static final int[] ANIM_DURATIONS_TICKS = {
-            80, 44, 42, 46, 52, 50, 42, 54, 64, 80, 50, 60
+            80, 44, 42, 46, 52, 50, 42, 54, 44, 60, 50, 60, 40, 28, 52
     };
 
     private static final float BASE_ATK = 34.0F;
     private static final int OVERSEER_MONITOR_TICKS = 100; // 5.0 seconds
     private static final int DELIRIUM_CHARGE_TICKS  = 400; // 20.0 seconds
     private static final int STUN_DURATION_TICKS    = 120; // 6.0 seconds
+    private static final int DEATH_DURATION_TICKS   = 60;  // 3.0 seconds
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.INT);
@@ -113,6 +117,14 @@ public class TheOpenEyedEntity extends Monster {
             SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_OVERSEER_ELEMENT =
             SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
+            SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_X =
+            SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_Y =
+            SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_Z =
+            SynchedEntityData.defineId(TheOpenEyedEntity.class, EntityDataSerializers.FLOAT);
 
     private static volatile boolean ELEMENT_LISTENER_REGISTERED = false;
 
@@ -133,6 +145,7 @@ public class TheOpenEyedEntity extends Monster {
     private int attackCooldown = 26;
     private int attacksSinceOverseer = 0;
     private int lastAttackAnim = -1;
+    private int strafeDir = 1;
     private boolean customDeathHandled = false;
 
     // Supreme Overseer monitoring state
@@ -146,6 +159,7 @@ public class TheOpenEyedEntity extends Monster {
     private final List<UUID> activeStarUuids = new ArrayList<>();
     private int starsDestroyedThisCycle = 0;
     private boolean deliriumUnleashed = false;
+    private Vec3 leapStartPos = Vec3.ZERO;
     private Vec3 leapTargetPos = Vec3.ZERO;
 
     public TheOpenEyedEntity(EntityType<? extends Monster> type, Level level) {
@@ -161,13 +175,11 @@ public class TheOpenEyedEntity extends Monster {
         if (!ELEMENT_LISTENER_REGISTERED) {
             ELEMENT_LISTENER_REGISTERED = true;
             StavesElementBridge.registerPreAuraListener((level, target, attacker, element, gaugeUnits) -> {
-                // 1. Active Elemental Star is immune to its own element
                 if (target instanceof ElementalStarEntity star && !star.isInert()) {
                     if (ElementalStarEntity.elementName(star.getElementId()).equalsIgnoreCase(element)) {
                         return false;
                     }
                 }
-                // 2. The Open-Eyed monitors Pyro/Hydro/Electro/Cryo hits during Supreme Overseer
                 if (target instanceof TheOpenEyedEntity watcher && watcher.getBossState() == STATE_OVERSEER) {
                     int elemId = parseMonitoredElement(element);
                     if (elemId != ElementalStarEntity.ELEM_INERT_GEO) {
@@ -210,6 +222,10 @@ public class TheOpenEyedEntity extends Monster {
         builder.define(DATA_ANIM_HOLD_AT, -1);
         builder.define(DATA_FURY_PROGRESS, 0.0F);
         builder.define(DATA_OVERSEER_ELEMENT, ElementalStarEntity.ELEM_INERT_GEO);
+        builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
+        builder.define(DATA_TELEGRAPH_X, 0.0F);
+        builder.define(DATA_TELEGRAPH_Y, 0.0F);
+        builder.define(DATA_TELEGRAPH_Z, 0.0F);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -219,6 +235,21 @@ public class TheOpenEyedEntity extends Monster {
     public int getAnimHoldAt() { return entityData.get(DATA_ANIM_HOLD_AT); }
     public float getFuryProgress() { return entityData.get(DATA_FURY_PROGRESS); }
     public int getOverseerElement() { return entityData.get(DATA_OVERSEER_ELEMENT); }
+    public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
+    public Vec3 getTelegraphPos() {
+        return new Vec3(entityData.get(DATA_TELEGRAPH_X), entityData.get(DATA_TELEGRAPH_Y), entityData.get(DATA_TELEGRAPH_Z));
+    }
+
+    private void setTelegraph(Vec3 worldPos, float radius) {
+        entityData.set(DATA_TELEGRAPH_X, (float) worldPos.x);
+        entityData.set(DATA_TELEGRAPH_Y, (float) worldPos.y);
+        entityData.set(DATA_TELEGRAPH_Z, (float) worldPos.z);
+        entityData.set(DATA_TELEGRAPH_RADIUS, radius);
+    }
+
+    private void clearTelegraph() {
+        entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+    }
 
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
@@ -240,6 +271,7 @@ public class TheOpenEyedEntity extends Monster {
         entityData.set(DATA_ANIM_ID, animId);
         entityData.set(DATA_ANIM_HOLD_AT, -1);
         entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
+        clearTelegraph();
         serverAnimTick = 0;
         stateTicks = 0;
     }
@@ -248,6 +280,7 @@ public class TheOpenEyedEntity extends Monster {
         entityData.set(DATA_ANIM_ID, animId);
         entityData.set(DATA_ANIM_HOLD_AT, -1);
         entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
+        clearTelegraph();
         serverAnimTick = 0;
     }
 
@@ -283,7 +316,6 @@ public class TheOpenEyedEntity extends Monster {
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_DESCEND || st == STATE_DORMANT) return false;
 
-        // Vanilla fallback hit monitoring during Supreme Overseer if Velorise's Staves is absent
         if (st == STATE_OVERSEER && !StavesElementBridge.isAvailable() && level() instanceof ServerLevel sl) {
             if (source.is(DamageTypeTags.IS_FIRE)) recordElementalHit(sl, ElementalStarEntity.ELEM_PYRO);
             else if (source.is(DamageTypeTags.IS_FREEZING)) recordElementalHit(sl, ElementalStarEntity.ELEM_CRYO);
@@ -309,6 +341,15 @@ public class TheOpenEyedEntity extends Monster {
     }
 
     @Override
+    protected void tickDeath() {
+        this.deathTime++;
+        if (this.deathTime >= DEATH_DURATION_TICKS && !this.level().isClientSide() && !this.isRemoved()) {
+            this.level().broadcastEntityEvent(this, (byte) 60);
+            this.remove(Entity.RemovalReason.KILLED);
+        }
+    }
+
+    @Override
     public void die(DamageSource cause) {
         if (!level().isClientSide() && !customDeathHandled) {
             customDeathHandled = true;
@@ -324,7 +365,6 @@ public class TheOpenEyedEntity extends Monster {
         super.die(cause);
     }
 
-    /** Records an elemental hit during Supreme Overseer (3 hits, or 9 hits for already-recorded element on 2nd cast). */
     public void recordElementalHit(ServerLevel sl, int elemId) {
         if (getBossState() != STATE_OVERSEER || overseerSweepPending) return;
         if (elemId < 1 || elemId > 4) return;
@@ -348,34 +388,55 @@ public class TheOpenEyedEntity extends Monster {
         }
         overseerCount++;
         entityData.set(DATA_FURY_PROGRESS, 1.0F);
-        serverAnimTick = 43;
-        entityData.set(DATA_ANIM_HOLD_AT, -1);
+        // Epoch-synced transition into dedicated ANIM_OVERSEER_SWEEP (eliminates client-server hold desync)
+        playAnim(ANIM_OVERSEER_SWEEP);
         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 1.35F, 1.2F);
     }
 
-    /** Called when a player destroys one of the Elemental Stars during Phenomena's Delirium. */
     public void onElementalStarDestroyed(ServerLevel sl, ElementalStarEntity star) {
         activeStarUuids.remove(star.getUUID());
         starsDestroyedThisCycle++;
 
-        // Official Genshin mechanic: True DMG + True CRIT DMG (3% Max HP each for 1st Star, 9% Max HP each for 2nd Star)
         float pct = (starsDestroyedThisCycle == 1) ? 0.03F : 0.09F;
         float trueHit = getMaxHealth() * pct;
         String elem = ElementalStarEntity.elementName(star.getElementId());
 
-        // Non-CRIT True DMG (0U) + CRIT True DMG (applies element for reaction)
         setHealth(Math.max(1.0F, getHealth() - trueHit));
         StavesElementBridge.dealElementalDamage(this, null, elem, trueHit, 1.0F, true);
         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TOTEM_USE, SoundSource.HOSTILE, 1.2F, 1.25F);
         sl.sendParticles(ElementalStarEntity.particleForElement(star.getElementId()), getX(), getY() + 2.5D, getZ(), 36, 1.2D, 1.5D, 1.2D, 0.12D);
 
-        // Both Stars destroyed -> interrupt Phenomena's Delirium & Stun for 6 seconds!
         if (activeStarUuids.isEmpty() && getBossState() == STATE_DELIRIUM) {
             deliriumUnleashed = true;
             entityData.set(DATA_FURY_PROGRESS, 0.0F);
             transitionTo(STATE_STUNNED, ANIM_STUNNED);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_BREAK_BLOCK, SoundSource.HOSTILE, 1.5F, 0.7F);
         }
+    }
+
+    private void resetToDormant(ServerLevel sl) {
+        noTargetTicks = 0;
+        clearActiveStars(sl);
+        clearTelegraph();
+        setTarget(null);
+        setHealth(getMaxHealth());
+        overseerCount = 0;
+        recordedElements[0] = ElementalStarEntity.ELEM_INERT_GEO;
+        recordedElements[1] = ElementalStarEntity.ELEM_INERT_GEO;
+        for (int i = 0; i < monitorHits.length; i++) monitorHits[i] = 0;
+        overseerSweepPending = false;
+        overseerSweepElement = ElementalStarEntity.ELEM_INERT_GEO;
+        deliriumUnleashed = false;
+        starsDestroyedThisCycle = 0;
+        attacksSinceOverseer = 0;
+        lastAttackAnim = -1;
+        attackCooldown = 26;
+        entityData.set(DATA_FURY_PROGRESS, 0.0F);
+        entityData.set(DATA_OVERSEER_ELEMENT, ElementalStarEntity.ELEM_INERT_GEO);
+        if (arenaInit) {
+            setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+        }
+        transitionTo(STATE_DORMANT, ANIM_IDLE);
     }
 
     @Override
@@ -411,7 +472,6 @@ public class TheOpenEyedEntity extends Monster {
 
         if (st == STATE_DEATH) {
             serverAnimTick++;
-            if (stateTicks >= ANIM_DURATIONS_TICKS[ANIM_DEATH]) discard();
             return;
         }
 
@@ -442,13 +502,12 @@ public class TheOpenEyedEntity extends Monster {
             int t = getAnimTick();
             if (target != null) faceTarget(target, 15.0F);
             if (t == 9) {
-                // Spear drops from portal into ground: 20% ATK Geo DMG
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.1F, 1.2F);
                 aoeDamage(sl, position(), 4.5D, BASE_ATK * 0.20F, "GEO");
             }
             if (t == 26) {
                 sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 0.5D, getZ(), 28, 2.0D, 0.4D, 2.0D, 0.08D);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 0.9F, 0.85F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 0.9F, 0.85F);
             }
             if (stateTicks >= ANIM_DURATIONS_TICKS[ANIM_DESCEND]) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
@@ -459,20 +518,12 @@ public class TheOpenEyedEntity extends Monster {
 
         if (target == null) {
             noTargetTicks++;
+            if (st == STATE_COMBAT && getAnimId() != ANIM_IDLE) {
+                playAnim(ANIM_IDLE);
+            }
             serverAnimTick = (serverAnimTick + 1) % ANIM_DURATIONS_TICKS[ANIM_IDLE];
             if (noTargetTicks >= 200) {
-                noTargetTicks = 0;
-                clearActiveStars(sl);
-                setHealth(getMaxHealth());
-                overseerCount = 0;
-                recordedElements[0] = ElementalStarEntity.ELEM_INERT_GEO;
-                recordedElements[1] = ElementalStarEntity.ELEM_INERT_GEO;
-                attacksSinceOverseer = 0;
-                entityData.set(DATA_FURY_PROGRESS, 0.0F);
-                if (arenaInit) {
-                    setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
-                }
-                transitionTo(STATE_DORMANT, ANIM_IDLE);
+                resetToDormant(sl);
             }
             return;
         }
@@ -506,14 +557,34 @@ public class TheOpenEyedEntity extends Monster {
         int anim = getAnimId();
         int aTick = getAnimTick();
 
-        if (anim == ANIM_IDLE) {
+        if (anim == ANIM_IDLE || anim == ANIM_MOVE_GLIDE) {
             faceTarget(target, 10.0F);
-            // Smooth hover drift toward player if mid-range
-            double dist = Math.sqrt(target.distanceToSqr(this));
-            if (dist > 6.5D && dist < 24.0D) {
-                Vec3 step = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D).normalize().scale(0.14D);
-                setPos(getX() + step.x, arenaCenter.y, getZ() + step.z);
+            double dist = Math.hypot(target.getX() - getX(), target.getZ() - getZ());
+            boolean shouldGlide = (anim == ANIM_MOVE_GLIDE)
+                    ? (dist > 5.6D && dist < 26.0D)
+                    : (dist > 7.2D && dist < 26.0D);
+            boolean shouldStrafe = !shouldGlide && dist >= 3.2D && dist <= 7.2D && attackCooldown > 14;
+
+            if (shouldGlide || shouldStrafe) {
+                if (anim != ANIM_MOVE_GLIDE) {
+                    strafeDir = random.nextBoolean() ? 1 : -1;
+                    playAnim(ANIM_MOVE_GLIDE);
+                }
+                Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
+                if (toTarget.lengthSqr() > 1e-4D) {
+                    Vec3 fwd = toTarget.normalize();
+                    Vec3 side = new Vec3(-fwd.z * strafeDir, 0.0D, fwd.x * strafeDir);
+                    Vec3 moveVec = shouldGlide
+                            ? fwd.scale(0.18D).add(side.scale(0.06D))
+                            : side.scale(0.11D);
+                    moveInArena(moveVec.x, moveVec.z);
+                }
+            } else {
+                if (anim != ANIM_IDLE) {
+                    playAnim(ANIM_IDLE);
+                }
             }
+
             if (attackCooldown > 0) {
                 attackCooldown--;
             } else {
@@ -527,14 +598,13 @@ public class TheOpenEyedEntity extends Monster {
                     playAnim(ANIM_SPEAR_SLAM);
                 } else {
                     playAnim(ANIM_IDLE);
-                    attackCooldown = 44 + random.nextInt(24);
+                    attackCooldown = 40 + random.nextInt(22);
                 }
             }
         }
     }
 
     private void pickNextCombatAction(ServerLevel sl, LivingEntity target, double dist) {
-        // Trigger Supreme Overseer every 3 normal attacks, or Phenomena's Delirium after 2 recordings
         if (overseerCount >= 2) {
             startPhenomenaDelirium(sl);
             return;
@@ -559,7 +629,8 @@ public class TheOpenEyedEntity extends Monster {
             chosen = (chosen == ANIM_SPEAR_SLAM) ? ANIM_DOUBLE_SLASH : ANIM_SPEAR_SLAM;
         }
         lastAttackAnim = chosen;
-        leapTargetPos = target.position();
+        leapStartPos = position();
+        leapTargetPos = clampToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
         faceTarget(target, 180.0F);
         playAnim(chosen);
     }
@@ -580,7 +651,6 @@ public class TheOpenEyedEntity extends Monster {
     private void tickSupremeOverseer(ServerLevel sl, LivingEntity target) {
         faceTarget(target, 8.0F);
         if (!overseerSweepPending) {
-            // Initial spin at tick 8 deals 40% ATK Geo DMG
             if (stateTicks == 8) {
                 aoeDamage(sl, position(), 6.0D, BASE_ATK * 0.40F, "GEO");
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.3F, 0.8F);
@@ -595,14 +665,14 @@ public class TheOpenEyedEntity extends Monster {
         } else {
             serverAnimTick++;
             int t = serverAnimTick;
-            // Cleave snap at t == 50 (2.52s in upgraded animation): 68% ATK of recorded element (or Geo)
-            if (t == 50) {
+            // Dedicated ANIM_OVERSEER_SWEEP cleave snap at t == 9 (0.45s)
+            if (t == 9) {
                 String elem = ElementalStarEntity.elementName(overseerSweepElement);
                 arcAttack(sl, 9.5D, 0.0D, BASE_ATK * 0.68F, elem, 0.28F);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.2F, 0.9F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.2F, 0.9F);
                 sl.sendParticles(ElementalStarEntity.particleForElement(overseerSweepElement), getX(), getY() + 2.0D, getZ(), 36, 3.0D, 0.6D, 3.0D, 0.1D);
             }
-            if (t >= ANIM_DURATIONS_TICKS[ANIM_SUPREME_OVERSEER]) {
+            if (t >= ANIM_DURATIONS_TICKS[ANIM_OVERSEER_SWEEP]) {
                 entityData.set(DATA_FURY_PROGRESS, 0.0F);
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
                 attackCooldown = 44;
@@ -617,7 +687,7 @@ public class TheOpenEyedEntity extends Monster {
         setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
         entityData.set(DATA_FURY_PROGRESS, 0.0F);
         transitionTo(STATE_DELIRIUM, ANIM_PHENOMENA_DELIRIUM);
-        entityData.set(DATA_ANIM_HOLD_AT, 54);
+        entityData.set(DATA_ANIM_HOLD_AT, 56);
 
         float starHp = getMaxHealth() / 6.0F;
         float rad = getYRot() * Mth.DEG_TO_RAD;
@@ -638,30 +708,26 @@ public class TheOpenEyedEntity extends Monster {
         if (!deliriumUnleashed) {
             float prog = Mth.clamp((float) stateTicks / DELIRIUM_CHARGE_TICKS, 0.0F, 1.0F);
             entityData.set(DATA_FURY_PROGRESS, prog);
-            if (serverAnimTick < 54) serverAnimTick++;
+            if (serverAnimTick < 56) serverAnimTick++;
 
             if (stateTicks >= DELIRIUM_CHARGE_TICKS) {
                 deliriumUnleashed = true;
-                serverAnimTick = 55;
-                entityData.set(DATA_ANIM_HOLD_AT, -1);
+                // Epoch-synced transition into dedicated ANIM_DELIRIUM_FINISHER (zero desync!)
+                playAnim(ANIM_DELIRIUM_FINISHER);
+                sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.5F, 0.72F);
             }
         } else {
             serverAnimTick++;
             int t = serverAnimTick;
-            // Unleash massive elemental sky-spears at t == 60 (3.00s): 100% ATK per surviving Star!
-            if (t == 60) {
-                List<UUID> remaining = new ArrayList<>(activeStarUuids);
-                for (UUID uid : remaining) {
-                    if (sl.getEntity(uid) instanceof ElementalStarEntity star && star.isAlive()) {
-                        String elem = ElementalStarEntity.elementName(star.getElementId());
-                        Vec3 strikePos = target.position().add((random.nextDouble() - 0.5D) * 2.4D, 0.0D, (random.nextDouble() - 0.5D) * 2.4D);
-                        SkySpearEntity.spawn(sl, this, strikePos.x, arenaCenter.y, strikePos.z, star.getElementId(), BASE_ATK * 1.00F, 5.6F);
-                        star.discard();
-                    }
+            // Sequential Sky-Spear Judgment Decree at t == 15 (0.75s) and t == 21 (1.05s)
+            if (t == 15 && !activeStarUuids.isEmpty()) {
+                launchNextSkySpear(sl, target);
+            } else if (t == 21 && !activeStarUuids.isEmpty()) {
+                while (!activeStarUuids.isEmpty()) {
+                    launchNextSkySpear(sl, target);
                 }
-                activeStarUuids.clear();
             }
-            if (t >= ANIM_DURATIONS_TICKS[ANIM_PHENOMENA_DELIRIUM]) {
+            if (t >= ANIM_DURATIONS_TICKS[ANIM_DELIRIUM_FINISHER]) {
                 overseerCount = 0;
                 recordedElements[0] = ElementalStarEntity.ELEM_INERT_GEO;
                 recordedElements[1] = ElementalStarEntity.ELEM_INERT_GEO;
@@ -673,6 +739,16 @@ public class TheOpenEyedEntity extends Monster {
         }
     }
 
+    private void launchNextSkySpear(ServerLevel sl, LivingEntity target) {
+        if (activeStarUuids.isEmpty()) return;
+        UUID uid = activeStarUuids.remove(0);
+        if (sl.getEntity(uid) instanceof ElementalStarEntity star && star.isAlive()) {
+            Vec3 strikePos = target.position().add((random.nextDouble() - 0.5D) * 2.2D, 0.0D, (random.nextDouble() - 0.5D) * 2.2D);
+            SkySpearEntity.spawn(sl, this, strikePos.x, arenaCenter.y, strikePos.z, star.getElementId(), BASE_ATK * 1.00F, 5.6F);
+            star.discard();
+        }
+    }
+
     private void clearActiveStars(ServerLevel sl) {
         for (UUID uid : activeStarUuids) {
             Entity e = sl.getEntity(uid);
@@ -681,20 +757,24 @@ public class TheOpenEyedEntity extends Monster {
         activeStarUuids.clear();
     }
 
-    /** Exact hit ticks synced 1:1 with the overhauled the_open_eyed.bbmodel animations. */
+    /** Exact hit ticks synced 1:1 with overhauled TheOpenEyedAnimations. */
     private void executeCombatTick(ServerLevel sl, LivingEntity target, int anim, int t) {
         switch (anim) {
             case ANIM_SPEAR_SLAM -> {
-                if (t < 16) faceTarget(target, 10.0F);
+                if (t < 17) faceTarget(target, 10.0F);
+                if (t == 10) setTelegraph(new Vec3(forwardPoint(4.0D).x, arenaCenter.y, forwardPoint(4.0D).z), 4.0F);
                 if (t == 14) spawnWarningRing(sl, forwardPoint(4.0D), 3.6D);
                 if (t == 21) {
+                    clearTelegraph();
                     aoeDamage(sl, forwardPoint(4.0D), 4.0D, BASE_ATK * 0.60F, "GEO", 0.22F, 0.0F);
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.1F, 0.8F);
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.1F, 0.8F);
                 }
             }
             case ANIM_SPEAR_THRUST -> {
                 if (t < 18) faceTarget(target, 10.0F);
-                if (t >= 20 && t <= 26) dashForwardInArena(0.82D);
+                // Official Genshin Spear Thrust: retreats backwards first before launching forward in a straight line
+                if (t >= 2 && t <= 12) dashForwardInArena(-0.24D);
+                if (t >= 20 && t <= 26) dashForwardInArena(0.84D);
                 if (t == 23) {
                     lineThrustDamage(sl, 11.0D, BASE_ATK * 0.60F, "GEO");
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_THROW.value(), SoundSource.HOSTILE, 1.35F, 0.85F);
@@ -737,35 +817,52 @@ public class TheOpenEyedEntity extends Monster {
                 }
             }
             case ANIM_LEAPING_SLAM -> {
-                if (t < 24) {
+                if (t < 19) {
                     faceTarget(target, 10.0F);
-                    leapTargetPos = target.position();
+                    leapStartPos = position();
+                    leapTargetPos = clampToArena(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
+                    setTelegraph(leapTargetPos, 5.2F);
+                } else if (t <= 34) {
+                    // Smooth parabolic aerial flight arc (+5.2 blocks zenith) — replaces instant teleport!
+                    float f = (t - 19) / 15.0F;
+                    float smoothF = f * f * (3.0F - 2.0F * f);
+                    double nx = Mth.lerp(smoothF, leapStartPos.x, leapTargetPos.x);
+                    double nz = Mth.lerp(smoothF, leapStartPos.z, leapTargetPos.z);
+                    double ny = arenaCenter.y + Math.sin(f * Math.PI) * 5.2D;
+                    setPos(nx, ny, nz);
                 }
                 if (t == 23 || t == 29) spawnWarningRing(sl, leapTargetPos, 4.8D);
                 if (t == 35) {
+                    clearTelegraph();
                     setPos(leapTargetPos.x, arenaCenter.y, leapTargetPos.z);
                     aoeDamage(sl, leapTargetPos, 5.2D, BASE_ATK * 0.60F, "GEO", 0.28F, 0.05F);
                     sl.sendParticles(ParticleTypes.EXPLOSION, leapTargetPos.x, leapTargetPos.y + 0.5D, leapTargetPos.z, 4, 0.8D, 0.2D, 0.8D, 0.01D);
-                    sl.playSound(null, leapTargetPos.x, leapTargetPos.y, leapTargetPos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.35F, 0.7F);
+                    sl.playSound(null, leapTargetPos.x, leapTargetPos.y, leapTargetPos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.35F, 0.7F);
                 }
             }
             default -> {}
         }
     }
 
-    private void dashForwardInArena(double stepDist) {
-        float rad = getYRot() * Mth.DEG_TO_RAD;
-        double nx = getX() - Math.sin(rad) * stepDist;
-        double nz = getZ() + Math.cos(rad) * stepDist;
-        double dx = nx - arenaCenter.x;
-        double dz = nz - arenaCenter.z;
+    private Vec3 clampToArena(Vec3 pos) {
+        double dx = pos.x - arenaCenter.x;
+        double dz = pos.z - arenaCenter.z;
         double distSq = dx * dx + dz * dz;
         if (distSq > 15.5D * 15.5D) {
             double scale = 15.5D / Math.sqrt(distSq);
-            nx = arenaCenter.x + dx * scale;
-            nz = arenaCenter.z + dz * scale;
+            return new Vec3(arenaCenter.x + dx * scale, pos.y, arenaCenter.z + dz * scale);
         }
-        setPos(nx, arenaCenter.y, nz);
+        return pos;
+    }
+
+    private void moveInArena(double dxStep, double dzStep) {
+        Vec3 clamped = clampToArena(new Vec3(getX() + dxStep, arenaCenter.y, getZ() + dzStep));
+        setPos(clamped.x, arenaCenter.y, clamped.z);
+    }
+
+    private void dashForwardInArena(double stepDist) {
+        float rad = getYRot() * Mth.DEG_TO_RAD;
+        moveInArena(-Math.sin(rad) * stepDist, Math.cos(rad) * stepDist);
     }
 
     private Vec3 forwardPoint(double dist) {

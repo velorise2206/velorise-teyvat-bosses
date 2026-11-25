@@ -7,62 +7,70 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.model.RuinGuardAnimations;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
-import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * High-impact renderer for Ruin Guard (GN/Hu-24601) with world-space locked telegraph rings
- * (fixes Leap Slam ring following the boss's feet in mid-air), crescent melee slashes,
- * expanding ground shockwaves, impact micro-shudder, and timestamp-preserving clip blending.
+ * High-impact renderer for Ruin Guard (GN/Hu-24601) featuring:
+ * <ul>
+ *   <li><b>Adaptive Shortest-Arc Pose-Snapshot State Machine:</b> Snapshots all 28 bones on every clip/epoch
+ *       transition and cross-fades via wrapped shortest-arc angle interpolation (prevents 1080-deg Cyclone waist unwind).</li>
+ *   <li><b>Procedural Secondary Motion Layer:</b> Stunned electrical micro-shudder, Phase 2 overdrive core pulse,
+ *       and speed-scaled walk inertia.</li>
+ *   <li><b>World-Locked Telegraphs & Finisher VFX:</b> Ground-locked rings, crescent slashes, expanding shockwaves,
+ *       and Phase 2 Cataclysmic Overdrive Finisher dual-ring eruption.</li>
+ * </ul>
  */
 public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss_emissive.png");
     private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.ruin_guard_theme");
 
-    private static final float BLEND_TICKS = 7.0F;
+    private static final class BonePose {
+        float x, y, z, xRot, yRot, zRot, xScale, yScale, zScale;
 
-    private static final class AnimSM {
-        String prevClip = null;
-        float prevTimeSec = 0.0F;
-        String currClip = null;
-        float lastTimeSec = 0.0F;
-        int lastEpoch = -1;
-        float blendStartTick = -100.0F;
-        BossMusicInstance music = null;
+        void capture(ModelPart p) {
+            x = p.x; y = p.y; z = p.z;
+            xRot = p.xRot; yRot = p.yRot; zRot = p.zRot;
+            xScale = p.xScale; yScale = p.yScale; zScale = p.zScale;
+        }
+
+        void copyFrom(BonePose o) {
+            x = o.x; y = o.y; z = o.z;
+            xRot = o.xRot; yRot = o.yRot; zRot = o.zRot;
+            xScale = o.xScale; yScale = o.yScale; zScale = o.zScale;
+        }
     }
 
-    private static final class BossMusicInstance extends AbstractTickableSoundInstance {
-        private final RuinGuardEntity boss;
-        BossMusicInstance(SoundEvent ev, RuinGuardEntity boss) {
-            super(ev, SoundSource.MUSIC, SoundInstance.createUnseededRandom());
-            this.boss = boss;
-            this.looping = true;
-            this.volume = 0.72F;
-            this.pitch = 1.0F;
-            this.relative = true;
-        }
-        @Override
-        public void tick() {
-            int st = boss.getBossState();
-            if (boss.isRemoved() || !boss.isAlive() || st == RuinGuardEntity.STATE_DORMANT || st == RuinGuardEntity.STATE_DEATH) {
-                this.stop();
-            }
+    private static final class AnimSM {
+        String currClip = null;
+        int lastEpoch = -1;
+        float blendStartTick = -100.0F;
+        float blendDurationTicks = 7.0F;
+        boolean hasLastPose = false;
+        final Map<String, BonePose> fromPose = new HashMap<>();
+        final Map<String, BonePose> lastPose = new HashMap<>();
+
+        void reset() {
+            currClip = null;
+            lastEpoch = -1;
+            blendStartTick = -100.0F;
+            hasLastPose = false;
+            fromPose.clear();
+            lastPose.clear();
         }
     }
 
@@ -73,6 +81,33 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         super(context);
         this.shadowRadius = 1.55F;
         this.model = new RuinGuardModel<>(context.bakeLayer(RuinGuardModel.LAYER_LOCATION));
+    }
+
+    private static float wrapRad(float rad) {
+        float twoPi = (float) (Math.PI * 2.0D);
+        float r = rad % twoPi;
+        if (r > Math.PI) r -= twoPi;
+        if (r < -Math.PI) r += twoPi;
+        return r;
+    }
+
+    private static float lerpAngleRad(float from, float to, float alpha) {
+        return from + wrapRad(to - from) * alpha;
+    }
+
+    private static float blendDurationFor(int animId) {
+        return switch (animId) {
+            case RuinGuardEntity.ANIM_STUNNED,
+                 RuinGuardEntity.ANIM_DEATH,
+                 RuinGuardEntity.ANIM_OVERDRIVE_FINISHER,
+                 RuinGuardEntity.ANIM_MELEE_3HIT,
+                 RuinGuardEntity.ANIM_DOUBLE_CLAP,
+                 RuinGuardEntity.ANIM_STOMP_SHOCKWAVE,
+                 RuinGuardEntity.ANIM_LEAP_SLAM -> 3.5F;
+            case RuinGuardEntity.ANIM_CYCLONE_ACTIVE,
+                 RuinGuardEntity.ANIM_CYCLONE_RECOVER -> 5.0F;
+            default -> 7.0F;
+        };
     }
 
     @Override
@@ -87,27 +122,30 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         float liveTick = entity.tickCount + partialTicks;
         float currSec = (entity.getAnimTick() + partialTicks) / 20.0F;
         String clip = entity.getCurrentAnimName();
+        int animId = entity.getAnimId();
         int epoch = entity.getAnimEpoch();
 
         AnimSM sm = stateMachines.computeIfAbsent(entity, k -> new AnimSM());
-        updateBossMusic(entity, sm);
+        updateBossMusic(entity);
 
         if (sm.currClip != null && (!sm.currClip.equals(clip) || sm.lastEpoch != epoch)) {
-            sm.prevClip = sm.currClip;
-            sm.prevTimeSec = Math.max(0.0F, sm.lastTimeSec);
-            sm.blendStartTick = liveTick;
+            if (sm.hasLastPose) {
+                for (Map.Entry<String, BonePose> e : sm.lastPose.entrySet()) {
+                    sm.fromPose.computeIfAbsent(e.getKey(), k -> new BonePose()).copyFrom(e.getValue());
+                }
+                sm.blendStartTick = liveTick;
+                sm.blendDurationTicks = blendDurationFor(animId);
+            }
         }
         sm.currClip = clip;
         sm.lastEpoch = epoch;
-        sm.lastTimeSec = currSec;
 
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
 
-        // World-space combat VFX (world-locked telegraphs, melee crescent slashes, expanding shockwaves, Cyclone Spin)
         renderCombatVFX(entity, bodyYaw, partialTicks, liveTick, currSec, poseStack, bufferSource);
 
         poseStack.pushPose();
-        float shudder = computeImpactShudder(entity.getAnimId(), currSec);
+        float shudder = computeImpactShudder(animId, currSec);
         if (shudder > 0.001F) {
             float sx = Mth.sin(liveTick * 31.0F) * shudder;
             float sz = Mth.cos(liveTick * 27.0F) * shudder;
@@ -118,12 +156,41 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        float blendAlpha = Mth.clamp((liveTick - sm.blendStartTick) / BLEND_TICKS, 0.0F, 1.0F);
-        if (sm.prevClip != null && blendAlpha < 0.99F) {
-            RuinGuardAnimations.applyBlended(model, sm.prevClip, sm.prevTimeSec, clip, currSec, blendAlpha);
-        } else {
-            RuinGuardAnimations.apply(model, clip, currSec);
+        // 1. Evaluate target keyframe pose (always calls full resetPose including scales)
+        RuinGuardAnimations.apply(model, clip, currSec);
+
+        // 2. Procedural secondary motion layer
+        applyProceduralSecondaryMotion(entity, animId, liveTick, currSec);
+
+        // 3. Shortest-arc pose-snapshot cross-fade across all 28 bones
+        float blendElapsed = liveTick - sm.blendStartTick;
+        if (sm.hasLastPose && blendElapsed >= 0.0F && blendElapsed < sm.blendDurationTicks) {
+            float rawA = Mth.clamp(blendElapsed / sm.blendDurationTicks, 0.0F, 1.0F);
+            float alpha = rawA * rawA * (3.0F - 2.0F * rawA);
+            for (String bName : model.getBoneNames()) {
+                ModelPart part = model.getBone(bName);
+                BonePose prev = sm.fromPose.get(bName);
+                if (part == null || prev == null) continue;
+                part.x = Mth.lerp(alpha, prev.x, part.x);
+                part.y = Mth.lerp(alpha, prev.y, part.y);
+                part.z = Mth.lerp(alpha, prev.z, part.z);
+                part.xRot = lerpAngleRad(prev.xRot, part.xRot, alpha);
+                part.yRot = lerpAngleRad(prev.yRot, part.yRot, alpha);
+                part.zRot = lerpAngleRad(prev.zRot, part.zRot, alpha);
+                part.xScale = Mth.lerp(alpha, prev.xScale, part.xScale);
+                part.yScale = Mth.lerp(alpha, prev.yScale, part.yScale);
+                part.zScale = Mth.lerp(alpha, prev.zScale, part.zScale);
+            }
         }
+
+        // 4. Snapshot final rendered pose for seamless future transitions
+        for (String bName : model.getBoneNames()) {
+            ModelPart part = model.getBone(bName);
+            if (part != null) {
+                sm.lastPose.computeIfAbsent(bName, k -> new BonePose()).capture(part);
+            }
+        }
+        sm.hasLastPose = true;
 
         int overlay = OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(entity.hurtTime > 0 || entity.deathTime > 0));
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
@@ -138,12 +205,50 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
     }
 
+    private void applyProceduralSecondaryMotion(RuinGuardEntity entity, int animId, float liveTick, float currSec) {
+        // Stunned electrical short-circuit twitching after initial collapse
+        if (animId == RuinGuardEntity.ANIM_STUNNED && currSec > 1.25F) {
+            float twitchGate = Math.max(0.0F, Mth.sin(liveTick * 0.42F) - 0.72F) * 3.5F;
+            if (twitchGate > 0.01F) {
+                ModelPart torso = model.getBone("torso");
+                ModelPart eye = model.getBone("eye_core");
+                if (torso != null) {
+                    torso.zRot += Mth.sin(liveTick * 2.9F) * 0.055F * twitchGate;
+                    torso.xRot += Mth.cos(liveTick * 2.3F) * 0.035F * twitchGate;
+                }
+                if (eye != null) {
+                    float flick = 0.18F + 0.55F * twitchGate;
+                    eye.xScale = flick;
+                    eye.yScale = flick;
+                }
+            }
+        }
+
+        // Phase 2 Overdrive: pulsing eye_core & back_reactor
+        if (entity.isPhase2() && entity.getBossState() == RuinGuardEntity.STATE_COMBAT) {
+            float pulse = 1.08F + 0.10F * Mth.sin(liveTick * 0.48F);
+            ModelPart eye = model.getBone("eye_core");
+            ModelPart reactor = model.getBone("back_reactor");
+            if (eye != null) {
+                eye.xScale *= pulse;
+                eye.yScale *= pulse;
+            }
+            if (reactor != null) {
+                reactor.xScale *= pulse;
+                reactor.yScale *= pulse;
+            }
+        }
+    }
+
     private static float computeImpactShudder(int animId, float sec) {
         if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && sec >= 2.48F && sec <= 2.66F) {
             return 0.09F * (1.0F - (sec - 2.48F) / 0.18F);
         }
         if (animId == RuinGuardEntity.ANIM_LEAP_SLAM && sec >= 1.33F && sec <= 1.56F) {
             return 0.12F * (1.0F - (sec - 1.33F) / 0.23F);
+        }
+        if (animId == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && sec >= 1.23F && sec <= 1.55F) {
+            return 0.15F * (1.0F - (sec - 1.23F) / 0.32F);
         }
         if (animId == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && sec >= 0.88F && sec <= 1.08F) {
             return 0.08F * (1.0F - (sec - 0.88F) / 0.20F);
@@ -154,7 +259,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         return 0.0F;
     }
 
-    private static void updateBossMusic(RuinGuardEntity entity, AnimSM sm) {
+    private static void updateBossMusic(RuinGuardEntity entity) {
         int st = entity.getBossState();
         boolean active = entity.isAlive() && st != RuinGuardEntity.STATE_DORMANT && st != RuinGuardEntity.STATE_DEATH;
         BossMusicManager.update(entity, MUSIC_ID, active);
@@ -172,7 +277,6 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.lightning());
         float teleR = entity.getTelegraphRadius();
         if (teleR > 0.5F) {
-            // Render telegraph locked at world-space landing position (telePos), NOT stuck to the boss's feet!
             Vec3 telePos = entity.getTelegraphPos();
             double lerpX = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double lerpY = Mth.lerp(partialTicks, entity.yo, entity.getY());
@@ -182,7 +286,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             poseStack.translate(telePos.x - lerpX, telePos.y - lerpY + 0.12D, telePos.z - lerpZ);
             Matrix4f m = poseStack.last().pose();
             float pulse = 0.85F + 0.15F * Mth.sin(liveTick * 0.7F);
-            drawHorizontalRing(vc, m, teleR - 0.35F, teleR, 36, 255, 110, 35, (int) (200 * pulse));
+            int rCol = entity.getAnimId() == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER ? 255 : 255;
+            int gCol = entity.getAnimId() == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER ? 65 : 110;
+            drawHorizontalRing(vc, m, teleR - 0.35F, teleR, 36, rCol, gCol, 35, (int) (200 * pulse));
             drawHorizontalRing(vc, m, 0.4F, teleR * pulse, 28, 255, 165, 55, 55);
             poseStack.popPose();
         }
@@ -190,7 +296,6 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         int anim = entity.getAnimId();
 
         if (anim == RuinGuardEntity.ANIM_CYCLONE_ACTIVE) {
-            // Sleek staggered wind-blade motion trails (matching Genshin's crisp swirling ribbons, no flat UFO plate)
             float spinYaw = liveTick * 50.0F;
             drawSpinWindArc(vc, poseStack, spinYaw, 2.05D, 3.4F, 4.55F, 155, 255, 238, 195);
             drawSpinWindArc(vc, poseStack, spinYaw + 180.0F, 2.05D, 3.4F, 4.55F, 155, 255, 238, 195);
@@ -225,6 +330,17 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             drawExpandingShockwave(vc, poseStack, 5.2F, (currSec - 0.88F) / 0.44F);
         } else if (anim == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.33F && currSec <= 1.85F) {
             drawExpandingShockwave(vc, poseStack, 6.6F, (currSec - 1.33F) / 0.52F);
+        } else if (anim == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && currSec >= 1.23F && currSec <= 1.95F) {
+            float p = (currSec - 1.23F) / 0.72F;
+            drawExpandingShockwave(vc, poseStack, 8.2F, p);
+            if (p < 0.75F) {
+                float p2 = p / 0.75F;
+                poseStack.pushPose();
+                poseStack.translate(0.0D, 0.35D + p2 * 0.8D, 0.0D);
+                float rOut = 1.4F + p2 * 6.4F;
+                drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.2F, rOut - 0.9F), rOut, 36, 255, 85, 35, (int) (215 * (1.0F - p2)));
+                poseStack.popPose();
+            }
         }
     }
 
