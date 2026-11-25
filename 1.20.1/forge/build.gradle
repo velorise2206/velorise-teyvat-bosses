@@ -10,7 +10,7 @@ version = mod_version
 group = mod_group_id
 
 base {
-    archivesName = "velorise_teyvat-1.20.1-forge"
+    archivesName = "velorise_teyvat_bosses-1.20.1-forge"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -26,7 +26,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            arg '-mixin.config=velorise_teyvat.mixins.json'
+            arg '-mixin.config=velorise_teyvat_bosses.mixins.json'
 
             mods {
                 "${mod_id}" {
@@ -111,15 +111,15 @@ tasks.named('jar', Jar).configure {
             'Implementation-Title'    : project.name,
             'Implementation-Version'  : project.jar.archiveVersion,
             'Implementation-Vendor'   : mod_authors,
-            'MixinConfigs'            : 'velorise_teyvat.mixins.json'
+            'MixinConfigs'            : 'velorise_teyvat_bosses.mixins.json'
         ])
     }
     finalizedBy 'reobfJar'
 }
 
 mixin {
-    add sourceSets.main, 'velorise_teyvat.refmap.json'
-    config 'velorise_teyvat.mixins.json'
+    add sourceSets.main, 'velorise_teyvat_bosses.refmap.json'
+    config 'velorise_teyvat_bosses.mixins.json'
 }
 
 tasks.withType(JavaCompile).configureEach {

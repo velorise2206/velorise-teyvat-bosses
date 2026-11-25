@@ -8,7 +8,7 @@ if not "%CHOICE%"=="" goto :HANDLE_CHOICE
 :MENU
 cls
 echo =====================================================================
-echo                VELORISE'S TEYVAT - CLIENT LAUNCHER
+echo                VELORISE: TEYVAT BOSSES - CLIENT LAUNCHER
 echo =====================================================================
 echo   1) NeoForge 1.21.1  (Java 21)
 echo   2) Forge 1.20.1     (Java 17)

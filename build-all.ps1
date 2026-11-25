@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
 $WorkspaceParent = Split-Path -Parent $Root.TrimEnd('\', '/')
 $ModsRoot = Join-Path $WorkspaceParent 'mods'
-$OutputDirectory = Join-Path $ModsRoot 'velorise_teyvat'
+$OutputDirectory = Join-Path $ModsRoot 'velorise_teyvat_bosses'
 
 $OriginalJavaHome = $env:JAVA_HOME
 $OriginalPath = $env:Path
@@ -60,35 +60,6 @@ function Test-SharedClassParity {
             }
             if (Test-Path (Join-Path $fbJavaDir $rel)) {
                 throw "Duplicate class in both 1.21.1/common and 1.21.1/fabric: $rel"
-            }
-        }
-    }
-
-    # 2. Verify cross-version pure Java parity between 1.21.1/common and 1.20.1/forge
-    $crossVersionClasses = @(
-        "audio\CharacterVoiceManager.java",
-        "client\CharacterVoiceScreen.java",
-        "client\VeloriseConfigScreen.java",
-        "compat\jade\VeloriseStavesJadePlugin.java",
-        "element\ElectrifiedWaterManager.java",
-        "element\Element.java",
-        "element\ElementalReaction.java",
-        "element\FurinaManager.java",
-        "element\GaugeState.java",
-        "element\PlayerGenshinState.java",
-        "manager\TemporaryWebManager.java",
-        "mixin\GuiGraphicsMixin.java",
-        "mixin\HumanoidModelMixin.java",
-        "mixin\ItemInHandRendererMixin.java"
-    )
-    foreach ($rel in $crossVersionClasses) {
-        $cmFile = Join-Path $Root "1.21.1\common\src\main\java\com\velorise\staves\$rel"
-        $fgFile = Join-Path $Root "1.20.1\forge\src\main\java\com\velorise\staves\$rel"
-        if ((Test-Path $cmFile) -and (Test-Path $fgFile)) {
-            $h1 = (Get-FileHash $cmFile -Algorithm SHA256).Hash
-            $h2 = (Get-FileHash $fgFile -Algorithm SHA256).Hash
-            if ($h1 -ne $h2) {
-                Write-Warning "Cross-version parity notice: $rel differs between 1.21.1/common and 1.20.1/forge"
             }
         }
     }

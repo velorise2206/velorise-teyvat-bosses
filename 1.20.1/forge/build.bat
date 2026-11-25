@@ -1,6 +1,6 @@
 @echo off
 setlocal
-echo [Velorise's Staves Forge 1.20.1] Building mod jar...
+echo [Velorise: Teyvat Bosses Forge 1.20.1] Building mod jar...
 call gradlew.bat build
 
 if %ERRORLEVEL% NEQ 0 (

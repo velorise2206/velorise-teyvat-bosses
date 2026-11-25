@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "velorise_teyvat",
+  "id": "velorise_teyvat_bosses",
   "version": "${version}",
-  "name": "Velorise's Teyvat",
-  "description": "Teyvat 3D Dimension & Boss Expansion for Velorise's Staves.",
+  "name": "Velorise: Teyvat Bosses",
+  "description": "Endgame Teyvat Boss Expansion for Velorise's Staves featuring telegraphed elemental combat, natural Overworld boss arenas, Ley Line re-summoning, and anti-bloat progression.",
   "authors": [
     "velorise2206"
   ],
@@ -11,10 +11,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.velorise.teyvat.fabric.VeloriseTeyvatFabric"
+      "com.velorise.teyvatbosses.fabric.VeloriseTeyvatBossesFabric"
     ],
     "client": [
-      "com.velorise.teyvat.fabric.VeloriseTeyvatFabricClient"
+      "com.velorise.teyvatbosses.fabric.VeloriseTeyvatBossesFabricClient"
     ]
   },
   "depends": {
