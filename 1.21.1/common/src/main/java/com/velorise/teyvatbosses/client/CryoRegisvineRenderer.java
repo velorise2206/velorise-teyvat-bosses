@@ -38,6 +38,7 @@ import java.util.WeakHashMap;
  */
 public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/cryo_regisvine_boss.png");
+    private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.cryo_regisvine_theme");
     private static final float BOSS_RENDER_SCALE = 1.6F;
     private static final float BLEND_DURATION_TICKS = 8.0F;
 
@@ -142,6 +143,8 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         String currClip = entity.getCurrentAnimName();
         int currEpoch = entity.getAnimEpoch();
 
+        boolean musicActive = entity.getBossState() != CryoRegisvineEntity.STATE_DORMANT && entity.getBossState() != CryoRegisvineEntity.STATE_DEATH;
+        BossMusicManager.update(entity, MUSIC_ID, musicActive);
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {
             // Snapshot exact rendered pose of previous frame as blend origin!

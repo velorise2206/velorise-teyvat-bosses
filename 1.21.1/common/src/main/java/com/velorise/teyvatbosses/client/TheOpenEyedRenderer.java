@@ -36,6 +36,7 @@ import java.util.WeakHashMap;
  */
 public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/the_open_eyed.png");
+    private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.the_open_eyed_theme");
     private static final float BOSS_RENDER_SCALE = 1.18F;
     private static final float BLEND_DURATION_TICKS = 8.0F;
 
@@ -110,6 +111,8 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         int currEpoch = entity.getAnimEpoch();
         float liveT = entity.tickCount + partialTicks;
 
+        boolean musicActive = entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
+        BossMusicManager.update(entity, MUSIC_ID, musicActive);
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {
             if (sm.hasLastPose) {

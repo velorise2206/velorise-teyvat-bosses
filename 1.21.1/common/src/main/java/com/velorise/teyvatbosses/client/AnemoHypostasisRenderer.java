@@ -203,19 +203,7 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
     private static void updateBossMusic(AnemoHypostasisEntity entity, AnimSM sm) {
         int st = entity.getBossState();
         boolean active = entity.isAlive() && st != AnemoHypostasisEntity.STATE_DORMANT && st != AnemoHypostasisEntity.STATE_DEATH;
-        Minecraft mc = Minecraft.getInstance();
-        if (active) {
-            if (sm.musicInstance == null || !mc.getSoundManager().isActive(sm.musicInstance)) {
-                SoundEvent ev = BuiltInRegistries.SOUND_EVENT.get(MUSIC_ID);
-                if (ev != null) {
-                    sm.musicInstance = new BossMusicInstance(ev, entity);
-                    mc.getSoundManager().play(sm.musicInstance);
-                }
-            }
-        } else if (sm.musicInstance != null) {
-            mc.getSoundManager().stop(sm.musicInstance);
-            sm.musicInstance = null;
-        }
+        BossMusicManager.update(entity, MUSIC_ID, active);
     }
 
     private static void renderCombatVFX(

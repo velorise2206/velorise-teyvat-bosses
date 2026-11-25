@@ -133,19 +133,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     private static void updateBossMusic(RuinGuardEntity entity, AnimSM sm) {
         int st = entity.getBossState();
         boolean active = entity.isAlive() && st != RuinGuardEntity.STATE_DORMANT && st != RuinGuardEntity.STATE_DEATH;
-        Minecraft mc = Minecraft.getInstance();
-        if (active) {
-            if (sm.music == null || !mc.getSoundManager().isActive(sm.music)) {
-                SoundEvent ev = BuiltInRegistries.SOUND_EVENT.get(MUSIC_ID);
-                if (ev != null) {
-                    sm.music = new BossMusicInstance(ev, entity);
-                    mc.getSoundManager().play(sm.music);
-                }
-            }
-        } else if (sm.music != null) {
-            mc.getSoundManager().stop(sm.music);
-            sm.music = null;
-        }
+        BossMusicManager.update(entity, MUSIC_ID, active);
     }
 
     private static void renderCombatVFX(RuinGuardEntity entity, float liveTick, PoseStack poseStack, MultiBufferSource bufferSource) {
