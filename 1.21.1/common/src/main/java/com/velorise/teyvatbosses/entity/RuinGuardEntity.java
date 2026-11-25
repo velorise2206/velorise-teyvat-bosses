@@ -561,27 +561,34 @@ public class RuinGuardEntity extends Monster {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
                 if (shouldWalk) {
                     Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
-                    // Exact 1.80s (36-tick, 18 ticks/step) stride-locked velocity: surges during swing, anchors on footplant
+                    // Exact 1.80s (36-tick, 18 ticks/step) zero-slide velocity matched to 1.04 blocks/step leg sweep:
+                    // Footplant occurs at tick 9 (phase 0.50); anchors briefly on impact (0.45..0.62) and glides over stance leg
                     double stepPhase = (stateTick % 18) / 18.0D;
-                    double phaseMul = isPhase2() ? 1.12D : 1.0D;
-                    double speed = ((stepPhase < 0.55D)
-                            ? (0.045D + 0.105D * Math.sin((stepPhase / 0.55D) * Math.PI))
-                            : 0.030D) * phaseMul;
+                    double phaseMul = isPhase2() ? 1.08D : 1.0D;
+                    double speed;
+                    if (stepPhase >= 0.44D && stepPhase <= 0.62D) {
+                        speed = 0.014D;
+                    } else if (stepPhase < 0.44D) {
+                        speed = 0.044D + 0.030D * Math.sin((stepPhase / 0.44D) * Math.PI);
+                    } else {
+                        speed = 0.046D + 0.024D * Math.sin(((stepPhase - 0.62D) / 0.38D) * Math.PI);
+                    }
+                    speed *= phaseMul;
                     setDeltaMovement(
-                            Mth.lerp(0.24D, cur.x, dir.x * speed),
+                            Mth.lerp(0.36D, cur.x, dir.x * speed),
                             cur.y,
-                            Mth.lerp(0.24D, cur.z, dir.z * speed)
+                            Mth.lerp(0.36D, cur.z, dir.z * speed)
                     );
                 } else {
-                    setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
+                    setDeltaMovement(cur.x * 0.35D, cur.y, cur.z * 0.35D);
                 }
                 if (stateTick % 18 == 9) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.15F : 0.85F, 0.60F);
-                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 4 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.25F : 0.85F, 0.56F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 5 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
                 }
             } else {
                 if (anim != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
-                setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
+                setDeltaMovement(cur.x * 0.35D, cur.y, cur.z * 0.35D);
             }
 
             if (--attackCooldown <= 0) {

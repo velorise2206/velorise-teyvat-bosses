@@ -313,8 +313,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         if (anim == RuinGuardEntity.ANIM_MELEE_3HIT) {
             if (currSec >= 0.86F && currSec <= 1.16F) {
                 drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.85D, (currSec - 0.86F) / 0.30F, false);
-            } else if (currSec >= 1.86F && currSec <= 2.16F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.85D, (currSec - 1.86F) / 0.30F, true);
+            } else if (currSec >= 1.86F && currSec <= 2.18F) {
+                // Hit 2 continues the 360-deg right-arm spin into a steeper diagonal-downward cleave
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.75D, (currSec - 1.86F) / 0.32F, false);
             } else if (currSec >= 3.48F && currSec <= 4.02F) {
                 drawExpandingShockwave(vc, poseStack, 5.6F, (currSec - 3.48F) / 0.54F);
             }
