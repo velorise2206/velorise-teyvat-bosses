@@ -2,6 +2,7 @@ package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
+import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
 import com.velorise.teyvatbosses.entity.AnemoWindOrbEntity;
@@ -115,6 +116,10 @@ public class VeloriseTeyvatBossesNeoForge {
             ENTITIES.register("ruin_missile", () -> EntityType.Builder.<RuinMissileProjectile>of(RuinMissileProjectile::new, MobCategory.MISC)
                     .sized(0.75F, 0.75F).clientTrackingRange(12).updateInterval(2).build("ruin_missile"));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<AstralionEntity>> ASTRALION =
+            ENTITIES.register("astralion", () -> EntityType.Builder.of(AstralionEntity::new, MobCategory.MONSTER)
+                    .sized(2.6F, 5.4F).clientTrackingRange(16).build("astralion"));
+
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_SPAWN_EGG =
             ITEMS.register("cryo_regisvine_spawn_egg", () -> new DeferredSpawnEggItem(
                     CRYO_REGISVINE, 0x1E4B7A, 0x9BE8FF, new Item.Properties()));
@@ -130,6 +135,10 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> RUIN_GUARD_SPAWN_EGG =
             ITEMS.register("ruin_guard_spawn_egg", () -> new DeferredSpawnEggItem(
                     RUIN_GUARD, 0x4E3C2B, 0xFFB338, new Item.Properties()));
+
+    public static final DeferredHolder<Item, Item> ASTRALION_SPAWN_EGG =
+            ITEMS.register("astralion_spawn_egg", () -> new DeferredSpawnEggItem(
+                    ASTRALION, 0x1D1135, 0xE5A4FF, new Item.Properties()));
 
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_CRYO_THEME =
             SOUNDS.register("music.cryo_regisvine_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.cryo_regisvine_theme")));
@@ -162,6 +171,7 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(THE_OPEN_EYED_SPAWN_EGG.get());
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG.get());
                         output.accept(RUIN_GUARD_SPAWN_EGG.get());
+                        output.accept(ASTRALION_SPAWN_EGG.get());
                         output.accept(MUSIC_DISC_CRYO_REGISVINE.get());
                         output.accept(MUSIC_DISC_THE_OPEN_EYED.get());
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS.get());
@@ -181,7 +191,7 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,
                 ANEMO_HYPOSTASIS, ANEMO_WIND_ORB, ANEMO_TORNADO, ANEMO_MISSILE, WIND_CURRENT, TROUNCE_BLOSSOM,
-                RUIN_GUARD, RUIN_MISSILE
+                RUIN_GUARD, RUIN_MISSILE, ASTRALION
         );
 
         TeyvatBossesItems.bind(MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD);
@@ -194,5 +204,6 @@ public class VeloriseTeyvatBossesNeoForge {
         event.put(ELEMENTAL_STAR.get(), ElementalStarEntity.createAttributes().build());
         event.put(ANEMO_HYPOSTASIS.get(), AnemoHypostasisEntity.createAttributes().build());
         event.put(RUIN_GUARD.get(), RuinGuardEntity.createAttributes().build());
+        event.put(ASTRALION.get(), AstralionEntity.createAttributes().build());
     }
 }

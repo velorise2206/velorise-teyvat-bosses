@@ -2,6 +2,7 @@ package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
+import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
@@ -17,6 +18,7 @@ import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
+import com.velorise.teyvatbosses.client.model.AstralionModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
@@ -38,6 +40,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         event.registerLayerDefinition(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         event.registerLayerDefinition(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
+        event.registerLayerDefinition(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -59,5 +62,6 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
 
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_GUARD.get(), RuinGuardRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MISSILE.get(), RuinMissileRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ASTRALION.get(), AstralionRenderer::new);
     }
 }

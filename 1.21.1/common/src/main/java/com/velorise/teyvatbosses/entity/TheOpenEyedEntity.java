@@ -719,13 +719,15 @@ public class TheOpenEyedEntity extends Monster {
         } else {
             serverAnimTick++;
             int t = serverAnimTick;
-            // Sequential Sky-Spear Judgment Decree at t == 15 (0.75s) and t == 21 (1.05s)
+            // Sequential Sky-Spear Judgment Decree synced to dual-arm decree beats: t == 15 (0.75s) and t == 21 (1.05s)
             if (t == 15 && !activeStarUuids.isEmpty()) {
                 launchNextSkySpear(sl, target);
+                sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.35F, 0.95F);
             } else if (t == 21 && !activeStarUuids.isEmpty()) {
                 while (!activeStarUuids.isEmpty()) {
                     launchNextSkySpear(sl, target);
                 }
+                sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.HOSTILE, 1.5F, 0.78F);
             }
             if (t >= ANIM_DURATIONS_TICKS[ANIM_DELIRIUM_FINISHER]) {
                 overseerCount = 0;
@@ -763,17 +765,26 @@ public class TheOpenEyedEntity extends Monster {
             case ANIM_SPEAR_SLAM -> {
                 if (t < 17) faceTarget(target, 10.0F);
                 if (t == 10) setTelegraph(new Vec3(forwardPoint(4.0D).x, arenaCenter.y, forwardPoint(4.0D).z), 4.0F);
+                if (t == 12) {
+                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.TRIDENT_RIPTIDE_1.value(), SoundSource.HOSTILE, 1.0F, 0.72F);
+                }
                 if (t == 14) spawnWarningRing(sl, forwardPoint(4.0D), 3.6D);
                 if (t == 21) {
+                    Vec3 hitPos = forwardPoint(4.0D);
                     clearTelegraph();
-                    aoeDamage(sl, forwardPoint(4.0D), 4.0D, BASE_ATK * 0.60F, "GEO", 0.22F, 0.0F);
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.1F, 0.8F);
+                    aoeDamage(sl, hitPos, 4.0D, BASE_ATK * 0.60F, "GEO", 0.22F, 0.0F);
+                    sl.sendParticles(ParticleTypes.EXPLOSION, hitPos.x, arenaCenter.y + 0.4D, hitPos.z, 3, 0.6D, 0.2D, 0.6D, 0.01D);
+                    sl.sendParticles(ParticleTypes.CRIT, hitPos.x, arenaCenter.y + 0.5D, hitPos.z, 22, 1.8D, 0.4D, 1.8D, 0.14D);
+                    sl.playSound(null, hitPos.x, arenaCenter.y, hitPos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.15F, 0.78F);
                 }
             }
             case ANIM_SPEAR_THRUST -> {
                 if (t < 18) faceTarget(target, 10.0F);
                 // Official Genshin Spear Thrust: retreats backwards first before launching forward in a straight line
                 if (t >= 2 && t <= 12) dashForwardInArena(-0.24D);
+                if (t == 12) {
+                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.25F, 0.80F);
+                }
                 if (t >= 20 && t <= 26) dashForwardInArena(0.84D);
                 if (t == 23) {
                     lineThrustDamage(sl, 11.0D, BASE_ATK * 0.60F, "GEO");
@@ -796,11 +807,15 @@ public class TheOpenEyedEntity extends Monster {
             case ANIM_DOUBLE_SLASH -> {
                 if (t < 11 || (t > 19 && t < 26)) faceTarget(target, 12.0F);
                 if (t == 14) {
+                    Vec3 sweepPos = forwardPoint(3.0D);
                     arcAttack(sl, 6.2D, 0.15D, BASE_ATK * 0.32F, "GEO");
+                    sl.sendParticles(ParticleTypes.SWEEP_ATTACK, sweepPos.x, getY() + 1.8D, sweepPos.z, 3, 1.2D, 0.2D, 1.2D, 0.0D);
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.25F, 1.0F);
                 }
                 if (t == 29) {
+                    Vec3 sweepPos = forwardPoint(3.4D);
                     arcAttack(sl, 6.8D, 0.10D, BASE_ATK * 0.34F, "GEO");
+                    sl.sendParticles(ParticleTypes.SWEEP_ATTACK, sweepPos.x, getY() + 2.0D, sweepPos.z, 4, 1.5D, 0.25D, 1.5D, 0.0D);
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.35F, 0.85F);
                 }
             }
@@ -830,6 +845,10 @@ public class TheOpenEyedEntity extends Monster {
                     double nz = Mth.lerp(smoothF, leapStartPos.z, leapTargetPos.z);
                     double ny = arenaCenter.y + Math.sin(f * Math.PI) * 5.2D;
                     setPos(nx, ny, nz);
+                }
+                if (t == 19) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.TRIDENT_RIPTIDE_2.value(), SoundSource.HOSTILE, 1.25F, 0.82F);
+                    sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 0.5D, getZ(), 20, 1.2D, 0.3D, 1.2D, 0.08D);
                 }
                 if (t == 23 || t == 29) spawnWarningRing(sl, leapTargetPos, 4.8D);
                 if (t == 35) {

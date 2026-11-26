@@ -111,6 +111,11 @@ public class TrounceBlossomEntity extends Entity {
             dropReward(sl, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
             dropReward(sl, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
             dropReward(sl, new ItemStack(Items.BREEZE_ROD, 3 + random.nextInt(3)));
+        } else if (kind == BossRespawnAnchorEntity.BOSS_ASTRALION) {
+            dropReward(sl, new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
+            dropReward(sl, new ItemStack(Items.DIAMOND, 5 + random.nextInt(4)));
+            dropReward(sl, new ItemStack(Items.AMETHYST_SHARD, 12 + random.nextInt(9)));
+            dropReward(sl, new ItemStack(Items.EMERALD, 8 + random.nextInt(6)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_GUARD) {
             if (TeyvatBossesItems.ruinGuardDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
             dropReward(sl, new ItemStack(Items.IRON_BLOCK, 2 + random.nextInt(3)));

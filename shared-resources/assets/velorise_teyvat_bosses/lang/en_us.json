@@ -35,5 +35,9 @@
   "jukebox_song.velorise_teyvat_bosses.cryo_regisvine_theme": "Velorise Ensemble - Frostbound Bloom (Cryo Regisvine)",
   "jukebox_song.velorise_teyvat_bosses.the_open_eyed_theme": "Velorise Ensemble - Vigil of the Unblinking (The Open-Eyed)",
   "jukebox_song.velorise_teyvat_bosses.anemo_hypostasis_theme": "Velorise Ensemble - Gale of Beth (Anemo Hypostasis)",
-  "jukebox_song.velorise_teyvat_bosses.ruin_guard_theme": "Velorise Ensemble - Iron Sentinel of Thousand Winds (Ruin Guard)"
+  "jukebox_song.velorise_teyvat_bosses.ruin_guard_theme": "Velorise Ensemble - Iron Sentinel of Thousand Winds (Ruin Guard)",
+  "entity.velorise_teyvat_bosses.astralion": "Astralion: Prismatic Sovereign",
+  "item.velorise_teyvat_bosses.astralion_spawn_egg": "Astralion Spawn Egg",
+  "message.velorise_teyvat_bosses.astralion.singularity": "Astralion enters Cosmic Singularity! Shatter its Prismatic Shield with counter-elements!",
+  "message.velorise_teyvat_bosses.astralion.shield_broken": "Astralion's Prismatic Shield shattered! Strike while it is collapsed!"
 }

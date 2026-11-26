@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.fabric;
 
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
+import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
@@ -16,6 +17,7 @@ import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
+import com.velorise.teyvatbosses.client.model.AstralionModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
@@ -32,6 +34,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);
@@ -50,5 +53,6 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_GUARD, RuinGuardRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MISSILE, RuinMissileRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ASTRALION, AstralionRenderer::new);
     }
 }

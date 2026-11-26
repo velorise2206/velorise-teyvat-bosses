@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.registry;
 
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
+import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
 import com.velorise.teyvatbosses.entity.AnemoWindOrbEntity;
@@ -40,6 +41,7 @@ public final class TeyvatBossesEntities {
 
     private static Supplier<EntityType<RuinGuardEntity>> ruinGuard;
     private static Supplier<EntityType<RuinMissileProjectile>> ruinMissile;
+    private static Supplier<EntityType<AstralionEntity>> astralion;
 
     private TeyvatBossesEntities() {}
 
@@ -58,7 +60,8 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<WindCurrentEntity>> windCurrentSupplier,
             Supplier<EntityType<TrounceBlossomEntity>> trounceBlossomSupplier,
             Supplier<EntityType<RuinGuardEntity>> ruinGuardSupplier,
-            Supplier<EntityType<RuinMissileProjectile>> ruinMissileSupplier
+            Supplier<EntityType<RuinMissileProjectile>> ruinMissileSupplier,
+            Supplier<EntityType<AstralionEntity>> astralionSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -75,6 +78,7 @@ public final class TeyvatBossesEntities {
         trounceBlossom = trounceBlossomSupplier;
         ruinGuard = ruinGuardSupplier;
         ruinMissile = ruinMissileSupplier;
+        astralion = astralionSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -92,4 +96,5 @@ public final class TeyvatBossesEntities {
     public static EntityType<TrounceBlossomEntity> trounceBlossom() { return trounceBlossom.get(); }
     public static EntityType<RuinGuardEntity> ruinGuard() { return ruinGuard.get(); }
     public static EntityType<RuinMissileProjectile> ruinMissile() { return ruinMissile.get(); }
+    public static EntityType<AstralionEntity> astralion() { return astralion.get(); }
 }

@@ -108,26 +108,47 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             case TheOpenEyedEntity.ANIM_OVERSEER_SWEEP,
                  TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER,
                  TheOpenEyedEntity.ANIM_STUNNED,
-                 TheOpenEyedEntity.ANIM_DEATH,
-                 TheOpenEyedEntity.ANIM_SPEAR_SLAM,
+                 TheOpenEyedEntity.ANIM_DEATH -> 2.0F;
+            case TheOpenEyedEntity.ANIM_SPEAR_SLAM,
+                 TheOpenEyedEntity.ANIM_SPEAR_THRUST,
                  TheOpenEyedEntity.ANIM_DOUBLE_SLASH,
-                 TheOpenEyedEntity.ANIM_DOUBLE_LUNGE -> 4.0F;
-            default -> 8.0F;
+                 TheOpenEyedEntity.ANIM_DOUBLE_LUNGE,
+                 TheOpenEyedEntity.ANIM_LEAPING_SLAM,
+                 TheOpenEyedEntity.ANIM_FORCED_TELEPORT -> 3.0F;
+            default -> 5.0F;
         };
     }
 
     private static float computeImpactShudder(int animId, float t) {
-        if (animId == TheOpenEyedEntity.ANIM_SPEAR_SLAM && t >= 20.5F && t <= 25.0F) {
-            return 0.08F * (1.0F - (t - 20.5F) / 4.5F);
+        if (animId == TheOpenEyedEntity.ANIM_DESCEND && t >= 25.5F && t <= 30.0F) {
+            return 0.09F * (1.0F - (t - 25.5F) / 4.5F);
         }
-        if (animId == TheOpenEyedEntity.ANIM_LEAPING_SLAM && t >= 34.5F && t <= 40.0F) {
-            return 0.12F * (1.0F - (t - 34.5F) / 5.5F);
+        if (animId == TheOpenEyedEntity.ANIM_SPEAR_SLAM && t >= 20.5F && t <= 25.5F) {
+            return 0.10F * (1.0F - (t - 20.5F) / 5.0F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_SPEAR_THRUST && t >= 22.5F && t <= 26.5F) {
+            return 0.08F * (1.0F - (t - 22.5F) / 4.0F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_DOUBLE_LUNGE) {
+            if (t >= 15.5F && t <= 18.5F) return 0.06F * (1.0F - (t - 15.5F) / 3.0F);
+            if (t >= 33.5F && t <= 38.0F) return 0.09F * (1.0F - (t - 33.5F) / 4.5F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_DOUBLE_SLASH) {
+            if (t >= 13.5F && t <= 16.5F) return 0.06F * (1.0F - (t - 13.5F) / 3.0F);
+            if (t >= 28.5F && t <= 32.5F) return 0.08F * (1.0F - (t - 28.5F) / 4.0F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_FORCED_TELEPORT && t >= 24.5F && t <= 28.0F) {
+            return 0.07F * (1.0F - (t - 24.5F) / 3.5F);
+        }
+        if (animId == TheOpenEyedEntity.ANIM_LEAPING_SLAM && t >= 34.5F && t <= 41.0F) {
+            return 0.14F * (1.0F - (t - 34.5F) / 6.5F);
         }
         if (animId == TheOpenEyedEntity.ANIM_OVERSEER_SWEEP && t >= 8.5F && t <= 14.0F) {
-            return 0.10F * (1.0F - (t - 8.5F) / 5.5F);
+            return 0.11F * (1.0F - (t - 8.5F) / 5.5F);
         }
-        if (animId == TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER && t >= 14.5F && t <= 24.0F) {
-            return 0.14F * (1.0F - (t - 14.5F) / 9.5F);
+        if (animId == TheOpenEyedEntity.ANIM_DELIRIUM_FINISHER) {
+            if (t >= 14.5F && t <= 19.5F) return 0.12F * (1.0F - (t - 14.5F) / 5.0F);
+            if (t >= 20.5F && t <= 26.5F) return 0.15F * (1.0F - (t - 20.5F) / 6.0F);
         }
         return 0.0F;
     }
@@ -310,18 +331,18 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             poseStack.popPose();
         }
 
-        // 2. Double Slash Blazing Double-Sided Golden Crescents
+        // 2. Double Slash Blazing Double-Sided Golden Crescents (synced to hit ticks 14 & 29)
         if (anim == TheOpenEyedEntity.ANIM_DOUBLE_SLASH) {
-            if (t >= 11.0F && t <= 22.0F) {
-                float p = (t - 11.0F) / 11.0F;
-                float fade = 1.0F - Math.abs(p - 0.5F) * 1.6F;
-                drawSlashCrescent(poseStack, vc, yaw - 85.0F + p * 175.0F, 125.0F, -1.0F, 2.6F, 6.8F, 1.65F + ascendY,
+            if (t >= 11.5F && t <= 19.5F) {
+                float p = (t - 11.5F) / 8.0F;
+                float fade = 1.0F - Math.abs(p - 0.35F) * 1.45F;
+                drawSlashCrescent(poseStack, vc, yaw - 88.0F + p * 180.0F, 128.0F, -1.0F, 2.6F, 6.8F, 1.65F + ascendY,
                         255, 228, 105, 255, 150, 28, Mth.clamp(fade, 0.0F, 1.0F));
             }
-            if (t >= 26.0F && t <= 38.0F) {
-                float p = (t - 26.0F) / 12.0F;
-                float fade = 1.0F - Math.abs(p - 0.5F) * 1.6F;
-                drawSlashCrescent(poseStack, vc, yaw + 90.0F - p * 185.0F, 135.0F, 1.0F, 2.8F, 7.2F, 1.85F + ascendY,
+            if (t >= 26.5F && t <= 35.5F) {
+                float p = (t - 26.5F) / 9.0F;
+                float fade = 1.0F - Math.abs(p - 0.32F) * 1.45F;
+                drawSlashCrescent(poseStack, vc, yaw + 92.0F - p * 190.0F, 138.0F, 1.0F, 2.8F, 7.2F, 1.85F + ascendY,
                         255, 238, 125, 255, 140, 22, Mth.clamp(fade, 0.0F, 1.0F));
             }
         }
@@ -411,12 +432,20 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
                 drawOrbitingCorruptionCubes(poseStack, vc, liveT, 2.8F + ascendY, 3.5F, 12, cubeAlpha);
             }
 
-            if (isFinisher && t >= 14.0F && t <= 32.0F) {
-                float p = (t - 14.0F) / 18.0F;
+            if (isFinisher && t >= 14.5F && t <= 32.5F) {
+                float p = (t - 14.5F) / 18.0F;
                 poseStack.pushPose();
                 poseStack.translate(0.0D, 0.20D, 0.0D);
                 float rOut = 2.0F + p * 11.5F;
                 drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.3F, rOut - 1.2F), rOut, 40, 225, 30, 45, (int) (220 * (1.0F - p)));
+                poseStack.popPose();
+            }
+            if (isFinisher && t >= 20.5F && t <= 38.5F) {
+                float p = (t - 20.5F) / 18.0F;
+                poseStack.pushPose();
+                poseStack.translate(0.0D, 0.24D, 0.0D);
+                float rOut = 2.2F + p * 12.5F;
+                drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.35F, rOut - 1.4F), rOut, 40, 255, 70, 55, (int) (235 * (1.0F - p)));
                 poseStack.popPose();
             }
         }
