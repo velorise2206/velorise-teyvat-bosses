@@ -18,6 +18,9 @@
     ],
     "jade": [
       "com.velorise.teyvatbosses.compat.TeyvatBossesJadePlugin"
+    ],
+    "jei_mod_plugin": [
+      "com.velorise.teyvatbosses.compat.jei.TeyvatBossesJeiPlugin"
     ]
   },
   "depends": {

@@ -16,20 +16,22 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 /**
- * Renders the miniature 8-cube {@link AnemoCompanionEntity} using {@link AnemoHypostasisModel}.
- * Dynamically shows/hides each of the 8 outer shell cubes ({@code shell_0..shell_7}) to match
- * assembly progress ({@code 1/8..8/8}), live ammo remaining as cubes fire, and recharge regeneration.
+ * Renders the compact 1-block 8-cube {@link AnemoCompanionEntity} using {@link AnemoHypostasisModel}.
+ * Builds strictly from the bottom layer up ({@code shell_4..7} bottom tier first, then {@code shell_0..3} top tier)
+ * when assembling on the ground, and mirrors live ammo/recharge cubes during combat.
  */
 public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis_emissive.png");
-    private static final float PET_SCALE = 0.36F;
+    private static final float PET_SCALE = 0.30F;
+    // Bottom-up shell order: bottom 4 cubes (y = +9 in MC model space) first, then top 4 cubes (y = -9)
+    private static final int[] BOTTOM_UP_ORDER = {4, 5, 6, 7, 0, 1, 2, 3};
 
     private final AnemoHypostasisModel<AnemoCompanionEntity> model;
 
     public AnemoCompanionRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
-        this.shadowRadius = 0.35F;
+        this.shadowRadius = 0.28F;
         this.model = new AnemoHypostasisModel<>(ctx.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
     }
 
@@ -44,11 +46,11 @@ public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity>
         float yaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
         poseStack.scale(-PET_SCALE, -PET_SCALE, PET_SCALE);
-        poseStack.translate(0.0D, -1.35D, 0.0D);
+        // Sit flush on the ground block while assembling; hover higher once awakened
+        poseStack.translate(0.0D, assembled ? -1.20D : -0.92D, 0.0D);
 
         model.resetPose();
 
-        // Hide the core & wireframe until fully assembled (or pulse brightly when recharging!)
         ModelPart core = model.getBone("core_group");
         ModelPart frame = model.getBone("core_frame");
         ModelPart shellRing = model.getBone("shell_ring");
@@ -68,16 +70,18 @@ public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity>
             frame.zRot = Mth.sin(t * 0.06F) * 0.18F;
         }
         if (shellRing != null) {
-            shellRing.yRot = assembled ? (t * (recharging ? 0.14F : 0.045F)) : (t * 0.025F);
+            // Stay steady & aligned on the block while assembling; spin smoothly once awakened
+            shellRing.yRot = assembled ? (t * (recharging ? 0.14F : 0.045F)) : 0.0F;
             shellRing.xRot = assembled ? Mth.sin(t * 0.05F) * 0.12F : 0.0F;
         }
 
-        // Show exact count of remaining/assembled outer shell cubes (shell_0..shell_7)
-        float expand = assembled ? (recharging ? 1.24F : 1.10F) : 1.02F;
-        for (int i = 0; i < 8; i++) {
-            ModelPart sh = model.getBone("shell_" + i);
+        // Reveal cubes strictly bottom-up (bottom 4 cubes first, then top 4 cubes)
+        float expand = assembled ? (recharging ? 1.16F : 1.06F) : 1.00F;
+        for (int step = 0; step < 8; step++) {
+            int boneIdx = BOTTOM_UP_ORDER[step];
+            ModelPart sh = model.getBone("shell_" + boneIdx);
             if (sh != null) {
-                sh.visible = i < visibleCubes;
+                sh.visible = step < visibleCubes;
                 if (sh.visible) {
                     sh.x *= expand;
                     sh.y *= expand;
@@ -89,9 +93,9 @@ public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity>
             ModelPart mini = model.getBone("mini_" + i);
             if (mini != null) {
                 mini.visible = assembled;
-                float ang = t * 0.12F + i * (Mth.HALF_PI);
-                mini.x = Mth.cos(ang) * 18.0F;
-                mini.z = Mth.sin(ang) * 18.0F;
+                float ang = t * 0.12F + i * Mth.HALF_PI;
+                mini.x = Mth.cos(ang) * 15.0F;
+                mini.z = Mth.sin(ang) * 15.0F;
                 mini.y = Mth.sin(t * 0.15F + i) * 4.0F;
             }
         }

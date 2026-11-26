@@ -156,7 +156,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             EntityType.Builder.of(RuinSubmersibleEntity::new, MobCategory.MISC).sized(3.4F, 2.6F).clientTrackingRange(14).build());
     public static final EntityType<AnemoCompanionEntity> ANEMO_COMPANION = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("anemo_companion"),
-            EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.9F, 1.0F).clientTrackingRange(12).build());
+            EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.8F, 0.8F).clientTrackingRange(12).build());
 
     // 3D Miniature Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(

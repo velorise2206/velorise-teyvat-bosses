@@ -1,4 +1,8 @@
 package com.velorise.teyvatbosses.item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.item.TooltipFlag;
+import java.util.List;
 
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
@@ -60,5 +64,10 @@ public class RuinMechPartItem extends Item {
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.ruin_mech_part").withStyle(ChatFormatting.GRAY));
     }
 }

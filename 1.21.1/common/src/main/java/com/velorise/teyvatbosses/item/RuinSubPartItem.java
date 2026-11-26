@@ -1,4 +1,7 @@
 package com.velorise.teyvatbosses.item;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.item.TooltipFlag;
+import java.util.List;
 
 import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
@@ -86,5 +89,10 @@ public class RuinSubPartItem extends Item {
             if (!player.getAbilities().instabuild) stack.shrink(1);
             player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.hull_placed"), true);
         }
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.ruin_sub_part").withStyle(ChatFormatting.GRAY));
     }
 }

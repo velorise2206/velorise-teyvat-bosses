@@ -1,4 +1,7 @@
 package com.velorise.teyvatbosses.item;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.item.TooltipFlag;
+import java.util.List;
 
 import com.velorise.teyvatbosses.entity.AnemoCompanionEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
@@ -71,5 +74,10 @@ public class AnemoPrismCubeItem extends Item {
             return InteractionResult.CONSUME;
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.anemo_cube").withStyle(ChatFormatting.GRAY));
     }
 }

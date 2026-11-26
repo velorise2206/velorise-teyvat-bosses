@@ -1,6 +1,8 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -20,6 +22,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
@@ -35,24 +38,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Miniature 8-cube Anemo Hypostasis Companion Pet assembled directly on a single block outdoors
+ * Miniature 1-block 8-cube Anemo Hypostasis Companion Pet assembled on a single block outdoors
  * from 8 {@code anemo_prism_cube} drops.
  *
+ * <p>Smart AI modeled after {@code velorise-staves} flying companions:
  * <ul>
- *   <li>Place 1st cube on a block ({@code 1 / 8}), then weld 7 more cubes onto it.</li>
- *   <li>Completing {@code 8 / 8} permanently binds ownership to the completing player.</li>
- *   <li>Follows the owner smoothly overhead, auto-targeting nearby hostile mobs.</li>
- *   <li>Each shot launches 1 physical shell cube from its 8-cube body, dealing Anemo damage
- *       (via {@code StavesElementBridge} when Velorise's Staves is present, or normal damage
- *       fallback otherwise) plus wind knockback.</li>
- *   <li>Once all 8 cubes are fired, enters recharge mode and waits until all 8 cubes regenerate
- *       before firing again.</li>
+ *   <li>Terrain-aware natural hover height ({@link #resolveNaturalGroundY}) so it never clips into floors or ceilings.</li>
+ *   <li>Organic idle wandering around owner, tactical 4.2–6.0 block combat standoff &amp; kiting when engaging enemies,
+ *       and automatic defensive regroup near owner while recharging all 8 shell cubes.</li>
+ *   <li>Full ally protection (owner, players, owner's tamed pets, mechs, submarines, turrets) and fire immunity.</li>
  * </ul>
  */
 public class AnemoCompanionEntity extends Mob {
     public static final int MAX_CUBES = 8;
     private static final int FIRE_INTERVAL_TICKS = 11;
-    private static final int RECHARGE_PER_CUBE_TICKS = 14;
+    private static final int RECHARGE_PER_CUBE_TICKS = 22;
     private static final double TARGET_RANGE = 18.0D;
     private static final float CUBE_DAMAGE = 8.5F;
 
@@ -69,6 +69,8 @@ public class AnemoCompanionEntity extends Mob {
 
     private int fireCooldown = 0;
     private int rechargeTimer = 0;
+    private Vec3 wanderPos = Vec3.ZERO;
+    private int nextWanderTick = 0;
 
     public AnemoCompanionEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -125,9 +127,6 @@ public class AnemoCompanionEntity extends Mob {
         }
     }
 
-    /**
-     * Adds 1 cube during outdoor assembly. Returns true if consumed.
-     */
     public boolean addAssemblyCube(ServerLevel sl, Player player, ItemStack stack) {
         if (isFullyAssembled()) return false;
         int next = Math.min(MAX_CUBES, getAssembledCount() + 1);
@@ -164,14 +163,15 @@ public class AnemoCompanionEntity extends Mob {
     @Override public void push(double x, double y, double z) {}
     @Override public void knockback(double s, double x, double z) {}
     @Override protected int decreaseAirSupply(int currentAir) { return currentAir; }
+    @Override public boolean fireImmune() { return true; }
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (source.is(DamageTypes.FALL) || source.is(DamageTypes.DROWN)
-                || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)) {
+                || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)
+                || source.is(DamageTypes.ON_FIRE) || source.is(DamageTypes.IN_FIRE)) {
             return false;
         }
-        // Owner cannot accidentally kill their own companion
         if (source.getEntity() instanceof Player p && isOwnedBy(p)) {
             return false;
         }
@@ -199,7 +199,6 @@ public class AnemoCompanionEntity extends Mob {
         if (level().isClientSide()) return InteractionResult.SUCCESS;
         ServerLevel sl = (ServerLevel) level();
 
-        // Shift + Pickaxe disassembles and recovers all welded cubes (owner only once completed)
         if (player.isShiftKeyDown() && stack.getItem() instanceof PickaxeItem) {
             if (!isFullyAssembled() || isOwnedBy(player) || player.getAbilities().instabuild) {
                 dropAssembledCubes();
@@ -212,7 +211,6 @@ public class AnemoCompanionEntity extends Mob {
             return InteractionResult.CONSUME;
         }
 
-        // Still assembling (1..7 / 8)
         if (!isFullyAssembled()) {
             if (TeyvatBossesItems.anemoPrismCube() != null && stack.is(TeyvatBossesItems.anemoPrismCube())) {
                 addAssemblyCube(sl, player, stack);
@@ -220,10 +218,10 @@ public class AnemoCompanionEntity extends Mob {
             return InteractionResult.CONSUME;
         }
 
-        // Owner toggles Follow / Guard mode
         if (isOwnedBy(player)) {
             boolean nextStay = !isStaying();
             entityData.set(DATA_STAYING, nextStay);
+            wanderPos = position();
             sl.playSound(null, getX(), getY() + 0.5D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, nextStay ? 0.90F : 1.35F);
             player.displayClientMessage(Component.translatable(
                     nextStay ? "message.velorise_teyvat_bosses.anemo_pet.stay" : "message.velorise_teyvat_bosses.anemo_pet.follow"
@@ -233,15 +231,34 @@ public class AnemoCompanionEntity extends Mob {
         return InteractionResult.PASS;
     }
 
+    private static double resolveNaturalGroundY(ServerLevel level, double x, double refY, double z) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(
+                Mth.floor(x), Mth.floor(refY) + 3, Mth.floor(z));
+        for (int i = 0; i < 8; i++) {
+            BlockPos below = cursor.below();
+            boolean solidOrLiquidBelow = !level.getBlockState(below).getCollisionShape(level, below).isEmpty()
+                    || !level.getFluidState(below).isEmpty();
+            boolean freeAtCursor = level.getBlockState(cursor).getCollisionShape(level, cursor).isEmpty()
+                    && level.getFluidState(cursor).isEmpty();
+            if (solidOrLiquidBelow && freeAtCursor) {
+                return below.getY() + 1.0D;
+            }
+            cursor.move(Direction.DOWN);
+        }
+        return refY;
+    }
+
     @Override
     public void tick() {
         super.tick();
+        if (isOnFire()) clearFire();
+
         if (level().isClientSide()) {
             if (isFullyAssembled() && tickCount % 6 == 0) {
                 level().addParticle(ParticleTypes.END_ROD,
-                        getX() + (random.nextDouble() - 0.5D) * 0.6D,
-                        getY() + 0.45D + (random.nextDouble() - 0.5D) * 0.4D,
-                        getZ() + (random.nextDouble() - 0.5D) * 0.6D,
+                        getX() + (random.nextDouble() - 0.5D) * 0.5D,
+                        getY() + 0.45D + (random.nextDouble() - 0.5D) * 0.35D,
+                        getZ() + (random.nextDouble() - 0.5D) * 0.5D,
                         0.0D, 0.015D, 0.0D);
             }
             return;
@@ -253,47 +270,84 @@ public class AnemoCompanionEntity extends Mob {
             return;
         }
 
-        // Passive regeneration so companion stays durable
         if (tickCount % 40 == 0 && getHealth() < getMaxHealth()) {
             heal(2.0F);
         }
 
         UUID ownerId = getOwnerUuid();
         Player owner = ownerId != null ? sl.getPlayerByUUID(ownerId) : null;
+        LivingEntity target = findTarget(sl, owner);
 
-        // 1. Smooth hovering follow behavior behind owner's shoulder
+        // 1. Smart Terrain-Aware Navigation, Organic Wandering & Tactical Combat Standoff
         if (owner != null && owner.isAlive() && !isStaying()) {
-            double distSq = distanceToSqr(owner);
-            if (distSq > 22.0D * 22.0D) {
-                // Teleport cleanly near owner if too far away
-                float yawRad = owner.getYRot() * Mth.DEG_TO_RAD;
-                double tx = owner.getX() + Mth.sin(yawRad) * 1.6D + Mth.cos(yawRad) * 1.1D;
-                double tz = owner.getZ() - Mth.cos(yawRad) * 1.6D + Mth.sin(yawRad) * 1.1D;
-                double ty = owner.getY() + 1.85D;
+            double ownerDistSq = distanceToSqr(owner);
+            if (ownerDistSq > 24.0D * 24.0D) {
+                // Teleport cleanly to terrain-safe hover height near owner
+                double ang = Math.toRadians(owner.getYRot() + 125.0D);
+                double tx = owner.getX() + Math.cos(ang) * 2.2D;
+                double tz = owner.getZ() + Math.sin(ang) * 2.2D;
+                double ty = resolveNaturalGroundY(sl, tx, owner.getY(), tz) + 1.45D;
+                wanderPos = new Vec3(tx, ty, tz);
                 moveTo(tx, ty, tz, owner.getYRot(), 0.0F);
                 setDeltaMovement(Vec3.ZERO);
+                nextWanderTick = tickCount + 40;
                 sl.sendParticles(ParticleTypes.CLOUD, tx, ty, tz, 8, 0.25D, 0.25D, 0.25D, 0.04D);
             } else {
-                float yawRad = owner.yBodyRot * Mth.DEG_TO_RAD;
-                double backX = Mth.sin(yawRad);
-                double backZ = -Mth.cos(yawRad);
-                double rightX = -Mth.cos(yawRad);
-                double rightZ = -Mth.sin(yawRad);
-                double bob = Mth.sin(tickCount * 0.10F) * 0.18D;
-                Vec3 goal = new Vec3(
-                        owner.getX() + backX * 1.55D + rightX * 1.15D,
-                        owner.getY() + 1.85D + bob,
-                        owner.getZ() + backZ * 1.55D + rightZ * 1.15D
-                );
+                boolean needNewSpot = wanderPos.equals(Vec3.ZERO) || tickCount >= nextWanderTick;
+                if (target != null && !isRecharging()) {
+                    double dTargetSq = wanderPos.distanceToSqr(target.position());
+                    if (dTargetSq > 48.0D || dTargetSq < 5.5D) needNewSpot = true;
+                } else if (wanderPos.distanceToSqr(owner.position()) > 28.0D) {
+                    needNewSpot = true;
+                }
+
+                if (needNewSpot) {
+                    if (target != null && !isRecharging()) {
+                        // Tactical combat standoff (4.2 - 6.0 blocks) on owner's flank, kiting away from close mobs
+                        double standOff = 4.2D + random.nextDouble() * 1.8D;
+                        Vec3 fromTargetToOwner = owner.position().subtract(target.position());
+                        double baseAng = fromTargetToOwner.lengthSqr() > 1.0E-4D
+                                ? Math.atan2(fromTargetToOwner.z, fromTargetToOwner.x)
+                                : random.nextDouble() * Math.PI * 2.0D;
+                        double ang = baseAng + (random.nextDouble() - 0.5D) * 1.4D;
+                        double wx = target.getX() + Math.cos(ang) * standOff;
+                        double wz = target.getZ() + Math.sin(ang) * standOff;
+                        double wy = resolveNaturalGroundY(sl, wx, target.getY(), wz) + 1.55D;
+                        wanderPos = new Vec3(wx, wy, wz);
+                        nextWanderTick = tickCount + 30 + random.nextInt(30);
+                    } else {
+                        // Defensive regroup close to owner when recharging, or natural idle orbit when peaceful
+                        double dist = isRecharging() ? (1.7D + random.nextDouble() * 0.9D) : (2.0D + random.nextDouble() * 2.2D);
+                        double ang = Math.toRadians(owner.getYRot() + 100.0D) + (random.nextDouble() - 0.5D) * 1.6D;
+                        double wx = owner.getX() + Math.cos(ang) * dist;
+                        double wz = owner.getZ() + Math.sin(ang) * dist;
+                        double wy = resolveNaturalGroundY(sl, wx, owner.getY(), wz) + 1.50D;
+                        wanderPos = new Vec3(wx, wy, wz);
+                        nextWanderTick = tickCount + (isRecharging() ? 24 : 45 + random.nextInt(40));
+                    }
+                }
+
+                double bob = Mth.sin(tickCount * 0.10F) * 0.14D;
+                Vec3 goal = new Vec3(wanderPos.x, wanderPos.y + bob, wanderPos.z);
                 Vec3 diff = goal.subtract(position());
                 double len = diff.length();
-                Vec3 desired = len > 0.15D ? diff.scale(Math.min(0.42D, 0.16D + len * 0.06D) / Math.max(len, 0.01D) * Math.min(len, 2.2D)) : Vec3.ZERO;
-                Vec3 nextVel = getDeltaMovement().lerp(desired, 0.28D);
+                double maxSpd = (ownerDistSq > 64.0D) ? 0.44D : 0.24D;
+                Vec3 desired = len > 0.12D ? diff.scale(Math.min(maxSpd, 0.08D + len * 0.14D) / len) : Vec3.ZERO;
+                Vec3 nextVel = getDeltaMovement().lerp(desired, 0.26D);
                 setDeltaMovement(nextVel);
                 move(MoverType.SELF, nextVel);
+
+                // Smoothly face target or movement direction
+                Vec3 lookVec = (target != null) ? target.position().subtract(position()) : nextVel;
+                if (lookVec.horizontalDistanceSqr() > 1.0E-4D) {
+                    float desiredYaw = (float) (Mth.atan2(-lookVec.x, lookVec.z) * Mth.RAD_TO_DEG);
+                    float nextYaw = Mth.rotLerp(0.24F, getYRot(), desiredYaw);
+                    setYRot(nextYaw);
+                    yBodyRot = nextYaw;
+                    yHeadRot = nextYaw;
+                }
             }
         } else {
-            // Hover gently in place when staying or owner offline
             double bob = Mth.sin(tickCount * 0.09F) * 0.012D;
             Vec3 hover = new Vec3(getDeltaMovement().x * 0.75D, bob, getDeltaMovement().z * 0.75D);
             setDeltaMovement(hover);
@@ -308,7 +362,7 @@ public class AnemoCompanionEntity extends Mob {
                 int nextShells = Math.min(MAX_CUBES, getActiveShells() + 1);
                 entityData.set(DATA_ACTIVE_SHELLS, nextShells);
                 sl.playSound(null, getX(), getY() + 0.5D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.45F, 1.05F + nextShells * 0.06F);
-                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 0.55D, getZ(), 4, 0.30D, 0.30D, 0.30D, 0.03D);
+                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 0.55D, getZ(), 4, 0.28D, 0.28D, 0.28D, 0.03D);
                 if (nextShells >= MAX_CUBES) {
                     entityData.set(DATA_RECHARGING, false);
                     fireCooldown = 6;
@@ -322,8 +376,6 @@ public class AnemoCompanionEntity extends Mob {
             fireCooldown--;
             return;
         }
-
-        LivingEntity target = findTarget(sl, owner);
         if (target == null) return;
 
         int shells = getActiveShells();
@@ -333,27 +385,26 @@ public class AnemoCompanionEntity extends Mob {
             return;
         }
 
-        // Face target smoothly
-        Vec3 origin = position().add(0.0D, 0.55D, 0.0D);
-        Vec3 aim = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D).subtract(origin);
+        Vec3 origin = position().add(0.0D, 0.45D, 0.0D);
+        // Slight predictive lead on moving targets
+        Vec3 leadTarget = target.position().add(target.getDeltaMovement().scale(3.0D)).add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
+        Vec3 aim = leadTarget.subtract(origin);
         if (aim.lengthSqr() < 1.0e-4D) return;
         float aimYaw = (float) (Mth.atan2(-aim.x, aim.z) * Mth.RAD_TO_DEG);
         setYRot(aimYaw);
         yBodyRot = aimYaw;
         yHeadRot = aimYaw;
 
-        // Launch 1 physical shell cube projectile (attributes kill/XP to owner if online, else pet)
         LivingEntity credit = owner != null ? owner : this;
-        Vec3 vel = aim.normalize().scale(1.18D);
+        Vec3 vel = aim.normalize().scale(1.22D);
         AnemoMissileProjectile.launchPetCube(sl, credit, origin, vel, CUBE_DAMAGE);
         sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BREEZE_SHOOT, SoundSource.PLAYERS, 0.75F, 1.25F + (MAX_CUBES - shells) * 0.04F);
-        sl.sendParticles(ParticleTypes.CLOUD, origin.x, origin.y, origin.z, 4, 0.18D, 0.18D, 0.18D, 0.03D);
+        sl.sendParticles(ParticleTypes.CLOUD, origin.x, origin.y, origin.z, 4, 0.16D, 0.16D, 0.16D, 0.03D);
 
         int remaining = shells - 1;
         entityData.set(DATA_ACTIVE_SHELLS, remaining);
         fireCooldown = FIRE_INTERVAL_TICKS;
 
-        // Fired all 8 cubes -> enter recharge until full 8/8!
         if (remaining <= 0) {
             entityData.set(DATA_RECHARGING, true);
             rechargeTimer = 0;
@@ -361,7 +412,6 @@ public class AnemoCompanionEntity extends Mob {
     }
 
     private @Nullable LivingEntity findTarget(ServerLevel sl, @Nullable Player owner) {
-        // Priority 1: Mob the owner recently attacked or that attacked the owner
         if (owner != null) {
             LivingEntity hurtMob = owner.getLastHurtMob();
             if (isValidTarget(hurtMob, owner) && distanceToSqr(hurtMob) <= TARGET_RANGE * TARGET_RANGE && hasLineOfSight(hurtMob)) {
@@ -372,7 +422,6 @@ public class AnemoCompanionEntity extends Mob {
                 return hurtBy;
             }
         }
-        // Priority 2: Closest hostile enemy in range
         AABB box = getBoundingBox().inflate(TARGET_RANGE);
         LivingEntity best = null;
         double bestDistSq = TARGET_RANGE * TARGET_RANGE;
@@ -390,6 +439,10 @@ public class AnemoCompanionEntity extends Mob {
         if (e == null || !e.isAlive() || e == this || e == owner) return false;
         if (e instanceof Player || e instanceof AnemoCompanionEntity || e instanceof RuinSubmersibleEntity
                 || e instanceof RuinMechEntity || e instanceof CryoTurretEntity) {
+            return false;
+        }
+        // Protect owner's tamed pets / allies (same as velorise-staves)
+        if (owner != null && e instanceof OwnableEntity ownable && owner.getUUID().equals(ownable.getOwnerUUID())) {
             return false;
         }
         return e instanceof Enemy;

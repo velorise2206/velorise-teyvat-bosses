@@ -52,19 +52,18 @@ public final class RuinMechCockpitHud {
         int panelH = 48;
         int panelY = sh - panelH - 6;
 
-        gui.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xB8141110);
-        drawBorder(gui, panelX, panelY, panelW, panelH, 0xCC9C7A48);
+        drawKhaenriahPanel(gui, panelX, panelY, panelW, panelH);
 
         float hpPct = Mth.clamp(mech.getHealth() / Math.max(1.0F, mech.getMaxHealth()), 0.0F, 1.0F);
         gui.blit(HUD_TEX, panelX + 4, panelY + 2, 0, 0, 14, 14, 256, 128);
-        drawBar(gui, panelX + 20, panelY + 6, 72, 7, hpPct, 0xFFD92B3A, 0xFF361418);
-        gui.drawString(mc.font, Math.round(mech.getHealth()) + "", panelX + 96, panelY + 6, 0xFFFFD8D8, true);
+        drawSpriteGauge(gui, panelX + 18, panelY + 4, 48, 60, hpPct);
+        gui.drawString(mc.font, Math.round(mech.getHealth()) + "", panelX + 95, panelY + 6, 0xFFFFD8D8, true);
 
         float armPct = Mth.clamp(mech.getArmorIntegrity() / RuinMechEntity.MAX_ARMOR, 0.0F, 1.0F);
         gui.blit(HUD_TEX, panelX + 4, panelY + 17, 16, 0, 14, 14, 256, 128);
-        int armColor = armPct < 0.30F ? 0xFFFF7043 : 0xFF64B5F6;
-        drawBar(gui, panelX + 20, panelY + 20, 72, 7, armPct, armColor, 0xFF152536);
-        gui.drawString(mc.font, Math.round(mech.getArmorIntegrity()) + "%", panelX + 96, panelY + 20, armPct < 0.30F ? 0xFFFFAB91 : 0xFFD6EEFF, true);
+        int fillV = armPct < 0.30F ? 96 : 84;
+        drawSpriteGauge(gui, panelX + 18, panelY + 18, 72, fillV, armPct);
+        gui.drawString(mc.font, Math.round(mech.getArmorIntegrity()) + "%", panelX + 95, panelY + 20, armPct < 0.30F ? 0xFFFFAB91 : 0xFFD6EEFF, true);
 
         float energy = mech.getEnergy();
         int fullCells = Mth.clamp((int) Math.ceil(energy / RuinMechEntity.ENERGY_PER_BLOCK), 0, RuinMechEntity.MAX_REDSTONE_CELLS);
@@ -76,7 +75,7 @@ public final class RuinMechCockpitHud {
             gui.blit(HUD_TEX, cx, cy, lit ? 48 : 56, 2, 6, 10, 256, 128);
         }
         int cellColor = fullCells <= 1 ? 0xFFFF5555 : 0xFFFFCC66;
-        gui.drawString(mc.font, fullCells + "/10", panelX + 94, panelY + 35, cellColor, true);
+        gui.drawString(mc.font, fullCells + "/10", panelX + 95, panelY + 35, cellColor, true);
 
         // 4. Compact Bottom-Right 2x3 Skill Grid (Top: L1/L2/L+, Bottom: R1/R2/R+)
         //    Only 76px wide at far right edge -> zero overlap with vanilla hotbar or mount hearts!
@@ -88,8 +87,7 @@ public final class RuinMechCockpitHud {
         int dockH = rows * slotSize + (rows - 1) * gap + 14;
         int dockX = sw - dockW - 6;
         int dockY = sh - dockH - 6;
-        gui.fill(dockX, dockY, dockX + dockW, dockY + dockH, 0xB8141110);
-        drawBorder(gui, dockX, dockY, dockW, dockH, 0xCC9C7A48);
+        drawKhaenriahPanel(gui, dockX, dockY, dockW, dockH);
 
         int cd = mech.getActionCooldown();
         String[] keys = RuinMechInputController.HUD_BADGES;
@@ -276,6 +274,41 @@ public final class RuinMechCockpitHud {
                     by -= dy;
                 }
             }
+        }
+    }
+
+    private static void drawKhaenriahPanel(GuiGraphics gui, int x, int y, int w, int h) {
+        gui.fill(x, y, x + w, y + h, 0xCC141110);
+        drawBorder(gui, x, y, w, h, 0xCC9C7A48);
+        drawBorder(gui, x + 1, y + 1, w - 2, h - 2, 0xCC241B14);
+        int arm = 5;
+        int brass = 0xEEC99848;
+        int gold = 0xFFEEB84B;
+        // Top-left & top-right corner brackets + rivets
+        gui.fill(x, y, x + arm, y + 1, brass);
+        gui.fill(x, y, x + 1, y + arm, brass);
+        gui.fill(x, y, x + 1, y + 1, gold);
+        gui.fill(x + 1, y + 1, x + 2, y + 2, gold);
+        gui.fill(x + w - arm, y, x + w, y + 1, brass);
+        gui.fill(x + w - 1, y, x + w, y + arm, brass);
+        gui.fill(x + w - 1, y, x + w, y + 1, gold);
+        gui.fill(x + w - 2, y + 1, x + w - 1, y + 2, gold);
+        // Bottom-left & bottom-right corner brackets + rivets
+        gui.fill(x, y + h - 1, x + arm, y + h, brass);
+        gui.fill(x, y + h - arm, x + 1, y + h, brass);
+        gui.fill(x, y + h - 1, x + 1, y + h, gold);
+        gui.fill(x + 1, y + h - 2, x + 2, y + h - 1, gold);
+        gui.fill(x + w - arm, y + h - 1, x + w, y + h, brass);
+        gui.fill(x + w - 1, y + h - arm, x + w, y + h, brass);
+        gui.fill(x + w - 1, y + h - 1, x + w, y + h, gold);
+        gui.fill(x + w - 2, y + h - 2, x + w - 1, y + h - 1, gold);
+    }
+
+    private static void drawSpriteGauge(GuiGraphics gui, int x, int y, int frameV, int fillV, float pct) {
+        gui.blit(HUD_TEX, x, y, 0, frameV, 74, 11, 256, 128);
+        int fillW = Math.round(70.0F * pct);
+        if (fillW > 0) {
+            gui.blit(HUD_TEX, x + 2, y + 2, 0, fillV, fillW, 7, 256, 128);
         }
     }
 
