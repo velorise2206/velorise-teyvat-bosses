@@ -13,6 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -28,8 +29,8 @@ public final class TeyvatBossBarRenderer {
     private static final int FRAME_HEIGHT = 23;
     private static final int FRAME_PAD_X = 16; // (214 - 182) / 2
     private static final int FRAME_PAD_Y = 9;  // (23 - 5) / 2
-    private static final int TOP_CLEARANCE = 5;
-    private static final int ROW_INCREMENT = 28;
+    private static final int TOP_CLEARANCE = 6; // ensures y=3 spikes stay below title shadow
+    private static final int ROW_INCREMENT = 30;
 
     private static final String KEY_CRYO_REGISVINE = "entity.velorise_teyvat_bosses.cryo_regisvine";
     private static final String KEY_ANEMO_HYPOSTASIS = "entity.velorise_teyvat_bosses.anemo_hypostasis";
@@ -37,10 +38,41 @@ public final class TeyvatBossBarRenderer {
     private static final String KEY_RUIN_NAUTILUS = "entity.velorise_teyvat_bosses.ruin_nautilus";
     private static final String KEY_PRIMO_GEOVISHAP = "entity.velorise_teyvat_bosses.primo_geovishap";
 
-    private static final ResourceLocation PRIMO_HYDRO_FILL = tex("primo_geovishap_hydro_fill.png");
-    private static final ResourceLocation PRIMO_PYRO_FILL = tex("primo_geovishap_pyro_fill.png");
-    private static final ResourceLocation PRIMO_CRYO_FILL = tex("primo_geovishap_cryo_fill.png");
-    private static final ResourceLocation PRIMO_ELECTRO_FILL = tex("primo_geovishap_electro_fill.png");
+    private static final BossBarStyle PRIMO_GEO_STYLE = new BossBarStyle(
+            tex("primo_geovishap_geo_bg.png"),
+            tex("primo_geovishap_geo_fill.png"),
+            tex("primo_geovishap_geo_overlay.png"),
+            0xFFFFEAB8
+    );
+
+    private static final Map<BossEvent.BossBarColor, BossBarStyle> PRIMO_ELEMENT_STYLES = new EnumMap<>(BossEvent.BossBarColor.class);
+    static {
+        PRIMO_ELEMENT_STYLES.put(BossEvent.BossBarColor.YELLOW, PRIMO_GEO_STYLE);
+        PRIMO_ELEMENT_STYLES.put(BossEvent.BossBarColor.BLUE, new BossBarStyle(
+                tex("primo_geovishap_hydro_bg.png"),
+                tex("primo_geovishap_hydro_fill.png"),
+                tex("primo_geovishap_hydro_overlay.png"),
+                0xFFD9F2FF
+        ));
+        PRIMO_ELEMENT_STYLES.put(BossEvent.BossBarColor.RED, new BossBarStyle(
+                tex("primo_geovishap_pyro_bg.png"),
+                tex("primo_geovishap_pyro_fill.png"),
+                tex("primo_geovishap_pyro_overlay.png"),
+                0xFFFFE0CE
+        ));
+        PRIMO_ELEMENT_STYLES.put(BossEvent.BossBarColor.WHITE, new BossBarStyle(
+                tex("primo_geovishap_cryo_bg.png"),
+                tex("primo_geovishap_cryo_fill.png"),
+                tex("primo_geovishap_cryo_overlay.png"),
+                0xFFE8FAFF
+        ));
+        PRIMO_ELEMENT_STYLES.put(BossEvent.BossBarColor.PURPLE, new BossBarStyle(
+                tex("primo_geovishap_electro_bg.png"),
+                tex("primo_geovishap_electro_fill.png"),
+                tex("primo_geovishap_electro_overlay.png"),
+                0xFFF2DCFF
+        ));
+    }
 
     private static final Map<String, BossBarStyle> STYLES = Map.of(
             KEY_CRYO_REGISVINE, new BossBarStyle(
@@ -88,17 +120,16 @@ public final class TeyvatBossBarRenderer {
     /**
      * Renders the custom boss bar if {@code event} belongs to one of the 5 Teyvat Bosses.
      *
-     * @return the vertical Y increment to advance to the next bar (28), or {@code 0} if not a Teyvat Boss.
+     * @return the vertical Y increment to advance to the next bar (30), or {@code 0} if not a Teyvat Boss.
      */
     public static int tryRender(GuiGraphics gui, LerpingBossEvent event, int vanillaBarX, int vanillaBarY) {
         String key = findBossKey(event.getName());
         if (key == null) return 0;
 
-        BossBarStyle style = STYLES.get(key);
-        if (style == null) return 0;
+        BossBarStyle baseStyle = STYLES.get(key);
+        if (baseStyle == null) return 0;
 
-        ResourceLocation fillTex = resolveFillTexture(key, style, event.getColor());
-        int titleColor = resolveTitleColor(key, style, event.getColor());
+        BossBarStyle style = resolveStyle(key, baseStyle, event.getColor());
 
         int titleY = vanillaBarY - 9;
         int barY = vanillaBarY + TOP_CLEARANCE;
@@ -111,7 +142,7 @@ public final class TeyvatBossBarRenderer {
 
         int fillW = Mth.clamp(Mth.lerpDiscrete(event.getProgress(), 0, BAR_WIDTH), 0, BAR_WIDTH);
         if (fillW > 0) {
-            gui.blit(fillTex, vanillaBarX, barY, 0, 0, fillW, BAR_HEIGHT, BAR_WIDTH, BAR_HEIGHT);
+            gui.blit(style.fillTex(), vanillaBarX, barY, 0, 0, fillW, BAR_HEIGHT, BAR_WIDTH, BAR_HEIGHT);
         }
 
         gui.blit(style.overlayTex(), frameX, frameY, 0, 0, FRAME_WIDTH, FRAME_HEIGHT, FRAME_WIDTH, FRAME_HEIGHT);
@@ -120,35 +151,16 @@ public final class TeyvatBossBarRenderer {
         Font font = Minecraft.getInstance().font;
         Component name = event.getName();
         int textX = gui.guiWidth() / 2 - font.width(name) / 2;
-        gui.drawString(font, name, textX, titleY, titleColor);
+        gui.drawString(font, name, textX, titleY, style.titleColor());
 
         return ROW_INCREMENT;
     }
 
-    private static ResourceLocation resolveFillTexture(String key, BossBarStyle style, BossEvent.BossBarColor color) {
+    private static BossBarStyle resolveStyle(String key, BossBarStyle baseStyle, BossEvent.BossBarColor color) {
         if (!KEY_PRIMO_GEOVISHAP.equals(key)) {
-            return style.defaultFillTex();
+            return baseStyle;
         }
-        return switch (color) {
-            case BLUE -> PRIMO_HYDRO_FILL;
-            case RED -> PRIMO_PYRO_FILL;
-            case WHITE -> PRIMO_CRYO_FILL;
-            case PURPLE -> PRIMO_ELECTRO_FILL;
-            default -> style.defaultFillTex();
-        };
-    }
-
-    private static int resolveTitleColor(String key, BossBarStyle style, BossEvent.BossBarColor color) {
-        if (!KEY_PRIMO_GEOVISHAP.equals(key)) {
-            return style.titleColor();
-        }
-        return switch (color) {
-            case BLUE -> 0xFFD9F2FF;
-            case RED -> 0xFFFFE0CE;
-            case WHITE -> 0xFFE8FAFF;
-            case PURPLE -> 0xFFF2DCFF;
-            default -> style.titleColor();
-        };
+        return PRIMO_ELEMENT_STYLES.getOrDefault(color, baseStyle);
     }
 
     @Nullable
@@ -171,7 +183,7 @@ public final class TeyvatBossBarRenderer {
 
     private record BossBarStyle(
             ResourceLocation bgTex,
-            ResourceLocation defaultFillTex,
+            ResourceLocation fillTex,
             ResourceLocation overlayTex,
             int titleColor
     ) {}
