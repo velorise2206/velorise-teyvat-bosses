@@ -13,8 +13,11 @@ import com.velorise.teyvatbosses.client.model.CryoRegisvineAnimations;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardAnimations;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
+import com.velorise.teyvatbosses.client.model.RuinNautilusAnimations;
+import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedAnimations;
 import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
+import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -41,12 +44,15 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
     private static final ResourceLocation TEX_RUIN_EM = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss_emissive.png");
     private static final ResourceLocation TEX_ASTRALION = TeyvatBossesConstants.id("textures/entity/astralion_boss.png");
     private static final ResourceLocation TEX_ASTRALION_EM = TeyvatBossesConstants.id("textures/entity/astralion_boss_emissive.png");
+    private static final ResourceLocation TEX_NAUTILUS = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss.png");
+    private static final ResourceLocation TEX_NAUTILUS_EM = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss_emissive.png");
 
     private final CryoRegisvineModel<Entity> cryoModel;
     private final TheOpenEyedModel<Entity> eyeModel;
     private final AnemoHypostasisModel<Entity> anemoModel;
     private final RuinGuardModel<Entity> ruinModel;
     private final AstralionModel<Entity> astralionModel;
+    private final RuinNautilusModel<Entity> nautilusModel;
 
     public BossTrophyRenderer(BlockEntityRendererProvider.Context ctx) {
         this.cryoModel = new CryoRegisvineModel<>(ctx.bakeLayer(CryoRegisvineModel.LAYER_LOCATION));
@@ -54,6 +60,7 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         this.anemoModel = new AnemoHypostasisModel<>(ctx.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
         this.ruinModel = new RuinGuardModel<>(ctx.bakeLayer(RuinGuardModel.LAYER_LOCATION));
         this.astralionModel = new AstralionModel<>(ctx.bakeLayer(AstralionModel.LAYER_LOCATION));
+        this.nautilusModel = new RuinNautilusModel<>(ctx.bakeLayer(RuinNautilusModel.LAYER_LOCATION));
 
         // Pre-apply crisp static statue poses ONCE at startup (zero per-frame bone math!)
         CryoRegisvineAnimations.apply(cryoModel, "idle_combat", 0.0F);
@@ -61,6 +68,7 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         anemoModel.resetPose();
         RuinGuardAnimations.apply(ruinModel, "idle_combat", 0.0F);
         AstralionAnimations.apply(astralionModel, "animation.astralion.idle", 0.0F);
+        RuinNautilusAnimations.apply(nautilusModel, "idle_hover", 0.0F);
     }
 
     @Override
@@ -101,6 +109,13 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 ruinModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_RUIN)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 ruinModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_RUIN_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            }
+            case BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS -> {
+                poseStack.translate(0.0D, 0.24D, 0.0D);
+                poseStack.scale(-0.24F, -0.24F, 0.24F);
+                poseStack.translate(0.0D, -1.501D, 0.0D);
+                nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_NAUTILUS)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_NAUTILUS_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
             default -> { // Astralion (static statue)
                 poseStack.translate(0.0D, 0.06D, 0.0D);

@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.compat;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
+import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -24,11 +25,13 @@ import snownee.jade.api.config.IPluginConfig;
 public class TeyvatBossesJadePlugin implements IWailaPlugin {
     private static final ResourceLocation RUIN_MECH_UID = TeyvatBossesConstants.id("ruin_mech_info");
     private static final ResourceLocation CRYO_TURRET_UID = TeyvatBossesConstants.id("cryo_turret_info");
+    private static final ResourceLocation RUIN_SUB_UID = TeyvatBossesConstants.id("ruin_sub_info");
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerEntityComponent(RuinMechProvider.INSTANCE, RuinMechEntity.class);
         registration.registerEntityComponent(CryoTurretProvider.INSTANCE, CryoTurretEntity.class);
+        registration.registerEntityComponent(RuinSubProvider.INSTANCE, RuinSubmersibleEntity.class);
     }
 
     private enum RuinMechProvider implements IEntityComponentProvider {
@@ -88,6 +91,31 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
         @Override
         public ResourceLocation getUid() {
             return CRYO_TURRET_UID;
+        }
+    }
+
+    private enum RuinSubProvider implements IEntityComponentProvider {
+        INSTANCE;
+
+        @Override
+        public void appendTooltip(ITooltip tooltip, EntityAccessor accessor, IPluginConfig config) {
+            if (!(accessor.getEntity() instanceof RuinSubmersibleEntity sub)) return;
+            if (!sub.isFullyAssembled()) {
+                int parts = Integer.bitCount(sub.getPartsMask() & RuinSubmersibleEntity.FULL_PARTS);
+                tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.assembly", parts, 4).withStyle(ChatFormatting.AQUA));
+                return;
+            }
+            int energy = Math.round(sub.getEnergy());
+            int maxEnergy = Math.round(RuinSubmersibleEntity.MAX_ENERGY);
+            tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.sub_energy", energy, maxEnergy)
+                    .withStyle(energy < 150 ? ChatFormatting.RED : ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.torpedoes", sub.getTorpedoAmmo(), RuinSubmersibleEntity.MAX_TORPEDOES)
+                    .withStyle(sub.getTorpedoAmmo() > 0 ? ChatFormatting.GOLD : ChatFormatting.GRAY));
+        }
+
+        @Override
+        public ResourceLocation getUid() {
+            return RUIN_SUB_UID;
         }
     }
 }

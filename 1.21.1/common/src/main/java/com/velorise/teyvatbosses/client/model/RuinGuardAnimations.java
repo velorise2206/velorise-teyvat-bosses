@@ -331,7 +331,7 @@ public final class RuinGuardAnimations {
         c.add("pelvis", CH_POS,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 4.50F, 5.15F, 5.78F, 6.40F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-2.2F, -3.8F, -3.6F, -3.0F, -5.8F, -4.0F, -3.2F, -6.8F, -5.0F, -10.5F, 4.2F, 1.2F, -13.6F, -12.0F, -12.6F, -6.4F, -2.2F},
+                new float[]{-2.2F, -3.8F, -3.6F, -3.0F, -5.8F, -4.0F, -3.2F, -6.8F, -5.4F, -11.6F, 5.2F, 1.6F, -14.2F, -12.0F, -12.6F, -6.4F, -2.2F},
                 new float[]{0.0F, 0.6F, 0.6F, 2.0F, -4.0F, -1.5F, 1.4F, -4.8F, -1.8F, 2.4F, -1.6F, -2.6F, -4.4F, -4.0F, -4.2F, -1.8F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0});
         // Single continuous 360-deg spin: Hit 1 (-15 -> +155 with right arm) -> back turn (+185) -> Hit 2 (+185 -> +360 with left arm)!
@@ -343,7 +343,7 @@ public final class RuinGuardAnimations {
                 new int[]{0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
         c.add("torso", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 4.50F, 5.15F, 5.78F, 6.40F},
-                new float[]{7.0F, 14.0F, 14.0F, -6.0F, 20.0F, 10.0F, -8.0F, 34.0F, 28.0F, 12.0F, 18.0F, 38.0F, 34.0F, 36.0F, 20.0F, 7.0F},
+                new float[]{7.0F, 14.0F, 14.0F, -6.0F, 20.0F, 10.0F, -8.0F, 34.0F, 32.0F, -8.0F, 6.0F, 38.0F, 34.0F, 36.0F, 20.0F, 7.0F},
                 new float[]{0.0F, 0.0F, 0.0F, -10.0F, 14.0F, 6.0F, -10.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 8.0F, -10.0F, -4.0F, 12.0F, -16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0});
@@ -362,9 +362,9 @@ public final class RuinGuardAnimations {
         // RIGHT ARM: attacks on Hit 1 (zRot -84 horizontal sweep), then retracts as counterbalance during Hit 2
         c.add("upper_arm_r", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, -6.0F, -6.0F, -8.0F, 18.0F, 24.0F, 28.0F, 18.0F, -16.0F, -18.0F, -28.0F, -30.0F, -18.0F, -8.0F},
+                new float[]{-8.0F, -52.0F, -52.0F, -6.0F, -6.0F, -8.0F, 18.0F, 24.0F, 28.0F, 32.0F, -162.0F, -150.0F, -32.0F, -30.0F, -18.0F, -8.0F},
                 new float[]{0.0F, 34.0F, 34.0F, -10.0F, -12.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-15.0F, -8.0F, -8.0F, -80.0F, -84.0F, -84.0F, -26.0F, -24.0F, -32.0F, -28.0F, -34.0F, -36.0F, -42.0F, -38.0F, -22.0F, -15.0F},
+                new float[]{-15.0F, -8.0F, -8.0F, -80.0F, -84.0F, -84.0F, -26.0F, -24.0F, -32.0F, -24.0F, -18.0F, -20.0F, -40.0F, -38.0F, -22.0F, -15.0F},
                 new int[]{0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("upper_arm_r", CH_SCALE,
                 new float[]{0.0F, 1.05F, 1.45F, 1.95F, 6.40F},
@@ -374,16 +374,16 @@ public final class RuinGuardAnimations {
                 new int[]{0, 0, 0, 0, 0});
         c.add("forearm_r", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 3.45F, 3.88F, 4.30F, 5.15F, 6.40F},
-                new float[]{-18.0F, -42.0F, -42.0F, -8.0F, -8.0F, -24.0F, -24.0F, -28.0F, -20.0F, -20.0F, -18.0F},
+                new float[]{-18.0F, -42.0F, -42.0F, -8.0F, -8.0F, -24.0F, -26.0F, -14.0F, -22.0F, -20.0F, -18.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0});
         // LEFT ARM: tucks on Hit 1, then extends wide (zRot +88, raised high-back) and whips diagonally downward across front on Hit 2!
         c.add("upper_arm_l", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, 16.0F, 22.0F, -14.0F, -22.0F, -38.0F, -16.0F, 18.0F, -16.0F, -18.0F, -28.0F, -30.0F, -18.0F, -8.0F},
+                new float[]{-8.0F, -52.0F, -52.0F, 16.0F, 22.0F, -14.0F, -22.0F, -38.0F, -16.0F, 32.0F, -162.0F, -150.0F, -32.0F, -30.0F, -18.0F, -8.0F},
                 new float[]{0.0F, -34.0F, -34.0F, 0.0F, 0.0F, 12.0F, 18.0F, -24.0F, -8.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{15.0F, 8.0F, 8.0F, 24.0F, 28.0F, 82.0F, 88.0F, 52.0F, 32.0F, 28.0F, 34.0F, 36.0F, 42.0F, 38.0F, 22.0F, 15.0F},
+                new float[]{15.0F, 8.0F, 8.0F, 24.0F, 28.0F, 82.0F, 88.0F, 52.0F, 32.0F, 24.0F, 18.0F, 20.0F, 40.0F, 38.0F, 22.0F, 15.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("upper_arm_l", CH_SCALE,
                 new float[]{0.0F, 1.95F, 2.58F, 3.00F, 6.40F},
@@ -393,7 +393,7 @@ public final class RuinGuardAnimations {
                 new int[]{0, 0, 0, 0, 0});
         c.add("forearm_l", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.30F, 5.15F, 6.40F},
-                new float[]{-18.0F, -42.0F, -42.0F, -10.0F, -6.0F, -14.0F, -24.0F, -28.0F, -20.0F, -20.0F, -18.0F},
+                new float[]{-18.0F, -42.0F, -42.0F, -10.0F, -6.0F, -14.0F, -26.0F, -14.0F, -22.0F, -20.0F, -18.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0});
@@ -1124,6 +1124,7 @@ public final class RuinGuardAnimations {
         for (int i = 0; i < 6; i++) out6[i] = 0.0F;
         Clip clip = CLIPS.get(clipName);
         if (clip == null) return;
+        if ("walk_combat".equals(clipName)) timeSeconds *= 1.38F;
         float t = normalizeTime(clip, timeSeconds);
         float[] v = new float[3];
         for (Track tr : clip.tracks) {

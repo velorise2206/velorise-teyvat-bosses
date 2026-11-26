@@ -6,6 +6,9 @@ import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -21,16 +24,27 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
 /**
- * Genshin-accurate Trounce Blossom (Ley Line Reward Flower) that emerges at the center
- * of the arena upon defeating a World Boss.
+ * Per-player instanced Trounce Blossom (Ley Line Reward Flower) that remains on the ground
+ * for 60 seconds ({@code 1200} ticks). Every player who clicks it receives their own private loot
+ * directly into their inventory (with smart anti-duplicate part selection) before the blossom
+ * transitions into a {@link BossRespawnAnchorEntity}.
  */
 public class TrounceBlossomEntity extends Entity {
+
+    public static final int LIFETIME_TICKS = 1200; // 60 seconds (1 minute)
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
             SynchedEntityData.defineId(TrounceBlossomEntity.class, EntityDataSerializers.INT);
@@ -39,8 +53,9 @@ public class TrounceBlossomEntity extends Entity {
     private static final EntityDataAccessor<Integer> DATA_BLOOM_TICKS =
             SynchedEntityData.defineId(TrounceBlossomEntity.class, EntityDataSerializers.INT);
 
+    private final Set<UUID> claimedPlayers = new HashSet<>();
     private float savedYaw = 0.0F;
-    private int despawnAfterClaimTicks = 0;
+    private int ageTicks = 0;
 
     public TrounceBlossomEntity(EntityType<? extends TrounceBlossomEntity> type, Level level) {
         super(type, level);
@@ -54,8 +69,7 @@ public class TrounceBlossomEntity extends Entity {
         blossom.entityData.set(DATA_BOSS_KIND, bossKind);
         blossom.entityData.set(DATA_CLAIMED, false);
         blossom.entityData.set(DATA_BLOOM_TICKS, 0);
-        blossom.setCustomName(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.touch")
-                .withStyle(ChatFormatting.AQUA));
+        blossom.updateLabel(LIFETIME_TICKS);
         blossom.setCustomNameVisible(true);
         level.addFreshEntity(blossom);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.AMBIENT, 1.3F, 1.15F);
@@ -74,6 +88,13 @@ public class TrounceBlossomEntity extends Entity {
     public boolean isClaimed() { return entityData.get(DATA_CLAIMED); }
     public int getBloomTicks() { return entityData.get(DATA_BLOOM_TICKS); }
 
+    private void updateLabel(int remainingTicks) {
+        int secs = Math.max(1, (remainingTicks + 19) / 20);
+        setCustomName(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.touch")
+                .append(Component.literal(" (" + secs + "s)").withStyle(ChatFormatting.YELLOW))
+                .withStyle(ChatFormatting.AQUA));
+    }
+
     @Override
     public boolean isPickable() { return true; }
 
@@ -89,67 +110,114 @@ public class TrounceBlossomEntity extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
-        if (isClaimed()) return InteractionResult.PASS;
         if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+            if (claimedPlayers.contains(player.getUUID())) {
+                player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.already_claimed")
+                        .withStyle(ChatFormatting.YELLOW), true);
+                return InteractionResult.CONSUME;
+            }
             claimRewards(sl, player);
         }
         return InteractionResult.sidedSuccess(level().isClientSide());
     }
 
     private void claimRewards(ServerLevel sl, Player player) {
+        claimedPlayers.add(player.getUUID());
         entityData.set(DATA_CLAIMED, true);
-        setCustomNameVisible(false);
 
-        sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.9F, 1.1F);
-        sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.4F, 1.35F);
-        sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.2D, getZ(), 48, 1.1D, 1.0D, 1.1D, 0.12D);
-        sl.sendParticles(ParticleTypes.GLOW, getX(), getY() + 1.1D, getZ(), 30, 0.8D, 0.8D, 0.8D, 0.06D);
+        sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.85F, 1.12F);
+        sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.25F, 1.35F);
+        sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.2D, getZ(), 32, 0.9D, 0.9D, 0.9D, 0.10D);
 
         int kind = getBossKind();
         if (TeyvatBossesBlocks.trophyForBossKind(kind) != null) {
-            dropReward(sl, new ItemStack(TeyvatBossesBlocks.trophyForBossKind(kind)));
+            giveToPlayer(sl, player, new ItemStack(TeyvatBossesBlocks.trophyForBossKind(kind)));
         }
+
         if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
-            if (TeyvatBossesItems.anemoDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.anemoDisc()));
-            if (TeyvatBossesItems.anemoPrismCube() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.anemoPrismCube()));
-            dropReward(sl, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
-            dropReward(sl, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
-            dropReward(sl, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
-            dropReward(sl, new ItemStack(Items.BREEZE_ROD, 3 + random.nextInt(3)));
+            if (TeyvatBossesItems.anemoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoDisc()));
+            if (TeyvatBossesItems.anemoPrismCube() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoPrismCube()));
+            giveToPlayer(sl, player, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
+            giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.BREEZE_ROD, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_ASTRALION) {
-            if (TeyvatBossesItems.astralionDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.astralionDisc()));
-            dropReward(sl, new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
-            dropReward(sl, new ItemStack(Items.DIAMOND, 5 + random.nextInt(4)));
-            dropReward(sl, new ItemStack(Items.AMETHYST_SHARD, 12 + random.nextInt(9)));
-            dropReward(sl, new ItemStack(Items.EMERALD, 8 + random.nextInt(6)));
+            if (TeyvatBossesItems.astralionDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.astralionDisc()));
+            giveToPlayer(sl, player, new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 5 + random.nextInt(4)));
+            giveToPlayer(sl, player, new ItemStack(Items.AMETHYST_SHARD, 12 + random.nextInt(9)));
+            giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 8 + random.nextInt(6)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_GUARD) {
-            if (TeyvatBossesItems.ruinGuardDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
-            net.minecraft.world.item.Item mechPart = TeyvatBossesItems.randomMechPart(random);
-            if (mechPart != null) dropReward(sl, new ItemStack(mechPart));
-            dropReward(sl, new ItemStack(Items.IRON_BLOCK, 2 + random.nextInt(3)));
-            dropReward(sl, new ItemStack(Items.REDSTONE_BLOCK, 2 + random.nextInt(2)));
-            dropReward(sl, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
-            dropReward(sl, new ItemStack(Items.BLAZE_ROD, 4 + random.nextInt(4)));
+            if (TeyvatBossesItems.ruinGuardDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
+            int partDrops = 2 + random.nextInt(2); // 2-3 random Mech salvage parts
+            for (int i = 0; i < partDrops; i++) {
+                Item mechPart = TeyvatBossesItems.randomMechPart(random);
+                if (mechPart != null) giveToPlayer(sl, player, new ItemStack(mechPart));
+            }
+            giveToPlayer(sl, player, new ItemStack(Items.IRON_BLOCK, 2 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.REDSTONE_BLOCK, 2 + random.nextInt(2)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.BLAZE_ROD, 4 + random.nextInt(4)));
+        } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS) {
+            if (TeyvatBossesItems.ruinNautilusDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinNautilusDisc()));
+            int partDrops = 2 + random.nextInt(2); // 2-3 random Submersible salvage parts
+            for (int i = 0; i < partDrops; i++) {
+                Item subPart = TeyvatBossesItems.randomSubPart(random);
+                if (subPart != null) giveToPlayer(sl, player, new ItemStack(subPart));
+            }
+            giveToPlayer(sl, player, new ItemStack(Items.SEA_LANTERN, 3 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.PRISMARINE_BRICKS, 8 + random.nextInt(6)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
-            if (TeyvatBossesItems.cryoDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.cryoDisc()));
-            net.minecraft.world.item.Item cryoPart = TeyvatBossesItems.randomCryoTurretPart(random);
-            if (cryoPart != null) dropReward(sl, new ItemStack(cryoPart));
-            dropReward(sl, new ItemStack(Items.BLUE_ICE, 16));
-            dropReward(sl, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
+            if (TeyvatBossesItems.cryoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.cryoDisc()));
+            int partDrops = 2 + random.nextInt(2); // 2-3 random Cryo Turret salvage parts
+            for (int i = 0; i < partDrops; i++) {
+                Item cryoPart = TeyvatBossesItems.randomCryoTurretPart(random);
+                if (cryoPart != null) giveToPlayer(sl, player, new ItemStack(cryoPart));
+            }
+            giveToPlayer(sl, player, new ItemStack(Items.BLUE_ICE, 16));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
         } else {
-            if (TeyvatBossesItems.openEyedDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.openEyedDisc()));
-            dropReward(sl, new ItemStack(Items.GOLD_INGOT, 10 + random.nextInt(6)));
-            dropReward(sl, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
+            if (TeyvatBossesItems.openEyedDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.openEyedDisc()));
+            giveToPlayer(sl, player, new ItemStack(Items.GOLD_INGOT, 10 + random.nextInt(6)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         }
-        ExperienceOrb.award(sl, position().add(0.0D, 1.0D, 0.0D), 280);
+        ExperienceOrb.award(sl, player.position().add(0.0D, 0.5D, 0.0D), 280);
         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.claimed")
                 .withStyle(ChatFormatting.GREEN), true);
     }
 
-    private void dropReward(ServerLevel sl, ItemStack stack) {
-        ItemEntity item = new ItemEntity(sl, getX(), getY() + 1.25D, getZ(), stack);
-        item.setDeltaMovement((random.nextDouble() - 0.5D) * 0.25D, 0.36D, (random.nextDouble() - 0.5D) * 0.25D);
-        sl.addFreshEntity(item);
+    /**
+     * Smart anti-duplicate salvage selector: prioritizes parts the player does not yet hold
+     * in their inventory so completing a 3/4/5-part set avoids punishing Coupon Collector RNG.
+     */
+    private Item pickSmartPart(Player player, Item[] pool) {
+        List<Item> valid = new ArrayList<>();
+        List<Item> missing = new ArrayList<>();
+        for (Item item : pool) {
+            if (item == null) continue;
+            valid.add(item);
+            if (!player.getInventory().hasAnyMatching(s -> s.is(item))) {
+                missing.add(item);
+            }
+        }
+        if (!missing.isEmpty()) {
+            return missing.get(random.nextInt(missing.size()));
+        }
+        return valid.isEmpty() ? null : valid.get(random.nextInt(valid.size()));
+    }
+
+    private void giveToPlayer(ServerLevel sl, Player player, ItemStack stack) {
+        if (stack.isEmpty()) return;
+        boolean added = player.getInventory().add(stack);
+        if (!added && !stack.isEmpty()) {
+            // Inventory full: drop locked to this player's UUID right at their feet
+            ItemEntity drop = new ItemEntity(sl, player.getX(), player.getY() + 0.35D, player.getZ(), stack);
+            drop.setTarget(player.getUUID());
+            drop.setNoPickUpDelay();
+            drop.setDeltaMovement(0.0D, 0.15D, 0.0D);
+            sl.addFreshEntity(drop);
+        }
     }
 
     @Override
@@ -166,14 +234,17 @@ public class TrounceBlossomEntity extends Entity {
             return;
         }
 
+        ageTicks++;
         if (isClaimed()) {
             entityData.set(DATA_BLOOM_TICKS, getBloomTicks() + 1);
-            despawnAfterClaimTicks++;
-            if (despawnAfterClaimTicks >= 90 && level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.0D, getZ(), 24, 0.6D, 0.8D, 0.6D, 0.08D);
-                BossRespawnAnchorEntity.spawn(sl, getBossKind(), position(), savedYaw, BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
-                discard();
-            }
+        }
+        if (ageTicks % 20 == 0) {
+            updateLabel(LIFETIME_TICKS - ageTicks);
+        }
+        if (ageTicks >= LIFETIME_TICKS && level() instanceof ServerLevel sl) {
+            sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.0D, getZ(), 24, 0.6D, 0.8D, 0.6D, 0.08D);
+            BossRespawnAnchorEntity.spawn(sl, getBossKind(), position(), savedYaw, BossRespawnAnchorEntity.DEFAULT_RESPAWN_TICKS);
+            discard();
         }
     }
 
@@ -183,6 +254,14 @@ public class TrounceBlossomEntity extends Entity {
         if (tag.contains("Claimed")) entityData.set(DATA_CLAIMED, tag.getBoolean("Claimed"));
         if (tag.contains("BloomTicks")) entityData.set(DATA_BLOOM_TICKS, tag.getInt("BloomTicks"));
         savedYaw = tag.getFloat("SavedYaw");
+        ageTicks = tag.getInt("AgeTicks");
+        claimedPlayers.clear();
+        if (tag.contains("ClaimedPlayers", Tag.TAG_LIST)) {
+            ListTag list = tag.getList("ClaimedPlayers", Tag.TAG_INT_ARRAY);
+            for (Tag t : list) {
+                claimedPlayers.add(NbtUtils.loadUUID(t));
+            }
+        }
     }
 
     @Override
@@ -191,5 +270,11 @@ public class TrounceBlossomEntity extends Entity {
         tag.putBoolean("Claimed", isClaimed());
         tag.putInt("BloomTicks", getBloomTicks());
         tag.putFloat("SavedYaw", savedYaw);
+        tag.putInt("AgeTicks", ageTicks);
+        ListTag list = new ListTag();
+        for (UUID id : claimedPlayers) {
+            list.add(NbtUtils.createUUID(id));
+        }
+        tag.put("ClaimedPlayers", list);
     }
 }

@@ -25,6 +25,11 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> cryoTurretCorolla;
     private static Supplier<Item> anemoPrismCube;
     private static Supplier<Item> anemoJetpack;
+    private static Supplier<Item> ruinNautilusDisc;
+    private static Supplier<Item> ruinSubHull;
+    private static Supplier<Item> ruinSubCockpit;
+    private static Supplier<Item> ruinSubPropeller;
+    private static Supplier<Item> ruinSubTorpedoPod;
 
     private TeyvatBossesItems() {}
 
@@ -43,7 +48,12 @@ public final class TeyvatBossesItems {
             Supplier<Item> cryoTurretStemSupplier,
             Supplier<Item> cryoTurretCorollaSupplier,
             Supplier<Item> anemoPrismCubeSupplier,
-            Supplier<Item> anemoJetpackSupplier
+            Supplier<Item> anemoJetpackSupplier,
+            Supplier<Item> ruinNautilusDiscSupplier,
+            Supplier<Item> ruinSubHullSupplier,
+            Supplier<Item> ruinSubCockpitSupplier,
+            Supplier<Item> ruinSubPropellerSupplier,
+            Supplier<Item> ruinSubTorpedoPodSupplier
     ) {
         cryoDisc = cryoDiscSupplier;
         openEyedDisc = openEyedDiscSupplier;
@@ -60,6 +70,11 @@ public final class TeyvatBossesItems {
         cryoTurretCorolla = cryoTurretCorollaSupplier;
         anemoPrismCube = anemoPrismCubeSupplier;
         anemoJetpack = anemoJetpackSupplier;
+        ruinNautilusDisc = ruinNautilusDiscSupplier;
+        ruinSubHull = ruinSubHullSupplier;
+        ruinSubCockpit = ruinSubCockpitSupplier;
+        ruinSubPropeller = ruinSubPropellerSupplier;
+        ruinSubTorpedoPod = ruinSubTorpedoPodSupplier;
     }
 
     public static Item cryoDisc() { return cryoDisc != null ? cryoDisc.get() : null; }
@@ -78,6 +93,20 @@ public final class TeyvatBossesItems {
     public static Item cryoTurretCorolla() { return cryoTurretCorolla != null ? cryoTurretCorolla.get() : null; }
     public static Item anemoPrismCube() { return anemoPrismCube != null ? anemoPrismCube.get() : null; }
     public static Item anemoJetpack() { return anemoJetpack != null ? anemoJetpack.get() : null; }
+    public static Item ruinNautilusDisc() { return ruinNautilusDisc != null ? ruinNautilusDisc.get() : null; }
+    public static Item ruinSubHull() { return ruinSubHull != null ? ruinSubHull.get() : null; }
+    public static Item ruinSubCockpit() { return ruinSubCockpit != null ? ruinSubCockpit.get() : null; }
+    public static Item ruinSubPropeller() { return ruinSubPropeller != null ? ruinSubPropeller.get() : null; }
+    public static Item ruinSubTorpedoPod() { return ruinSubTorpedoPod != null ? ruinSubTorpedoPod.get() : null; }
+
+    public static Item randomSubPart(RandomSource random) {
+        return switch (random.nextInt(4)) {
+            case 0 -> ruinSubHull();
+            case 1 -> ruinSubCockpit();
+            case 2 -> ruinSubPropeller();
+            default -> ruinSubTorpedoPod();
+        };
+    }
 
     public static Item randomCryoTurretPart(RandomSource random) {
         return switch (random.nextInt(3)) {

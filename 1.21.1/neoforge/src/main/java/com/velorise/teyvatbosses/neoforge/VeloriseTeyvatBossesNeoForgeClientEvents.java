@@ -4,6 +4,8 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.AnemoJetpackController;
+import com.velorise.teyvatbosses.client.RuinSubClientController;
+import net.minecraft.client.Minecraft;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.neoforged.api.distmarker.Dist;
@@ -24,6 +26,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
         RuinMechCameraController.clientTick();
         RuinMechInputController.tickAndDispatch(skillId -> PacketDistributor.sendToServer(new RuinMechSkillPayload(skillId)));
         AnemoJetpackController.clientTick(boosting -> PacketDistributor.sendToServer(new AnemoJetpackPayload(boosting)));
+        RuinSubClientController.setPacketSender(PacketDistributor::sendToServer);
+        RuinSubClientController.tick(Minecraft.getInstance());
     }
 
     @SubscribeEvent

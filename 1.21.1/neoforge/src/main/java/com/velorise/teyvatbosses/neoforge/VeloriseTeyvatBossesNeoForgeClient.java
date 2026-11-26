@@ -20,6 +20,11 @@ import com.velorise.teyvatbosses.client.model.AnemoJetpackModel;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
+import com.velorise.teyvatbosses.client.RuinNautilusRenderer;
+import com.velorise.teyvatbosses.client.RuinSubClientController;
+import com.velorise.teyvatbosses.client.RuinSubmersibleRenderer;
+import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
+import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
 import com.velorise.teyvatbosses.client.SkySpearRenderer;
@@ -51,6 +56,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
         event.registerLayerDefinition(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
         event.registerLayerDefinition(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
+        event.registerLayerDefinition(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -75,6 +81,9 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ASTRALION.get(), AstralionRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MECH.get(), RuinMechRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_TURRET.get(), CryoTurretRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_NAUTILUS.get(), RuinNautilusRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_TORPEDO.get(), RuinTorpedoRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_SUBMERSIBLE.get(), RuinSubmersibleRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }
@@ -90,7 +99,9 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
 
     @SubscribeEvent
     public static void registerGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAboveAll(TeyvatBossesConstants.id("ruin_mech_hud"), (gui, delta) ->
-                RuinMechCockpitHud.render(gui, delta.getGameTimeDeltaPartialTick(false)));
+        event.registerAboveAll(TeyvatBossesConstants.id("ruin_mech_hud"), (gui, delta) -> {
+            RuinMechCockpitHud.render(gui, delta.getGameTimeDeltaPartialTick(false));
+            RuinSubClientController.renderHud(gui);
+        });
     }
 }

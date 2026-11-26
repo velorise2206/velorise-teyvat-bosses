@@ -14,6 +14,9 @@ import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
+import com.velorise.teyvatbosses.entity.RuinNautilusEntity;
+import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
+import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
@@ -46,6 +49,9 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<AstralionEntity>> astralion;
     private static Supplier<EntityType<RuinMechEntity>> ruinMech;
     private static Supplier<EntityType<CryoTurretEntity>> cryoTurret;
+    private static Supplier<EntityType<RuinNautilusEntity>> ruinNautilus;
+    private static Supplier<EntityType<RuinTorpedoProjectile>> ruinTorpedo;
+    private static Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersible;
 
     private TeyvatBossesEntities() {}
 
@@ -67,7 +73,10 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<RuinMissileProjectile>> ruinMissileSupplier,
             Supplier<EntityType<AstralionEntity>> astralionSupplier,
             Supplier<EntityType<RuinMechEntity>> ruinMechSupplier,
-            Supplier<EntityType<CryoTurretEntity>> cryoTurretSupplier
+            Supplier<EntityType<CryoTurretEntity>> cryoTurretSupplier,
+            Supplier<EntityType<RuinNautilusEntity>> ruinNautilusSupplier,
+            Supplier<EntityType<RuinTorpedoProjectile>> ruinTorpedoSupplier,
+            Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersibleSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -87,6 +96,9 @@ public final class TeyvatBossesEntities {
         astralion = astralionSupplier;
         ruinMech = ruinMechSupplier;
         cryoTurret = cryoTurretSupplier;
+        ruinNautilus = ruinNautilusSupplier;
+        ruinTorpedo = ruinTorpedoSupplier;
+        ruinSubmersible = ruinSubmersibleSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -107,4 +119,7 @@ public final class TeyvatBossesEntities {
     public static EntityType<AstralionEntity> astralion() { return astralion.get(); }
     public static EntityType<RuinMechEntity> ruinMech() { return ruinMech.get(); }
     public static EntityType<CryoTurretEntity> cryoTurret() { return cryoTurret.get(); }
+    public static EntityType<RuinNautilusEntity> ruinNautilus() { return ruinNautilus.get(); }
+    public static EntityType<RuinTorpedoProjectile> ruinTorpedo() { return ruinTorpedo.get(); }
+    public static EntityType<RuinSubmersibleEntity> ruinSubmersible() { return ruinSubmersible.get(); }
 }

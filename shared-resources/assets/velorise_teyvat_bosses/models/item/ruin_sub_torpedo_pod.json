@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "velorise_teyvat_bosses:item/ruin_sub_torpedo_pod"
+  }
+}

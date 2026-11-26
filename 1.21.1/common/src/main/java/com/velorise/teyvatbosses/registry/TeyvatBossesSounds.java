@@ -15,6 +15,10 @@ public final class TeyvatBossesSounds {
     private static Supplier<SoundEvent> mechJointCreak;
     private static Supplier<SoundEvent> mechMetalClank;
     private static Supplier<SoundEvent> mechHydraulicHiss;
+    private static Supplier<SoundEvent> subPropellerHum;
+    private static Supplier<SoundEvent> subSonarPing;
+    private static Supplier<SoundEvent> subTorpedoLaunch;
+    private static Supplier<SoundEvent> subBallastHiss;
 
     private TeyvatBossesSounds() {}
 
@@ -25,7 +29,11 @@ public final class TeyvatBossesSounds {
             Supplier<SoundEvent> servoWhirSupplier,
             Supplier<SoundEvent> jointCreakSupplier,
             Supplier<SoundEvent> metalClankSupplier,
-            Supplier<SoundEvent> hydraulicHissSupplier
+            Supplier<SoundEvent> hydraulicHissSupplier,
+            Supplier<SoundEvent> subPropellerHumSupplier,
+            Supplier<SoundEvent> subSonarPingSupplier,
+            Supplier<SoundEvent> subTorpedoLaunchSupplier,
+            Supplier<SoundEvent> subBallastHissSupplier
     ) {
         mechEngineHum = engineHumSupplier;
         mechLockonBeep = lockonBeepSupplier;
@@ -34,6 +42,10 @@ public final class TeyvatBossesSounds {
         mechJointCreak = jointCreakSupplier;
         mechMetalClank = metalClankSupplier;
         mechHydraulicHiss = hydraulicHissSupplier;
+        subPropellerHum = subPropellerHumSupplier;
+        subSonarPing = subSonarPingSupplier;
+        subTorpedoLaunch = subTorpedoLaunchSupplier;
+        subBallastHiss = subBallastHissSupplier;
     }
 
     public static SoundEvent mechEngineHum() { return mechEngineHum != null ? mechEngineHum.get() : null; }
@@ -43,4 +55,8 @@ public final class TeyvatBossesSounds {
     public static SoundEvent mechJointCreak() { return mechJointCreak != null ? mechJointCreak.get() : null; }
     public static SoundEvent mechMetalClank() { return mechMetalClank != null ? mechMetalClank.get() : null; }
     public static SoundEvent mechHydraulicHiss() { return mechHydraulicHiss != null ? mechHydraulicHiss.get() : null; }
+    public static SoundEvent subPropellerHum() { return subPropellerHum != null ? subPropellerHum.get() : null; }
+    public static SoundEvent subSonarPing() { return subSonarPing != null ? subSonarPing.get() : null; }
+    public static SoundEvent subTorpedoLaunch() { return subTorpedoLaunch != null ? subTorpedoLaunch.get() : null; }
+    public static SoundEvent subBallastHiss() { return subBallastHiss != null ? subBallastHiss.get() : null; }
 }

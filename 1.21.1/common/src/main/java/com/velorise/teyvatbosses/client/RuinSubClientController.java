@@ -1,0 +1,99 @@
+package com.velorise.teyvatbosses.client;
+
+import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
+import com.velorise.teyvatbosses.network.RuinSubControlPayload;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.Vec3;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.function.Consumer;
+
+/**
+ * Client-side 6-DoF submarine pilot input controller &amp; compact non-overlapping cockpit HUD
+ * flanking the vanilla hotbar (Left: Hull HP, Energy, Depth Y; Right: 6 Torpedo pips, Sonar/Headlight/Dash).
+ */
+public final class RuinSubClientController {
+    private static Consumer<RuinSubControlPayload> packetSender = p -> {};
+    private static boolean prevLmb = false;
+    private static boolean prevRmb = false;
+    private static boolean prevF = false;
+    private static boolean prevR = false;
+    private static int lastVert = 0;
+
+    private RuinSubClientController() {}
+
+    public static void setPacketSender(Consumer<RuinSubControlPayload> sender) {
+        packetSender = sender != null ? sender : p -> {};
+    }
+
+    public static void tick(Minecraft mc) {
+        if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity sub)) {
+            prevLmb = prevRmb = prevF = prevR = false;
+            lastVert = 0;
+            return;
+        }
+        long win = mc.getWindow().getWindow();
+        boolean space = mc.options.keyJump.isDown();
+        boolean ctrl = mc.options.keySprint.isDown();
+        int vert = (space ? 1 : 0) - (ctrl ? 1 : 0);
+
+        boolean lmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        boolean rmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        boolean keyF = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
+        boolean keyR = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+
+        int action = RuinSubmersibleEntity.ACTION_NONE;
+        if (lmb && !prevLmb) action = RuinSubmersibleEntity.ACTION_SONAR;
+        else if (rmb && !prevRmb) action = RuinSubmersibleEntity.ACTION_TORPEDO;
+        else if (keyR && !prevR) action = RuinSubmersibleEntity.ACTION_DASH;
+        else if (keyF && !prevF) action = RuinSubmersibleEntity.ACTION_HEADLIGHT;
+
+        prevLmb = lmb;
+        prevRmb = rmb;
+        prevF = keyF;
+        prevR = keyR;
+
+        if (vert != lastVert || action != RuinSubmersibleEntity.ACTION_NONE) {
+            lastVert = vert;
+            Vec3 aim = mc.player.getLookAngle();
+            packetSender.accept(new RuinSubControlPayload(vert, action, (float) aim.x, (float) aim.y, (float) aim.z));
+        }
+    }
+
+    public static void renderHud(GuiGraphics g) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options.hideGui || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity sub)) {
+            return;
+        }
+        int sw = mc.getWindow().getGuiScaledWidth();
+        int sh = mc.getWindow().getGuiScaledHeight();
+        int cx = sw / 2;
+        int yBase = sh - 46;
+
+        // Left telemetry panel (flanking vanilla hotbar, zero overlap)
+        int lx = cx - 196;
+        g.fill(lx, yBase, lx + 96, yBase + 40, 0xAA07121C);
+        g.renderOutline(lx, yBase, 96, 40, 0xFF22D3EE);
+        int hpPct = Math.round(sub.getHealth() * 100.0F / sub.getMaxHealth());
+        int enPct = Math.round(sub.getEnergy() * 100.0F / RuinSubmersibleEntity.MAX_ENERGY);
+        g.drawString(mc.font, Component.translatable("hud.velorise_teyvat_bosses.sub.hull", hpPct), lx + 5, yBase + 4, 0xFF67E8F9, false);
+        g.drawString(mc.font, Component.translatable("hud.velorise_teyvat_bosses.sub.power", enPct), lx + 5, yBase + 15, 0xFFFCD34D, false);
+        g.drawString(mc.font, Component.translatable("hud.velorise_teyvat_bosses.sub.depth", (int) sub.getY()), lx + 5, yBase + 27, 0xFFC2D4E6, false);
+
+        // Right weapons panel (6 torpedo pips + headlight status)
+        int rx = cx + 100;
+        g.fill(rx, yBase, rx + 96, yBase + 40, 0xAA07121C);
+        g.renderOutline(rx, yBase, 96, 40, 0xFFF59E0B);
+        int ammo = sub.getTorpedoAmmo();
+        g.drawString(mc.font, Component.translatable("hud.velorise_teyvat_bosses.sub.torpedoes", ammo, 6), rx + 5, yBase + 4, 0xFFFCD34D, false);
+        for (int i = 0; i < 6; i++) {
+            int px = rx + 6 + i * 14;
+            int col = i < ammo ? 0xFF22D3EE : 0xFF1E3448;
+            g.fill(px, yBase + 16, px + 10, yBase + 22, col);
+        }
+        Component lightTxt = Component.translatable(sub.isHeadlightOn() ? "hud.velorise_teyvat_bosses.sub.light_on" : "hud.velorise_teyvat_bosses.sub.light_off");
+        g.drawString(mc.font, lightTxt, rx + 5, yBase + 27, sub.isHeadlightOn() ? 0xFF67E8F9 : 0xFF92ABC2, false);
+    }
+}

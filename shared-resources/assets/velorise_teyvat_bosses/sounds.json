@@ -87,5 +87,33 @@
         "stream": true
       }
     ]
+  },
+  "music.ruin_nautilus_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/ruin_nautilus_theme",
+        "stream": true
+      }
+    ]
+  },
+  "sfx.sub_propeller_hum": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/sub_propeller_hum"
+    ]
+  },
+  "sfx.sub_sonar_ping": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/sub_sonar_ping"
+    ]
+  },
+  "sfx.sub_torpedo_launch": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/sub_torpedo_launch"
+    ]
+  },
+  "sfx.sub_ballast_hiss": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/sub_ballast_hiss"
+    ]
   }
 }

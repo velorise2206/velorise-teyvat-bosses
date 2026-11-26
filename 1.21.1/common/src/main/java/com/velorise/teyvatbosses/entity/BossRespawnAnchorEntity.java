@@ -30,6 +30,7 @@ public class BossRespawnAnchorEntity extends Entity {
     public static final int BOSS_ANEMO_HYPOSTASIS = 2;
     public static final int BOSS_RUIN_GUARD       = 3;
     public static final int BOSS_ASTRALION        = 4;
+    public static final int BOSS_RUIN_NAUTILUS    = 5;
     public static final int DEFAULT_RESPAWN_TICKS = 2400;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
@@ -95,6 +96,7 @@ public class BossRespawnAnchorEntity extends Entity {
                     case BOSS_CRYO_REGISVINE -> ParticleTypes.SNOWFLAKE;
                     case BOSS_ANEMO_HYPOSTASIS -> ParticleTypes.GLOW;
                     case BOSS_RUIN_GUARD -> ParticleTypes.FLAME;
+                    case BOSS_RUIN_NAUTILUS -> ParticleTypes.BUBBLE;
                     default -> ParticleTypes.END_ROD;
                 };
                 level().addParticle(p,
@@ -122,6 +124,7 @@ public class BossRespawnAnchorEntity extends Entity {
             case BOSS_ANEMO_HYPOSTASIS -> "entity.velorise_teyvat_bosses.anemo_hypostasis";
             case BOSS_RUIN_GUARD -> "entity.velorise_teyvat_bosses.ruin_guard";
             case BOSS_ASTRALION -> "entity.velorise_teyvat_bosses.astralion";
+            case BOSS_RUIN_NAUTILUS -> "entity.velorise_teyvat_bosses.ruin_nautilus";
             default -> "entity.velorise_teyvat_bosses.the_open_eyed";
         };
         ChatFormatting col = switch (getBossKind()) {
@@ -129,6 +132,7 @@ public class BossRespawnAnchorEntity extends Entity {
             case BOSS_ANEMO_HYPOSTASIS -> ChatFormatting.GREEN;
             case BOSS_RUIN_GUARD -> ChatFormatting.GOLD;
             case BOSS_ASTRALION -> ChatFormatting.LIGHT_PURPLE;
+            case BOSS_RUIN_NAUTILUS -> ChatFormatting.AQUA;
             default -> ChatFormatting.YELLOW;
         };
         setCustomName(Component.translatable(bossKey)
@@ -161,6 +165,12 @@ public class BossRespawnAnchorEntity extends Entity {
                 sl.addFreshEntity(boss);
                 sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.0D, getZ(), 48, 1.6D, 1.8D, 1.6D, 0.09D);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.5F, 0.72F);
+            }
+        } else if (kind == BOSS_RUIN_NAUTILUS) {
+            RuinNautilusEntity boss = TeyvatBossesEntities.ruinNautilus().create(sl);
+            if (boss != null) {
+                boss.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
+                sl.addFreshEntity(boss);
             }
         } else if (kind == BOSS_ASTRALION) {
             AstralionEntity boss = TeyvatBossesEntities.astralion().create(sl);

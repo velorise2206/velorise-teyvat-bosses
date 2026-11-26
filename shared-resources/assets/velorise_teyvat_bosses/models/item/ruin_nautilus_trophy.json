@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "velorise_teyvat_bosses:item/ruin_nautilus_trophy"
+  }
+}

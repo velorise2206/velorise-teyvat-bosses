@@ -22,6 +22,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRe
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
+import com.velorise.teyvatbosses.client.RuinNautilusRenderer;
+import com.velorise.teyvatbosses.client.RuinSubClientController;
+import com.velorise.teyvatbosses.client.RuinSubmersibleRenderer;
+import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
+import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -53,6 +58,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);
@@ -74,6 +80,9 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ASTRALION, AstralionRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MECH, RuinMechRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_TURRET, CryoTurretRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_NAUTILUS, RuinNautilusRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_TORPEDO, RuinTorpedoRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_SUBMERSIBLE, RuinSubmersibleRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
         LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {
@@ -86,8 +95,12 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             RuinMechCameraController.clientTick();
             RuinMechInputController.tickAndDispatch(skillId -> ClientPlayNetworking.send(new RuinMechSkillPayload(skillId)));
             AnemoJetpackController.clientTick(boosting -> ClientPlayNetworking.send(new AnemoJetpackPayload(boosting)));
+            RuinSubClientController.setPacketSender(ClientPlayNetworking::send);
+            RuinSubClientController.tick(client);
         });
-        HudRenderCallback.EVENT.register((gui, deltaTracker) ->
-                RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false)));
+        HudRenderCallback.EVENT.register((gui, deltaTracker) -> {
+            RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false));
+            RuinSubClientController.renderHud(gui);
+        });
     }
 }

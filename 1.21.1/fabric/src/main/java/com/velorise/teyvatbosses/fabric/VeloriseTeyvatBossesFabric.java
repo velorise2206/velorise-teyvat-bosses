@@ -16,6 +16,9 @@ import com.velorise.teyvatbosses.entity.ElementalStarEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
+import com.velorise.teyvatbosses.entity.RuinNautilusEntity;
+import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
+import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
@@ -24,8 +27,10 @@ import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.item.AnemoJetpackItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.item.RuinSubPartItem;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
+import com.velorise.teyvatbosses.network.RuinSubControlPayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
@@ -138,6 +143,15 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<CryoTurretEntity> CRYO_TURRET = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("cryo_turret"),
             EntityType.Builder.of(CryoTurretEntity::new, MobCategory.MISC).sized(2.6F, 5.6F).clientTrackingRange(12).build());
+    public static final EntityType<RuinNautilusEntity> RUIN_NAUTILUS = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_nautilus"),
+            EntityType.Builder.of(RuinNautilusEntity::new, MobCategory.MONSTER).sized(4.6F, 3.8F).clientTrackingRange(16).build());
+    public static final EntityType<RuinTorpedoProjectile> RUIN_TORPEDO = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_torpedo"),
+            EntityType.Builder.<RuinTorpedoProjectile>of(RuinTorpedoProjectile::new, MobCategory.MISC).sized(0.7F, 0.7F).clientTrackingRange(12).updateInterval(2).build());
+    public static final EntityType<RuinSubmersibleEntity> RUIN_SUBMERSIBLE = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_submersible"),
+            EntityType.Builder.of(RuinSubmersibleEntity::new, MobCategory.MISC).sized(3.4F, 2.6F).clientTrackingRange(14).build());
 
     // 3D Miniature Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
@@ -155,12 +169,15 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final BossTrophyBlock ASTRALION_TROPHY = Registry.register(
             BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("astralion_trophy"),
             new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_ASTRALION, trophyProps()));
+    public static final BossTrophyBlock RUIN_NAUTILUS_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("ruin_nautilus_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS, trophyProps()));
 
     public static final BlockEntityType<BossTrophyBlockEntity> BOSS_TROPHY_BE = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE, TeyvatBossesConstants.id("boss_trophy"),
             BlockEntityType.Builder.of(
                     BossTrophyBlockEntity::new,
-                    CRYO_REGISVINE_TROPHY, THE_OPEN_EYED_TROPHY, ANEMO_HYPOSTASIS_TROPHY, RUIN_GUARD_TROPHY, ASTRALION_TROPHY
+                    CRYO_REGISVINE_TROPHY, THE_OPEN_EYED_TROPHY, ANEMO_HYPOSTASIS_TROPHY, RUIN_GUARD_TROPHY, ASTRALION_TROPHY, RUIN_NAUTILUS_TROPHY
             ).build(null));
 
     // Boss Trophy Block Items
@@ -179,6 +196,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ASTRALION_TROPHY_ITEM = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("astralion_trophy"),
             new BlockItem(ASTRALION_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item RUIN_NAUTILUS_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_nautilus_trophy"),
+            new BlockItem(RUIN_NAUTILUS_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
 
     // 5-Part Modular Ruin Mech Salvage Items
     public static final Item RUIN_MECH_CORE = Registry.register(
@@ -211,6 +231,18 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ANEMO_JETPACK = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_jetpack"),
             new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+    public static final Item RUIN_SUB_HULL = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_hull"),
+            new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+    public static final Item RUIN_SUB_COCKPIT = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_cockpit"),
+            new RuinSubPartItem(RuinSubmersibleEntity.PART_COCKPIT, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item RUIN_SUB_PROPELLER = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_propeller"),
+            new RuinSubPartItem(RuinSubmersibleEntity.PART_PROPELLER, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item RUIN_SUB_TORPEDO_POD = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_torpedo_pod"),
+            new RuinSubPartItem(RuinSubmersibleEntity.PART_TORPEDO_POD, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
     public static final Item CRYO_REGISVINE_SPAWN_EGG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_spawn_egg"),
@@ -231,6 +263,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ASTRALION_SPAWN_EGG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("astralion_spawn_egg"),
             new SpawnEggItem(ASTRALION, 0x1D1135, 0xE5A4FF, new Item.Properties()));
+    public static final Item RUIN_NAUTILUS_SPAWN_EGG = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_nautilus_spawn_egg"),
+            new SpawnEggItem(RUIN_NAUTILUS, 0x1A3244, 0x22D3EE, new Item.Properties()));
 
     public static final SoundEvent SOUND_CRYO_THEME = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("music.cryo_regisvine_theme"),
@@ -268,6 +303,21 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_MECH_HYDRAULIC_HISS = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_hydraulic_hiss"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_hydraulic_hiss")));
+    public static final SoundEvent SOUND_RUIN_NAUTILUS_THEME = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("music.ruin_nautilus_theme"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_nautilus_theme")));
+    public static final SoundEvent SOUND_SUB_PROPELLER_HUM = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.sub_propeller_hum"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_propeller_hum")));
+    public static final SoundEvent SOUND_SUB_SONAR_PING = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.sub_sonar_ping"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_sonar_ping")));
+    public static final SoundEvent SOUND_SUB_TORPEDO_LAUNCH = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.sub_torpedo_launch"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_torpedo_launch")));
+    public static final SoundEvent SOUND_SUB_BALLAST_HISS = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.sub_ballast_hiss"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_ballast_hiss")));
 
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_cryo_regisvine"),
@@ -289,6 +339,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_astralion"),
             new Item(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("astralion_theme")))));
+    public static final Item MUSIC_DISC_RUIN_NAUTILUS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_ruin_nautilus"),
+            new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
+                    .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("ruin_nautilus_theme")))));
 
     public static final StructureType<FlatArenaStructure> FLAT_ARENA = Registry.register(
             BuiltInRegistries.STRUCTURE_TYPE, TeyvatBossesConstants.id("flat_arena"),
@@ -301,16 +355,21 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                     .title(Component.translatable("itemGroup.velorise_teyvat_bosses.main"))
                     .icon(() -> new ItemStack(ANEMO_HYPOSTASIS_SPAWN_EGG))
                     .displayItems((params, output) -> {
+                        // 6 Boss Spawn Eggs
                         output.accept(CRYO_REGISVINE_SPAWN_EGG);
                         output.accept(THE_OPEN_EYED_SPAWN_EGG);
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG);
                         output.accept(RUIN_GUARD_SPAWN_EGG);
                         output.accept(ASTRALION_SPAWN_EGG);
+                        output.accept(RUIN_NAUTILUS_SPAWN_EGG);
+                        // 6 Boss Trophies
                         output.accept(CRYO_REGISVINE_TROPHY_ITEM);
                         output.accept(THE_OPEN_EYED_TROPHY_ITEM);
                         output.accept(ANEMO_HYPOSTASIS_TROPHY_ITEM);
                         output.accept(RUIN_GUARD_TROPHY_ITEM);
                         output.accept(ASTRALION_TROPHY_ITEM);
+                        output.accept(RUIN_NAUTILUS_TROPHY_ITEM);
+                        // Modular Boss Salvage & Gear
                         output.accept(RUIN_MECH_CORE);
                         output.accept(RUIN_MECH_LEFT_ARM);
                         output.accept(RUIN_MECH_RIGHT_ARM);
@@ -321,11 +380,17 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(CRYO_TURRET_COROLLA);
                         output.accept(ANEMO_PRISM_CUBE);
                         output.accept(ANEMO_JETPACK);
+                        output.accept(RUIN_SUB_HULL);
+                        output.accept(RUIN_SUB_COCKPIT);
+                        output.accept(RUIN_SUB_PROPELLER);
+                        output.accept(RUIN_SUB_TORPEDO_POD);
+                        // 6 Boss Music Discs
                         output.accept(MUSIC_DISC_CRYO_REGISVINE);
                         output.accept(MUSIC_DISC_THE_OPEN_EYED);
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS);
                         output.accept(MUSIC_DISC_RUIN_GUARD);
-                    output.accept(MUSIC_DISC_ASTRALION);
+                        output.accept(MUSIC_DISC_ASTRALION);
+                        output.accept(MUSIC_DISC_RUIN_NAUTILUS);
                     })
                     .build()
     );
@@ -351,7 +416,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> RUIN_MISSILE,
                 () -> ASTRALION,
                 () -> RUIN_MECH,
-                () -> CRYO_TURRET
+                () -> CRYO_TURRET,
+                () -> RUIN_NAUTILUS,
+                () -> RUIN_TORPEDO,
+                () -> RUIN_SUBMERSIBLE
         );
 
         TeyvatBossesBlocks.bind(
@@ -360,13 +428,15 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> ANEMO_HYPOSTASIS_TROPHY,
                 () -> RUIN_GUARD_TROPHY,
                 () -> ASTRALION_TROPHY,
+                () -> RUIN_NAUTILUS_TROPHY,
                 () -> BOSS_TROPHY_BE
         );
 
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
-                () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS
+                () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS,
+                () -> SOUND_SUB_PROPELLER_HUM, () -> SOUND_SUB_SONAR_PING, () -> SOUND_SUB_TORPEDO_LAUNCH, () -> SOUND_SUB_BALLAST_HISS
         );
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE,
@@ -383,7 +453,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> CRYO_TURRET_STEM,
                 () -> CRYO_TURRET_COROLLA,
                 () -> ANEMO_PRISM_CUBE,
-                () -> ANEMO_JETPACK
+                () -> ANEMO_JETPACK,
+                () -> MUSIC_DISC_RUIN_NAUTILUS,
+                () -> RUIN_SUB_HULL,
+                () -> RUIN_SUB_COCKPIT,
+                () -> RUIN_SUB_PROPELLER,
+                () -> RUIN_SUB_TORPEDO_POD
         );
         FabricDefaultAttributeRegistry.register(CRYO_REGISVINE, CryoRegisvineEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(THE_OPEN_EYED, TheOpenEyedEntity.createAttributes());
@@ -393,9 +468,14 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(ASTRALION, AstralionEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(RUIN_MECH, RuinMechEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(CRYO_TURRET, CryoTurretEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(RUIN_NAUTILUS, RuinNautilusEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(RUIN_SUBMERSIBLE, RuinSubmersibleEntity.createAttributes());
 
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(AnemoJetpackPayload.TYPE, AnemoJetpackPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(RuinSubControlPayload.TYPE, RuinSubControlPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RuinSubControlPayload.TYPE, (payload, ctx) ->
+                ctx.server().execute(() -> RuinSubControlPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(AnemoJetpackPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> AnemoJetpackItem.setBoosting(ctx.player().getUUID(), payload.boosting())));
         ServerPlayNetworking.registerGlobalReceiver(RuinMechSkillPayload.TYPE, (payload, ctx) ->

@@ -15,6 +15,7 @@ public final class TeyvatBossesBlocks {
     private static Supplier<BossTrophyBlock> anemoTrophy;
     private static Supplier<BossTrophyBlock> ruinGuardTrophy;
     private static Supplier<BossTrophyBlock> astralionTrophy;
+    private static Supplier<BossTrophyBlock> ruinNautilusTrophy;
     private static Supplier<BlockEntityType<BossTrophyBlockEntity>> bossTrophyBe;
 
     private TeyvatBossesBlocks() {}
@@ -25,6 +26,7 @@ public final class TeyvatBossesBlocks {
             Supplier<BossTrophyBlock> anemoTrophySupplier,
             Supplier<BossTrophyBlock> ruinGuardTrophySupplier,
             Supplier<BossTrophyBlock> astralionTrophySupplier,
+            Supplier<BossTrophyBlock> ruinNautilusTrophySupplier,
             Supplier<BlockEntityType<BossTrophyBlockEntity>> beSupplier
     ) {
         cryoTrophy = cryoTrophySupplier;
@@ -32,6 +34,7 @@ public final class TeyvatBossesBlocks {
         anemoTrophy = anemoTrophySupplier;
         ruinGuardTrophy = ruinGuardTrophySupplier;
         astralionTrophy = astralionTrophySupplier;
+        ruinNautilusTrophy = ruinNautilusTrophySupplier;
         bossTrophyBe = beSupplier;
     }
 
@@ -40,6 +43,7 @@ public final class TeyvatBossesBlocks {
     public static BossTrophyBlock anemoTrophy() { return anemoTrophy.get(); }
     public static BossTrophyBlock ruinGuardTrophy() { return ruinGuardTrophy.get(); }
     public static BossTrophyBlock astralionTrophy() { return astralionTrophy.get(); }
+    public static BossTrophyBlock ruinNautilusTrophy() { return ruinNautilusTrophy.get(); }
     public static BlockEntityType<BossTrophyBlockEntity> bossTrophyBe() { return bossTrophyBe.get(); }
 
     public static BossTrophyBlock trophyForBossKind(int bossKind) {
@@ -49,6 +53,7 @@ public final class TeyvatBossesBlocks {
             case 2 -> anemoTrophy();
             case 3 -> ruinGuardTrophy();
             case 4 -> astralionTrophy();
+            case 5 -> ruinNautilusTrophy();
             default -> ruinGuardTrophy();
         };
     }
