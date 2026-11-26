@@ -271,6 +271,10 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("sfx.sub_torpedo_launch", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_torpedo_launch")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_SUB_BALLAST_HISS =
             SOUNDS.register("sfx.sub_ballast_hiss", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_ballast_hiss")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_DRILL_ENGINE_IDLE =
+            SOUNDS.register("sfx.drill_engine_idle", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_engine_idle")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_DRILL_BORE_SPIN =
+            SOUNDS.register("sfx.drill_bore_spin", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_bore_spin")));
 
     // 5 Music Discs
     public static final DeferredHolder<Item, Item> MUSIC_DISC_CRYO_REGISVINE =
@@ -341,7 +345,8 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesSounds.bind(
                 SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL,
                 SOUND_MECH_SERVO_WHIR, SOUND_MECH_JOINT_CREAK, SOUND_MECH_METAL_CLANK, SOUND_MECH_HYDRAULIC_HISS,
-                SOUND_SUB_PROPELLER_HUM, SOUND_SUB_SONAR_PING, SOUND_SUB_TORPEDO_LAUNCH, SOUND_SUB_BALLAST_HISS
+                SOUND_SUB_PROPELLER_HUM, SOUND_SUB_SONAR_PING, SOUND_SUB_TORPEDO_LAUNCH, SOUND_SUB_BALLAST_HISS,
+                SOUND_DRILL_ENGINE_IDLE, SOUND_DRILL_BORE_SPIN
         );
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, BOSS_RESPAWN_ANCHOR,

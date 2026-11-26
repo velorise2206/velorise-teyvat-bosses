@@ -19,6 +19,8 @@ public final class TeyvatBossesSounds {
     private static Supplier<SoundEvent> subSonarPing;
     private static Supplier<SoundEvent> subTorpedoLaunch;
     private static Supplier<SoundEvent> subBallastHiss;
+    private static Supplier<SoundEvent> drillEngineIdle;
+    private static Supplier<SoundEvent> drillBoreSpin;
 
     private TeyvatBossesSounds() {}
 
@@ -33,7 +35,9 @@ public final class TeyvatBossesSounds {
             Supplier<SoundEvent> subPropellerHumSupplier,
             Supplier<SoundEvent> subSonarPingSupplier,
             Supplier<SoundEvent> subTorpedoLaunchSupplier,
-            Supplier<SoundEvent> subBallastHissSupplier
+            Supplier<SoundEvent> subBallastHissSupplier,
+            Supplier<SoundEvent> drillEngineIdleSupplier,
+            Supplier<SoundEvent> drillBoreSpinSupplier
     ) {
         mechEngineHum = engineHumSupplier;
         mechLockonBeep = lockonBeepSupplier;
@@ -46,6 +50,8 @@ public final class TeyvatBossesSounds {
         subSonarPing = subSonarPingSupplier;
         subTorpedoLaunch = subTorpedoLaunchSupplier;
         subBallastHiss = subBallastHissSupplier;
+        drillEngineIdle = drillEngineIdleSupplier;
+        drillBoreSpin = drillBoreSpinSupplier;
     }
 
     public static SoundEvent mechEngineHum() { return mechEngineHum != null ? mechEngineHum.get() : null; }
@@ -59,4 +65,6 @@ public final class TeyvatBossesSounds {
     public static SoundEvent subSonarPing() { return subSonarPing != null ? subSonarPing.get() : null; }
     public static SoundEvent subTorpedoLaunch() { return subTorpedoLaunch != null ? subTorpedoLaunch.get() : null; }
     public static SoundEvent subBallastHiss() { return subBallastHiss != null ? subBallastHiss.get() : null; }
+    public static SoundEvent drillEngineIdle() { return drillEngineIdle != null ? drillEngineIdle.get() : null; }
+    public static SoundEvent drillBoreSpin() { return drillBoreSpin != null ? drillBoreSpin.get() : null; }
 }

@@ -51,12 +51,14 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
 
         // Smooth partialTick interpolation for 144fps buttery motion
         float age = entity.tickCount + partialTicks;
-        float smoothWheel = Mth.lerp(partialTicks, entity.prevWheelSpin, entity.wheelSpin);
+        float smoothWheelL = Mth.lerp(partialTicks, entity.prevWheelSpinL, entity.wheelSpinL);
+        float smoothWheelR = Mth.lerp(partialTicks, entity.prevWheelSpinR, entity.wheelSpinR);
         float smoothDrill = Mth.lerp(partialTicks, entity.prevDrillSpin, entity.drillSpin);
         float smoothDriveSpool = Mth.lerp(partialTicks, entity.prevDriveSpool, entity.driveSpool);
         float smoothDrillSpool = Mth.lerp(partialTicks, entity.prevDrillSpool, entity.drillSpool);
         float smoothLeverL = Mth.lerp(partialTicks, entity.prevLeverLAngle, entity.leverLAngle);
         float smoothLeverR = Mth.lerp(partialTicks, entity.prevLeverRAngle, entity.leverRAngle);
+        float smoothFlapper = Mth.lerp(partialTicks, entity.prevFlapperAngle, entity.flapperAngle);
 
         // 1. Drill assembly pitch tilt (Level / Down / Up) + smooth high-speed spin
         ModelPart drillAsm = model.getBone("drill_assembly");
@@ -73,24 +75,21 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             drillHead.zRot += smoothDrill;
         }
 
-        // 2. Reactor core rotation (faster under load)
-        ModelPart reactor = model.getBone("reactor_core");
-        if (reactor != null && hasEngine) {
-            reactor.yRot += age * (0.07F + 0.14F * Math.max(smoothDriveSpool, smoothDrillSpool));
+        // 2. Twin industrial smokestack rain-flapper caps lifting under exhaust pressure
+        if (hasEngine) {
+            ModelPart flapL = model.getBone("flapper_l");
+            ModelPart flapR = model.getBone("flapper_r");
+            if (flapL != null) flapL.xRot += smoothFlapper;
+            if (flapR != null) flapR.xRot += smoothFlapper;
         }
 
-        // 3. All 6 track wheels + rolling tread micro-oscillation synced to smoothWheel
+        // 3. All 6 interlocking 8-tooth sprocket gears synced to true left/right tank-steer travel
         for (int i = 0; i < 3; i++) {
             ModelPart wl = model.getBone("wheel_l_" + i);
             ModelPart wr = model.getBone("wheel_r_" + i);
-            if (wl != null) wl.xRot += smoothWheel;
-            if (wr != null) wr.xRot += smoothWheel;
+            if (wl != null) wl.xRot += smoothWheelL;
+            if (wr != null) wr.xRot += smoothWheelR;
         }
-        ModelPart treadL = model.getBone("tread_l");
-        ModelPart treadR = model.getBone("tread_r");
-        float trackPulse = Mth.sin(smoothWheel * 3.0F) * 0.25F;
-        if (treadL != null) treadL.y += trackPulse;
-        if (treadR != null) treadR.y -= trackPulse;
 
         // 4. Independent control levers: Left = Drive Forward/Reverse, Right = Drill Engage & Pitch
         ModelPart levL = model.getBone("lever_l");

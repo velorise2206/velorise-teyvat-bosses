@@ -21,7 +21,13 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
             new ModelLayerLocation(TeyvatBossesConstants.id("geo_driller"), "main");
 
     public static final String[] ALL_BONES = {
-            "root", "chassis_main", "tread_l", "wheel_l_0", "wheel_l_1", "wheel_l_2", "tread_r", "wheel_r_0", "wheel_r_1", "wheel_r_2", "cockpit_cage", "lever_l", "lever_r", "drill_assembly", "drill_head", "engine_unit", "reactor_core", "chest_mount"
+            "root", "chassis_main",
+            "tread_l", "wheel_l_0", "wheel_l_1", "wheel_l_2",
+            "tread_r", "wheel_r_0", "wheel_r_1", "wheel_r_2",
+            "cockpit_cage", "lever_l", "lever_r",
+            "drill_assembly", "drill_head",
+            "engine_unit", "flapper_l", "flapper_r",
+            "chest_mount"
     };
 
     private final ModelPart root;
@@ -55,82 +61,95 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
         }
     }
 
+    private static void addSprocketWheel(PartDefinition parent, String name, float zPos, int gearTexU, int gearTexV, int hubTexU, int hubTexV) {
+        // 8-tooth industrial sprocket wheel centered cleanly inside the track channel (y = -0.25)
+        PartDefinition wheel = parent.addOrReplaceChild(name, CubeListBuilder.create()
+                // Inner steel drum
+                .texOffs(hubTexU, hubTexV).addBox(-3.550F, -2.450F, -2.450F, 7.100F, 4.900F, 4.900F)
+                // Central heavy axle hub
+                .texOffs(hubTexU, hubTexV).addBox(-4.300F, -1.300F, -1.300F, 8.600F, 2.600F, 2.600F)
+                // 4 cardinal sprocket teeth meshing into the upper & lower track rails
+                .texOffs(gearTexU, gearTexV).addBox(-3.900F, -3.650F, -0.950F, 7.800F, 7.300F, 1.900F)
+                .texOffs(gearTexU, gearTexV).addBox(-3.900F, -0.950F, -3.650F, 7.800F, 1.900F, 7.300F),
+                PartPose.offset(0.000F, -0.250F, zPos));
+
+        // 4 diagonal sprocket teeth rotated 45 degrees around X for full 8-tooth gear profile
+        wheel.addOrReplaceChild(name + "_diag", CubeListBuilder.create()
+                .texOffs(gearTexU, gearTexV).addBox(-3.820F, -3.550F, -0.900F, 7.640F, 7.100F, 1.800F)
+                .texOffs(gearTexU, gearTexV).addBox(-3.820F, -0.900F, -3.550F, 7.640F, 1.800F, 7.100F),
+                PartPose.rotation(0.785398F, 0.000F, 0.000F));
+    }
+
     public static LayerDefinition createBodyLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition rootDef = mesh.getRoot();
-        PartDefinition b_root = rootDef.addOrReplaceChild("root", CubeListBuilder.create()
-                , PartPose.offset(0.000F, 24.000F, 0.000F));
+        PartDefinition b_root = rootDef.addOrReplaceChild("root", CubeListBuilder.create(),
+                PartPose.offset(0.000F, 24.000F, 0.000F));
+
+        // Main armored chassis with lowered front hood so 1st-person view is completely unobstructed
         PartDefinition b_chassis_main = b_root.addOrReplaceChild("chassis_main", CubeListBuilder.create()
                 .texOffs(1, 1).addBox(-11.000F, -3.000F, -18.000F, 22.000F, 6.000F, 38.000F)
                 .texOffs(122, 1).addBox(-12.000F, -6.000F, -16.000F, 2.000F, 4.000F, 34.000F)
                 .texOffs(195, 1).addBox(10.000F, -6.000F, -16.000F, 2.000F, 4.000F, 34.000F)
-                .texOffs(268, 1).addBox(-11.000F, -10.000F, -20.000F, 22.000F, 12.000F, 4.000F)
-                .texOffs(321, 1).addBox(-9.000F, -10.000F, -21.000F, 3.000F, 3.000F, 2.000F)
-                .texOffs(332, 1).addBox(6.000F, -10.000F, -21.000F, 3.000F, 3.000F, 2.000F)
-                , PartPose.offset(0.000F, -10.000F, 0.000F));
+                .texOffs(268, 1).addBox(-11.000F, -6.500F, -20.000F, 22.000F, 8.500F, 4.000F)
+                .texOffs(321, 1).addBox(-9.000F, -7.200F, -21.000F, 3.000F, 2.600F, 2.000F)
+                .texOffs(332, 1).addBox(6.000F, -7.200F, -21.000F, 3.000F, 2.600F, 2.000F),
+                PartPose.offset(0.000F, -10.000F, 0.000F));
+
+        // Left track frame + 3 interlocking 8-tooth sprocket gears
         PartDefinition b_tread_l = b_chassis_main.addOrReplaceChild("tread_l", CubeListBuilder.create()
                 .texOffs(343, 1).addBox(-3.500F, -6.500F, -18.000F, 7.000F, 2.500F, 36.000F)
                 .texOffs(1, 46).addBox(-3.500F, 3.500F, -18.000F, 7.000F, 2.500F, 36.000F)
                 .texOffs(88, 46).addBox(-3.500F, -4.500F, -19.500F, 7.000F, 8.500F, 2.500F)
                 .texOffs(107, 46).addBox(-3.500F, -4.500F, 17.000F, 7.000F, 8.500F, 2.500F)
-                .texOffs(126, 46).addBox(-3.800F, -7.700F, -17.000F, 7.600F, 1.500F, 34.000F)
-                , PartPose.offset(-14.500F, 4.000F, 1.000F));
-        b_tread_l.addOrReplaceChild("wheel_l_0", CubeListBuilder.create()
-                .texOffs(209, 46).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(238, 46).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, -12.000F));
-        b_tread_l.addOrReplaceChild("wheel_l_1", CubeListBuilder.create()
-                .texOffs(261, 46).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(290, 46).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, 0.000F));
-        b_tread_l.addOrReplaceChild("wheel_l_2", CubeListBuilder.create()
-                .texOffs(313, 46).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(342, 46).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, 12.000F));
+                .texOffs(126, 46).addBox(-3.800F, -7.700F, -17.000F, 7.600F, 1.500F, 34.000F),
+                PartPose.offset(-14.500F, 4.000F, 1.000F));
+        addSprocketWheel(b_tread_l, "wheel_l_0", -12.000F, 209, 46, 238, 46);
+        addSprocketWheel(b_tread_l, "wheel_l_1",   0.000F, 261, 46, 290, 46);
+        addSprocketWheel(b_tread_l, "wheel_l_2",  12.000F, 313, 46, 342, 46);
+
+        // Right track frame + 3 interlocking 8-tooth sprocket gears
         PartDefinition b_tread_r = b_chassis_main.addOrReplaceChild("tread_r", CubeListBuilder.create()
                 .texOffs(365, 46).addBox(-3.500F, -6.500F, -18.000F, 7.000F, 2.500F, 36.000F)
                 .texOffs(1, 85).addBox(-3.500F, 3.500F, -18.000F, 7.000F, 2.500F, 36.000F)
                 .texOffs(88, 85).addBox(-3.500F, -4.500F, -19.500F, 7.000F, 8.500F, 2.500F)
                 .texOffs(107, 85).addBox(-3.500F, -4.500F, 17.000F, 7.000F, 8.500F, 2.500F)
-                .texOffs(126, 85).addBox(-3.800F, -7.700F, -17.000F, 7.600F, 1.500F, 34.000F)
-                , PartPose.offset(14.500F, 4.000F, 1.000F));
-        b_tread_r.addOrReplaceChild("wheel_r_0", CubeListBuilder.create()
-                .texOffs(209, 85).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(238, 85).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, -12.000F));
-        b_tread_r.addOrReplaceChild("wheel_r_1", CubeListBuilder.create()
-                .texOffs(261, 85).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(290, 85).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, 0.000F));
-        b_tread_r.addOrReplaceChild("wheel_r_2", CubeListBuilder.create()
-                .texOffs(313, 85).addBox(-3.800F, -3.500F, -3.500F, 7.600F, 7.000F, 7.000F)
-                .texOffs(342, 85).addBox(-4.200F, -1.500F, -1.500F, 8.400F, 3.000F, 3.000F)
-                , PartPose.offset(0.000F, 0.500F, 12.000F));
+                .texOffs(126, 85).addBox(-3.800F, -7.700F, -17.000F, 7.600F, 1.500F, 34.000F),
+                PartPose.offset(14.500F, 4.000F, 1.000F));
+        addSprocketWheel(b_tread_r, "wheel_r_0", -12.000F, 209, 85, 238, 85);
+        addSprocketWheel(b_tread_r, "wheel_r_1",   0.000F, 261, 85, 290, 85);
+        addSprocketWheel(b_tread_r, "wheel_r_2",  12.000F, 313, 85, 342, 85);
+
+        // Open-view roll-cage cockpit with ergonomic seat & lowered dashboard
         PartDefinition b_cockpit_cage = b_chassis_main.addOrReplaceChild("cockpit_cage", CubeListBuilder.create()
-                .texOffs(365, 85).addBox(-5.000F, -3.000F, -4.000F, 10.000F, 3.000F, 8.000F)
+                .texOffs(365, 85).addBox(-5.000F, -3.500F, -4.000F, 10.000F, 3.500F, 8.000F)
                 .texOffs(402, 85).addBox(-5.000F, -13.000F, 2.500F, 10.000F, 10.000F, 2.000F)
-                .texOffs(427, 85).addBox(-8.000F, -6.000F, -11.000F, 16.000F, 6.000F, 4.000F)
-                .texOffs(468, 85).addBox(-9.000F, -23.500F, -11.000F, 1.600F, 21.500F, 1.600F)
-                .texOffs(473, 85).addBox(7.400F, -23.500F, -11.000F, 1.600F, 21.500F, 1.600F)
-                .texOffs(478, 85).addBox(-9.000F, -24.500F, 4.000F, 1.600F, 22.500F, 1.600F)
-                .texOffs(483, 85).addBox(7.400F, -24.500F, 4.000F, 1.600F, 22.500F, 1.600F)
-                .texOffs(1, 124).addBox(-9.000F, -24.600F, -11.000F, 1.600F, 1.600F, 16.600F)
-                .texOffs(36, 124).addBox(7.400F, -24.600F, -11.000F, 1.600F, 1.600F, 16.600F)
-                .texOffs(71, 124).addBox(-9.000F, -24.600F, -11.000F, 18.000F, 1.600F, 1.600F)
-                .texOffs(110, 124).addBox(-9.000F, -24.600F, 4.000F, 18.000F, 1.600F, 1.600F)
-                , PartPose.offset(0.000F, -3.000F, -4.000F));
+                .texOffs(427, 85).addBox(-8.000F, -4.500F, -11.000F, 16.000F, 4.500F, 4.000F)
+                .texOffs(468, 85).addBox(-9.000F, -24.500F, -11.000F, 1.600F, 22.500F, 1.600F)
+                .texOffs(473, 85).addBox(7.400F, -24.500F, -11.000F, 1.600F, 22.500F, 1.600F)
+                .texOffs(478, 85).addBox(-9.000F, -25.500F, 4.000F, 1.600F, 23.500F, 1.600F)
+                .texOffs(483, 85).addBox(7.400F, -25.500F, 4.000F, 1.600F, 23.500F, 1.600F)
+                .texOffs(1, 124).addBox(-9.000F, -25.600F, -11.000F, 1.600F, 1.600F, 16.600F)
+                .texOffs(36, 124).addBox(7.400F, -25.600F, -11.000F, 1.600F, 1.600F, 16.600F)
+                .texOffs(71, 124).addBox(-9.000F, -25.600F, -11.000F, 18.000F, 1.600F, 1.600F)
+                .texOffs(110, 124).addBox(-9.000F, -25.600F, 4.000F, 18.000F, 1.600F, 1.600F),
+                PartPose.offset(0.000F, -3.000F, -4.000F));
+
+        // Dual control levers aligned precisely with the seated driver's outstretched hands
         b_cockpit_cage.addOrReplaceChild("lever_l", CubeListBuilder.create()
-                .texOffs(149, 124).addBox(-0.600F, -5.000F, -0.600F, 1.200F, 5.000F, 1.200F)
-                .texOffs(154, 124).addBox(-1.100F, -6.200F, -1.100F, 2.200F, 1.400F, 2.200F)
-                , PartPose.offsetAndRotation(-5.300F, -5.500F, -6.300F, 0.2618F, -0.0000F, 0.0000F));
+                .texOffs(149, 124).addBox(-0.550F, -4.500F, -0.550F, 1.100F, 4.500F, 1.100F)
+                .texOffs(154, 124).addBox(-1.050F, -5.600F, -1.050F, 2.100F, 1.300F, 2.100F),
+                PartPose.offsetAndRotation(-4.600F, -3.800F, -5.800F, 0.2400F, 0.0000F, 0.0000F));
         b_cockpit_cage.addOrReplaceChild("lever_r", CubeListBuilder.create()
-                .texOffs(163, 124).addBox(-0.600F, -5.000F, -0.600F, 1.200F, 5.000F, 1.200F)
-                .texOffs(168, 124).addBox(-1.100F, -6.200F, -1.100F, 2.200F, 1.400F, 2.200F)
-                , PartPose.offsetAndRotation(5.300F, -5.500F, -6.300F, 0.2618F, -0.0000F, 0.0000F));
+                .texOffs(163, 124).addBox(-0.550F, -4.500F, -0.550F, 1.100F, 4.500F, 1.100F)
+                .texOffs(168, 124).addBox(-1.050F, -5.600F, -1.050F, 2.100F, 1.300F, 2.100F),
+                PartPose.offsetAndRotation(4.600F, -3.800F, -5.800F, 0.2400F, 0.0000F, 0.0000F));
+
+        // Front bore assembly + spiral drill head
         PartDefinition b_drill_assembly = b_chassis_main.addOrReplaceChild("drill_assembly", CubeListBuilder.create()
                 .texOffs(177, 124).addBox(-9.500F, -9.500F, -4.000F, 19.000F, 19.000F, 5.000F)
-                .texOffs(226, 124).addBox(-10.000F, -10.000F, -2.500F, 20.000F, 20.000F, 2.000F)
-                , PartPose.offset(0.000F, -4.000F, -20.000F));
+                .texOffs(226, 124).addBox(-10.000F, -10.000F, -2.500F, 20.000F, 20.000F, 2.000F),
+                PartPose.offset(0.000F, -4.000F, -20.000F));
         b_drill_assembly.addOrReplaceChild("drill_head", CubeListBuilder.create()
                 .texOffs(271, 124).addBox(-8.500F, -8.500F, -5.500F, 17.000F, 17.000F, 5.500F)
                 .texOffs(316, 124).addBox(7.540F, -1.300F, -4.500F, 2.600F, 2.600F, 3.000F)
@@ -157,22 +176,41 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(109, 149).addBox(-3.229F, -0.521F, -23.000F, 2.600F, 2.600F, 3.000F)
                 .texOffs(120, 149).addBox(-0.521F, 0.629F, -23.000F, 2.600F, 2.600F, 3.000F)
                 .texOffs(131, 149).addBox(0.629F, -2.079F, -23.000F, 2.600F, 2.600F, 3.000F)
-                .texOffs(142, 149).addBox(-1.200F, -1.200F, -26.500F, 2.400F, 2.400F, 3.000F)
-                , PartPose.offset(0.000F, -0.000F, -4.000F));
+                .texOffs(142, 149).addBox(-1.200F, -1.200F, -26.500F, 2.400F, 2.400F, 3.000F),
+                PartPose.offset(0.000F, 0.000F, -4.000F));
+
+        // Professional low-profile industrial engine block + twin vertical exhaust smokestacks
         PartDefinition b_engine_unit = b_chassis_main.addOrReplaceChild("engine_unit", CubeListBuilder.create()
-                .texOffs(153, 149).addBox(-8.500F, -5.000F, -4.000F, 17.000F, 5.000F, 9.000F)
-                .texOffs(206, 149).addBox(-9.500F, -9.000F, -3.000F, 2.000F, 7.000F, 2.000F)
-                .texOffs(215, 149).addBox(7.500F, -9.000F, -3.000F, 2.000F, 7.000F, 2.000F)
-                .texOffs(224, 149).addBox(-9.500F, -8.000F, 2.000F, 2.000F, 6.000F, 2.000F)
-                .texOffs(233, 149).addBox(7.500F, -8.000F, 2.000F, 2.000F, 6.000F, 2.000F)
-                , PartPose.offset(0.000F, -3.000F, 6.000F));
-        b_engine_unit.addOrReplaceChild("reactor_core", CubeListBuilder.create()
-                .texOffs(242, 149).addBox(-4.500F, -4.500F, -4.500F, 9.000F, 9.000F, 9.000F)
-                .texOffs(279, 149).addBox(-2.500F, -2.500F, -2.500F, 5.000F, 5.000F, 5.000F)
-                .texOffs(300, 149).addBox(-5.000F, -6.000F, -5.000F, 10.000F, 1.500F, 10.000F)
-                , PartPose.offset(0.000F, -9.500F, 0.500F));
-        b_chassis_main.addOrReplaceChild("chest_mount", CubeListBuilder.create()
-                , PartPose.offset(0.000F, -3.000F, 15.500F));
+                // Low armored diesel/Geo engine manifold block (keeps 3rd-person center sightline wide open)
+                .texOffs(153, 149).addBox(-7.500F, -5.500F, -3.500F, 15.000F, 5.500F, 8.500F)
+                // Top armored valve cover & radiator slats
+                .texOffs(238, 46).addBox(-5.500F, -6.800F, -2.500F, 11.000F, 1.300F, 6.500F)
+                // Subtle low recessed Geo furnace vent strip (emissive accent, never obstructs camera)
+                .texOffs(242, 149).addBox(-4.000F, -4.400F, 4.600F, 8.000F, 2.400F, 0.700F)
+                // Left exhaust muffler drum + vertical smokestack pipe + brass heat-shield collars
+                .texOffs(153, 149).addBox(-9.800F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
+                .texOffs(153, 149).addBox(-9.400F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
+                .texOffs(206, 149).addBox(-9.850F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(206, 149).addBox(-9.850F, -13.200F, -0.450F, 3.500F, 1.400F, 3.500F)
+                .texOffs(238, 46).addBox(-9.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F)
+                // Right exhaust muffler drum + vertical smokestack pipe + brass heat-shield collars
+                .texOffs(153, 149).addBox(6.400F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
+                .texOffs(153, 149).addBox(6.800F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
+                .texOffs(206, 149).addBox(6.350F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(206, 149).addBox(6.350F, -13.200F, -0.450F, 3.500F, 1.400F, 3.500F)
+                .texOffs(238, 46).addBox(6.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F),
+                PartPose.offset(0.000F, -3.000F, 6.200F));
+
+        // Hinged industrial rain-flapper caps on top of both twin smokestacks
+        b_engine_unit.addOrReplaceChild("flapper_l", CubeListBuilder.create()
+                .texOffs(238, 46).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.700F, 3.200F),
+                PartPose.offset(-8.100F, -16.100F, 2.800F));
+        b_engine_unit.addOrReplaceChild("flapper_r", CubeListBuilder.create()
+                .texOffs(238, 46).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.700F, 3.200F),
+                PartPose.offset(8.100F, -16.100F, 2.800F));
+
+        b_chassis_main.addOrReplaceChild("chest_mount", CubeListBuilder.create(),
+                PartPose.offset(0.000F, -3.000F, 15.500F));
         return LayerDefinition.create(mesh, 512, 512);
     }
 

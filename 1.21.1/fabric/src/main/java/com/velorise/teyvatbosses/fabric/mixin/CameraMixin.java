@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.fabric.mixin;
 
+import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.Camera;
@@ -30,6 +31,9 @@ public abstract class CameraMixin {
         if (RuinSubClientController.isPilotingSubmersible()) {
             return RuinSubClientController.THIRD_PERSON_ZOOM;
         }
+        if (GeoDrillerClientController.isPilotingDriller()) {
+            return GeoDrillerClientController.THIRD_PERSON_ZOOM;
+        }
         return originalDistance;
     }
 
@@ -41,6 +45,9 @@ public abstract class CameraMixin {
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             float[] off = RuinSubClientController.computeCameraOffsets(partialTick);
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
+        } else if (detached && GeoDrillerClientController.isThirdPersonLocked()) {
+            float lockedYaw = GeoDrillerClientController.getLockedThirdPersonYaw(partialTick);
+            this.setRotation(thirdPersonReverse ? lockedYaw + 180.0F : lockedYaw, thirdPersonReverse ? -14.0F : 14.0F);
         }
     }
 }

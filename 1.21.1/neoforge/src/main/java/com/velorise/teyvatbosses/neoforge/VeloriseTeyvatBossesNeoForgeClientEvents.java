@@ -34,7 +34,7 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
     @SubscribeEvent
     public static void onInteractionKey(InputEvent.InteractionKeyMappingTriggered event) {
         // Prevent vanilla block placement / punching / hand swing while firing submarine torpedoes (LMB) or Sonar (RMB)
-        if (RuinSubClientController.isPilotingSubmersible() && (event.isAttack() || event.isUseItem())) {
+        if ((RuinSubClientController.isPilotingSubmersible() || GeoDrillerClientController.isPilotingDriller()) && (event.isAttack() || event.isUseItem())) {
             event.setSwingHand(false);
             event.setCanceled(true);
         }
@@ -52,6 +52,11 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);
+        } else if (GeoDrillerClientController.isThirdPersonLocked()) {
+            float lockedYaw = GeoDrillerClientController.getLockedThirdPersonYaw((float) event.getPartialTick());
+            boolean reverse = Minecraft.getInstance().options.getCameraType() == net.minecraft.client.CameraType.THIRD_PERSON_FRONT;
+            event.setYaw(reverse ? lockedYaw + 180.0F : lockedYaw);
+            event.setPitch(reverse ? -14.0F : 14.0F);
         }
     }
 
@@ -61,6 +66,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setDistance(RuinMechCameraController.THIRD_PERSON_ZOOM);
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             event.setDistance(RuinSubClientController.THIRD_PERSON_ZOOM);
+        } else if (GeoDrillerClientController.isPilotingDriller()) {
+            event.setDistance(GeoDrillerClientController.THIRD_PERSON_ZOOM);
         }
     }
 }

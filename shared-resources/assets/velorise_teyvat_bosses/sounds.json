@@ -107,5 +107,15 @@
         "stream": true
       }
     ]
+  },
+  "sfx.drill_engine_idle": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/drill_engine_idle"
+    ]
+  },
+  "sfx.drill_bore_spin": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/drill_bore_spin"
+    ]
   }
 }

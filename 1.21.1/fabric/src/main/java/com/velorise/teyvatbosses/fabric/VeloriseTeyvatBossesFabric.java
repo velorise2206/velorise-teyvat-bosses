@@ -292,6 +292,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_SUB_BALLAST_HISS = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.sub_ballast_hiss"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.sub_ballast_hiss")));
+    public static final SoundEvent SOUND_DRILL_ENGINE_IDLE = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.drill_engine_idle"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_engine_idle")));
+    public static final SoundEvent SOUND_DRILL_BORE_SPIN = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.drill_bore_spin"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_bore_spin")));
 
     // 5 Music Discs
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
@@ -379,7 +385,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
                 () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS,
-                () -> SOUND_SUB_PROPELLER_HUM, () -> SOUND_SUB_SONAR_PING, () -> SOUND_SUB_TORPEDO_LAUNCH, () -> SOUND_SUB_BALLAST_HISS
+                () -> SOUND_SUB_PROPELLER_HUM, () -> SOUND_SUB_SONAR_PING, () -> SOUND_SUB_TORPEDO_LAUNCH, () -> SOUND_SUB_BALLAST_HISS,
+                () -> SOUND_DRILL_ENGINE_IDLE, () -> SOUND_DRILL_BORE_SPIN
         );
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE, () -> MUSIC_DISC_ANEMO_HYPOSTASIS, () -> MUSIC_DISC_RUIN_GUARD,

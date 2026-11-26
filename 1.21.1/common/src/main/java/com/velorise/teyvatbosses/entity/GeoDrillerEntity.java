@@ -93,6 +93,10 @@ public class GeoDrillerEntity extends Mob {
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_HEADLIGHT =
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_PAVE_ENABLED =
+            SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DATA_SURGE_TICKS =
+            SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_THROTTLE =
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_STEER =
@@ -111,14 +115,19 @@ public class GeoDrillerEntity extends Mob {
     private final SimpleContainer cargo = new SimpleContainer(54);
     private BlockPos activeLightPos = null;
     private int mineCooldown = 0;
+    private int surgeCooldown = 0;
 
     // Client + Server smooth mechanical inertia & partialTick animation state
-    public float wheelSpin = 0.0F, prevWheelSpin = 0.0F;
+    public float wheelSpinL = 0.0F, prevWheelSpinL = 0.0F;
+    public float wheelSpinR = 0.0F, prevWheelSpinR = 0.0F;
     public float drillSpin = 0.0F, prevDrillSpin = 0.0F;
     public float driveSpool = 0.0F, prevDriveSpool = 0.0F;
     public float drillSpool = 0.0F, prevDrillSpool = 0.0F;
     public float leverLAngle = 0.0F, prevLeverLAngle = 0.0F;
     public float leverRAngle = 0.0F, prevLeverRAngle = 0.0F;
+    public float flapperAngle = 0.0F, prevFlapperAngle = 0.0F;
+    private double lastTrackX = 0.0D, lastTrackZ = 0.0D;
+    private boolean hasLastTrackPos = false;
 
     public GeoDrillerEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -144,6 +153,8 @@ public class GeoDrillerEntity extends Mob {
         builder.define(DATA_DRILL_ARMED, false); // Default OFF so driving near base never breaks walls accidentally
         builder.define(DATA_PITCH_MODE, PITCH_LEVEL);
         builder.define(DATA_HEADLIGHT, false);
+        builder.define(DATA_PAVE_ENABLED, false);
+        builder.define(DATA_SURGE_TICKS, 0);
         builder.define(DATA_THROTTLE, 0.0F);
         builder.define(DATA_STEER, 0.0F);
         builder.define(DATA_FORTUNE, 0);
@@ -168,6 +179,9 @@ public class GeoDrillerEntity extends Mob {
     public boolean isDrilling() { return isDrillArmed() && isVehicle() && getFuel() > 0; }
     public int getPitchMode() { return entityData.get(DATA_PITCH_MODE); }
     public boolean isHeadlightOn() { return entityData.get(DATA_HEADLIGHT); }
+    public boolean isPaveEnabled() { return entityData.get(DATA_PAVE_ENABLED); }
+    public int getSurgeTicks() { return entityData.get(DATA_SURGE_TICKS); }
+    public boolean isSurging() { return getSurgeTicks() > 0; }
     public float getThrottleInput() { return entityData.get(DATA_THROTTLE); }
     public float getSteerInput() { return entityData.get(DATA_STEER); }
     public int getFortuneLevel() { return entityData.get(DATA_FORTUNE); }
@@ -202,8 +216,30 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dims, float partialTick) {
-        // Seated snugly inside the raised cockpit_cage right behind lever_l & lever_r
-        return new Vec3(0.0D, 0.56D, -0.22D);
+        // Centered cleanly on the cockpit seat cushion (+Z is forward) with clear eye-line over the hood
+        return new Vec3(0.0D, 0.78D, 0.24D);
+    }
+
+    @Override
+    protected void positionRider(Entity passenger, MoveFunction callback) {
+        super.positionRider(passenger, callback);
+        clampPassengerBody(passenger);
+    }
+
+    @Override
+    public void onPassengerTurned(Entity passenger) {
+        clampPassengerBody(passenger);
+    }
+
+    private void clampPassengerBody(Entity passenger) {
+        passenger.setYBodyRot(this.getYRot());
+        float delta = Mth.wrapDegrees(passenger.getYRot() - this.getYRot());
+        float clamped = Mth.clamp(delta, -90.0F, 90.0F);
+        if (Math.abs(delta - clamped) > 0.01F) {
+            passenger.yRotO += clamped - delta;
+            passenger.setYRot(this.getYRot() + clamped);
+        }
+        passenger.setYHeadRot(passenger.getYRot());
     }
 
     public void handleControlAction(int action, Player player) {
@@ -222,6 +258,22 @@ public class GeoDrillerEntity extends Mob {
             entityData.set(DATA_HEADLIGHT, next);
             level().playSound(null, getX(), getY() + 1.1D, getZ(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.9F, next ? 1.3F : 0.8F);
             if (!next && level() instanceof ServerLevel sl) clearHeadlight(sl);
+        } else if (action == GeoDrillerControlPayload.ACTION_TOGGLE_PAVE) {
+            boolean next = !isPaveEnabled();
+            entityData.set(DATA_PAVE_ENABLED, next);
+            level().playSound(null, getX(), getY() + 1.1D, getZ(), SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 0.9F, next ? 1.15F : 0.75F);
+        } else if (action == GeoDrillerControlPayload.ACTION_DRILL_SURGE) {
+            if (surgeCooldown <= 0 && getFuel() >= 4 && !isSurging()) {
+                entityData.set(DATA_SURGE_TICKS, 12);
+                surgeCooldown = 40;
+                driveSpool = 1.0F;
+                drillSpool = 1.0F;
+                consumeFuel(4);
+                level().playSound(null, getX(), getY() + 1.1D, getZ(),
+                        TeyvatBossesSounds.drillBoreSpin() != null ? TeyvatBossesSounds.drillBoreSpin() : SoundEvents.PISTON_EXTEND,
+                        SoundSource.PLAYERS, 1.0F, 1.25F);
+                level().playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.PISTON_EXTEND, SoundSource.PLAYERS, 0.85F, 0.72F);
+            }
         }
     }
 
@@ -437,46 +489,102 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     public void tick() {
-        prevWheelSpin = wheelSpin;
+        prevWheelSpinL = wheelSpinL;
+        prevWheelSpinR = wheelSpinR;
         prevDrillSpin = drillSpin;
         prevDriveSpool = driveSpool;
         prevDrillSpool = drillSpool;
         prevLeverLAngle = leverLAngle;
         prevLeverRAngle = leverRAngle;
+        prevFlapperAngle = flapperAngle;
 
         super.tick();
 
         // Update smooth mechanical spool-up & lever angles on BOTH sides so client & server match
         float thr = getThrottleInput();
+        float steer = getSteerInput();
         boolean hasFuel = getFuel() > 0;
-        boolean wantsDrive = isVehicle() && isFullyAssembled() && hasFuel && Math.abs(thr) > 0.05F;
-        boolean wantsDrill = isDrilling();
+        boolean engineRunning = isVehicle() && isFullyAssembled() && hasFuel;
+        boolean surging = isSurging();
+        boolean wantsDrive = engineRunning && (Math.abs(thr) > 0.05F || surging);
+        boolean wantsDrill = isDrilling() || (engineRunning && surging);
 
-        // Heavy mechanical inertia: ~0.65s (13 ticks) engine spool-up before full drive torque!
+        // Heavy mechanical inertia: ~0.65s (13 ticks) engine spool-up before full drive torque
         driveSpool = wantsDrive ? Math.min(1.0F, driveSpool + 0.08F) : Math.max(0.0F, driveSpool - 0.12F);
         drillSpool = wantsDrill ? Math.min(1.0F, drillSpool + 0.075F) : Math.max(0.0F, drillSpool - 0.10F);
 
         // Left lever = forward/reverse throttle; Right lever = drill engage + pitch angle
-        float targetLeverL = wantsDrive ? Mth.clamp(thr, -1.0F, 1.0F) * 0.45F : 0.0F;
-        float targetLeverR = (isDrillArmed() ? 0.38F : -0.18F)
-                + (getPitchMode() == PITCH_DOWN ? 0.18F : (getPitchMode() == PITCH_UP ? -0.18F : 0.0F));
+        float targetLeverL = wantsDrive ? Mth.clamp(thr, -1.0F, 1.0F) * 0.42F : 0.0F;
+        float targetLeverR = (isDrillArmed() ? 0.34F : -0.16F)
+                + (getPitchMode() == PITCH_DOWN ? 0.16F : (getPitchMode() == PITCH_UP ? -0.16F : 0.0F));
         leverLAngle = Mth.lerp(0.26F, leverLAngle, targetLeverL);
         leverRAngle = Mth.lerp(0.26F, leverRAngle, targetLeverR);
 
-        // True signed displacement along facing vector for silky partial-tick wheel & tread rotation!
+        // Smokestack rain-flapper cap lifts dynamically with engine load & exhaust pulses
+        float engineLoad = Math.max(driveSpool, drillSpool);
+        float targetFlapper = engineRunning
+                ? (0.22F + engineLoad * 0.68F + Mth.sin(tickCount * (0.55F + engineLoad * 0.9F)) * (0.06F + engineLoad * 0.12F))
+                : 0.0F;
+        flapperAngle = Mth.lerp(0.32F, flapperAngle, targetFlapper);
+
+        // True signed displacement tracked independently of super.tick() resetting xo/zo
+        if (!hasLastTrackPos) {
+            lastTrackX = getX();
+            lastTrackZ = getZ();
+            hasLastTrackPos = true;
+        }
+        double dx = getX() - lastTrackX;
+        double dz = getZ() - lastTrackZ;
+        lastTrackX = getX();
+        lastTrackZ = getZ();
         Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
-        double dx = getX() - xo;
-        double dz = getZ() - zo;
         double signedDist = dx * fwd.x + dz * fwd.z;
-        wheelSpin += (float) (signedDist * 3.4D);
-        drillSpin += drillSpool * 0.78F + (isVehicle() && hasFuel ? 0.04F : 0.0F);
+        float rollDelta = (float) (signedDist * 4.2D);
+        float tankSteerDelta = (engineRunning && Math.abs(steer) > 0.05F) ? steer * 0.24F : 0.0F;
+        wheelSpinL += rollDelta - tankSteerDelta;
+        wheelSpinR += rollDelta + tankSteerDelta;
+        drillSpin += drillSpool * (surging ? 1.35F : 0.78F) + (engineRunning ? 0.04F : 0.0F);
 
         if (level().isClientSide()) {
+            // Twin industrial smokestack exhaust plumes
+            if (engineRunning && (getPartMask() & PART_ENGINE) != 0) {
+                int interval = engineLoad > 0.2F ? 2 : 5;
+                if (tickCount % interval == 0) {
+                    Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
+                    double backOffset = -0.48D;
+                    double sideOffset = 0.52D;
+                    double stackTopY = getY() + 1.82D;
+                    for (int side = -1; side <= 1; side += 2) {
+                        double sx = getX() + fwd.x * backOffset + right.x * (side * sideOffset);
+                        double sz = getZ() + fwd.z * backOffset + right.z * (side * sideOffset);
+                        level().addParticle(
+                                engineLoad > 0.35F ? ParticleTypes.LARGE_SMOKE : ParticleTypes.SMOKE,
+                                sx, stackTopY, sz,
+                                (random.nextDouble() - 0.5D) * 0.015D,
+                                0.055D + engineLoad * 0.05D,
+                                (random.nextDouble() - 0.5D) * 0.015D
+                        );
+                        if (engineLoad > 0.55F && random.nextFloat() < 0.35F) {
+                            level().addParticle(
+                                    ParticleTypes.FLAME,
+                                    sx, stackTopY - 0.04D, sz,
+                                    (random.nextDouble() - 0.5D) * 0.01D,
+                                    0.04D,
+                                    (random.nextDouble() - 0.5D) * 0.01D
+                            );
+                        }
+                    }
+                }
+            }
             return;
         }
 
         ServerLevel sl = (ServerLevel) level();
         if (mineCooldown > 0) mineCooldown--;
+        if (surgeCooldown > 0) surgeCooldown--;
+        if (getSurgeTicks() > 0) {
+            entityData.set(DATA_SURGE_TICKS, getSurgeTicks() - 1);
+        }
 
         if (isAlive() && isFullyAssembled() && getControllingPassenger() instanceof Player pilot) {
             float pFwd = pilot.zza;
@@ -484,10 +592,22 @@ public class GeoDrillerEntity extends Mob {
             entityData.set(DATA_THROTTLE, pFwd);
             entityData.set(DATA_STEER, pSide);
 
-            // Engine rumble while spooling up or drilling
-            if ((wantsDrive || wantsDrill) && tickCount % 16 == 0) {
-                if (TeyvatBossesSounds.mechEngineHum() != null) {
-                    sl.playSound(null, getX(), getY() + 1.0D, getZ(), TeyvatBossesSounds.mechEngineHum(), SoundSource.PLAYERS, 0.55F, 0.72F + driveSpool * 0.28F);
+            // Custom diesel engine idle/drive rumble
+            if (hasFuel && tickCount % 36 == 0) {
+                var idleSfx = TeyvatBossesSounds.drillEngineIdle() != null
+                        ? TeyvatBossesSounds.drillEngineIdle()
+                        : TeyvatBossesSounds.mechEngineHum();
+                if (idleSfx != null) {
+                    sl.playSound(null, getX(), getY() + 1.0D, getZ(), idleSfx, SoundSource.PLAYERS,
+                            wantsDrive ? 0.72F : 0.45F, 0.86F + driveSpool * 0.28F);
+                }
+            }
+            // Custom bore-head spinning sound while drilling
+            if (wantsDrill && tickCount % 32 == 0) {
+                var boreSfx = TeyvatBossesSounds.drillBoreSpin();
+                if (boreSfx != null) {
+                    sl.playSound(null, getX() + fwd.x * 1.8D, getY() + 0.9D, getZ() + fwd.z * 1.8D,
+                            boreSfx, SoundSource.PLAYERS, 0.78F, surging ? 1.22F : 1.0F);
                 }
             }
 
@@ -499,14 +619,22 @@ public class GeoDrillerEntity extends Mob {
                 clearHeadlight(sl);
             }
 
-            // Active drilling: bore tunnel, auto-bridge floor, seal lava, damage mobs in front!
-            if (wantsDrill && drillSpool >= 0.45F) {
+            // Active drilling & RMB forward surge: bore tunnel, auto-pave when [B] ON, damage mobs in front
+            if (surging) {
+                if (mineCooldown <= 0) {
+                    mineAndBridge(sl, pilot, fwd);
+                    mineCooldown = 1;
+                }
+                if (tickCount % 3 == 0) {
+                    damageEntitiesInDrill(sl, pilot, fwd, 16.0F, 1.15D);
+                }
+            } else if (wantsDrill && drillSpool >= 0.45F) {
                 if (mineCooldown <= 0) {
                     mineAndBridge(sl, pilot, fwd);
                     mineCooldown = Math.max(2, 5 - getEfficiencyLevel());
                 }
                 if (tickCount % 6 == 0) {
-                    damageEntitiesInDrill(sl, pilot, fwd);
+                    damageEntitiesInDrill(sl, pilot, fwd, 10.0F, 0.65D);
                 }
             }
 
@@ -542,15 +670,22 @@ public class GeoDrillerEntity extends Mob {
                 this.yHeadRot = this.getYRot();
             }
             boolean hasFuel = getFuel() > 0;
-            // Heavy spool-up: engine rumbles for ~0.5s (driveSpool < 0.35) before rolling smoothly up to cruise speed!
-            float torque = Mth.clamp((driveSpool - 0.30F) / 0.70F, 0.0F, 1.0F);
-            if (hasFuel && Math.abs(fwd) > 0.05F && torque > 0.02F) {
-                float baseSpd = fwd > 0 ? 0.21F : 0.12F;
-                this.setSpeed(baseSpd * torque);
-                super.travel(new Vec3(0.0D, travelVector.y, fwd));
+            if (isSurging()) {
+                // Rapid RMB forward drill surge (~4.5-5.5 blocks burst)
+                float surgeFrac = Mth.clamp(getSurgeTicks() / 12.0F, 0.25F, 1.0F);
+                this.setSpeed(0.56F * surgeFrac);
+                super.travel(new Vec3(0.0D, travelVector.y, 1.0D));
             } else {
-                setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
-                super.travel(Vec3.ZERO);
+                // Heavy spool-up: engine rumbles briefly before rolling smoothly up to cruise speed
+                float torque = Mth.clamp((driveSpool - 0.30F) / 0.70F, 0.0F, 1.0F);
+                if (hasFuel && Math.abs(fwd) > 0.05F && torque > 0.02F) {
+                    float baseSpd = fwd > 0 ? 0.21F : 0.12F;
+                    this.setSpeed(baseSpd * torque);
+                    super.travel(new Vec3(0.0D, travelVector.y, fwd));
+                } else {
+                    setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
+                    super.travel(Vec3.ZERO);
+                }
             }
             return;
         }
@@ -582,18 +717,18 @@ public class GeoDrillerEntity extends Mob {
         int yShift = pitch == PITCH_DOWN ? -1 : (pitch == PITCH_UP ? 1 : 0);
 
         boolean minedAny = false;
-        double[] depths = {1.75D, 2.50D};
+        int baseY = Mth.floor(getY()) + yShift;
+        double[] depths = {1.45D, 2.15D, 2.80D};
         for (double depth : depths) {
             Vec3 slice = position().add(fwd.scale(depth));
-            int baseY = Mth.floor(getY()) + yShift;
 
-            // 1. Mine bore cross-section
+            // 1. Mine bore cross-section cleanly across full width
             for (int dy = 0; dy < height; dy++) {
-                for (int dx = minDx; dx <= maxDx; dx++) {
+                for (double dx = minDx; dx <= maxDx; dx += 0.5D) {
                     BlockPos bp = BlockPos.containing(slice.x + right.x * dx, baseY + dy + 0.1D, slice.z + right.z * dx);
                     BlockState state = sl.getBlockState(bp);
                     if (state.getFluidState().is(FluidTags.LAVA)) {
-                        tryPlaceBridgeBlock(sl, bp); // Seal lava pockets directly ahead!
+                        tryPlaceBridgeBlock(sl, bp); // Seal lava pockets directly ahead
                         continue;
                     }
                     if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
@@ -608,13 +743,19 @@ public class GeoDrillerEntity extends Mob {
                     minedAny = true;
                 }
             }
+        }
 
-            // 2. Auto-bridge floor underneath treads (and build step-up ramp when PITCH_UP!)
-            for (int dx = -1; dx <= 1; dx++) {
-                BlockPos floorPos = BlockPos.containing(slice.x + right.x * dx, baseY - 0.9D, slice.z + right.z * dx);
-                BlockState floorState = sl.getBlockState(floorPos);
-                if (floorState.isAir() || !floorState.getFluidState().isEmpty() || floorState.canBeReplaced()) {
-                    tryPlaceBridgeBlock(sl, floorPos);
+        // 2. Thorough gap-free auto-paving ONLY when toggle [B] is ON and NOT drilling downward (PITCH_DOWN)
+        if (isPaveEnabled() && pitch != PITCH_DOWN) {
+            int floorY = baseY - 1;
+            for (double depth = 0.35D; depth <= 2.65D; depth += 0.45D) {
+                Vec3 slice = position().add(fwd.scale(depth));
+                for (double dx = -1.25D; dx <= 1.25D; dx += 0.5D) {
+                    BlockPos floorPos = BlockPos.containing(slice.x + right.x * dx, floorY + 0.1D, slice.z + right.z * dx);
+                    BlockState floorState = sl.getBlockState(floorPos);
+                    if (floorState.isAir() || !floorState.getFluidState().isEmpty() || floorState.canBeReplaced()) {
+                        tryPlaceBridgeBlock(sl, floorPos);
+                    }
                 }
             }
         }
@@ -646,13 +787,13 @@ public class GeoDrillerEntity extends Mob {
                 || b == Blocks.DEEPSLATE || b == Blocks.DIRT || b == Blocks.NETHERRACK || b == Blocks.TUFF;
     }
 
-    private void damageEntitiesInDrill(ServerLevel sl, Player pilot, Vec3 fwd) {
+    private void damageEntitiesInDrill(ServerLevel sl, Player pilot, Vec3 fwd, float damage, double knockback) {
         Vec3 tip = position().add(fwd.scale(2.2D)).add(0.0D, 1.0D, 0.0D);
         AABB box = new AABB(tip.x - 1.4D, tip.y - 1.1D, tip.z - 1.4D, tip.x + 1.4D, tip.y + 1.3D, tip.z + 1.4D);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
             if (e == this || e == pilot || !e.isAlive()) continue;
-            if (e.hurt(sl.damageSources().mobAttack(this), 10.0F)) {
-                e.setDeltaMovement(fwd.x * 0.65D, 0.32D, fwd.z * 0.65D);
+            if (e.hurt(sl.damageSources().mobAttack(this), damage)) {
+                e.setDeltaMovement(fwd.x * knockback, 0.36D, fwd.z * knockback);
                 e.hurtMarked = true;
                 sl.playSound(null, e.getX(), e.getY() + 0.8D, e.getZ(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.55F, 1.35F);
                 sl.sendParticles(ParticleTypes.CRIT, e.getX(), e.getY() + 0.8D, e.getZ(), 10, 0.35D, 0.35D, 0.35D, 0.12D);
@@ -711,6 +852,7 @@ public class GeoDrillerEntity extends Mob {
         tag.putInt("Fuel", getFuel());
         tag.putBoolean("DrillArmed", isDrillArmed());
         tag.putInt("PitchMode", getPitchMode());
+        tag.putBoolean("PaveEnabled", isPaveEnabled());
         tag.putInt("Fortune", getFortuneLevel());
         tag.putBoolean("SilkTouch", hasSilkTouch());
         tag.putInt("Efficiency", getEfficiencyLevel());
@@ -736,6 +878,7 @@ public class GeoDrillerEntity extends Mob {
         if (tag.contains("Fuel")) entityData.set(DATA_FUEL, Mth.clamp(tag.getInt("Fuel"), 0, MAX_FUEL));
         if (tag.contains("DrillArmed")) entityData.set(DATA_DRILL_ARMED, tag.getBoolean("DrillArmed"));
         if (tag.contains("PitchMode")) entityData.set(DATA_PITCH_MODE, Mth.clamp(tag.getInt("PitchMode"), 0, 2));
+        if (tag.contains("PaveEnabled")) entityData.set(DATA_PAVE_ENABLED, tag.getBoolean("PaveEnabled"));
         if (tag.contains("Fortune")) entityData.set(DATA_FORTUNE, Mth.clamp(tag.getInt("Fortune"), 0, 3));
         if (tag.contains("SilkTouch")) entityData.set(DATA_SILK, tag.getBoolean("SilkTouch"));
         if (tag.contains("Efficiency")) entityData.set(DATA_EFFICIENCY, Mth.clamp(tag.getInt("Efficiency"), 0, 5));
