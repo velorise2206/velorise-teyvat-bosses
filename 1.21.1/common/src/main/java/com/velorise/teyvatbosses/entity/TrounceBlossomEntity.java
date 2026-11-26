@@ -141,17 +141,11 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.BREEZE_ROD, 3 + random.nextInt(3)));
-        } else if (kind == BossRespawnAnchorEntity.BOSS_ASTRALION) {
-            if (TeyvatBossesItems.astralionDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.astralionDisc()));
-            giveToPlayer(sl, player, new ItemStack(Items.NETHERITE_SCRAP, 2 + random.nextInt(3)));
-            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 5 + random.nextInt(4)));
-            giveToPlayer(sl, player, new ItemStack(Items.AMETHYST_SHARD, 12 + random.nextInt(9)));
-            giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 8 + random.nextInt(6)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_GUARD) {
             if (TeyvatBossesItems.ruinGuardDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
-            int partDrops = 2 + random.nextInt(2); // 2-3 random Mech salvage parts
+            int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Mech salvage parts
             for (int i = 0; i < partDrops; i++) {
-                Item mechPart = TeyvatBossesItems.randomMechPart(random);
+                Item mechPart = pickSmartPart(player, TeyvatBossesItems.mechPartPool());
                 if (mechPart != null) giveToPlayer(sl, player, new ItemStack(mechPart));
             }
             giveToPlayer(sl, player, new ItemStack(Items.IRON_BLOCK, 2 + random.nextInt(3)));
@@ -160,9 +154,9 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.BLAZE_ROD, 4 + random.nextInt(4)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS) {
             if (TeyvatBossesItems.ruinNautilusDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinNautilusDisc()));
-            int partDrops = 2 + random.nextInt(2); // 2-3 random Submersible salvage parts
+            int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Submersible salvage parts
             for (int i = 0; i < partDrops; i++) {
-                Item subPart = TeyvatBossesItems.randomSubPart(random);
+                Item subPart = pickSmartPart(player, TeyvatBossesItems.subPartPool());
                 if (subPart != null) giveToPlayer(sl, player, new ItemStack(subPart));
             }
             giveToPlayer(sl, player, new ItemStack(Items.SEA_LANTERN, 3 + random.nextInt(3)));
@@ -170,17 +164,23 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
             if (TeyvatBossesItems.cryoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.cryoDisc()));
-            int partDrops = 2 + random.nextInt(2); // 2-3 random Cryo Turret salvage parts
+            int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Cryo Turret salvage parts
             for (int i = 0; i < partDrops; i++) {
-                Item cryoPart = TeyvatBossesItems.randomCryoTurretPart(random);
+                Item cryoPart = pickSmartPart(player, TeyvatBossesItems.cryoTurretPartPool());
                 if (cryoPart != null) giveToPlayer(sl, player, new ItemStack(cryoPart));
             }
             giveToPlayer(sl, player, new ItemStack(Items.BLUE_ICE, 16));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
-        } else {
-            if (TeyvatBossesItems.openEyedDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.openEyedDisc()));
-            giveToPlayer(sl, player, new ItemStack(Items.GOLD_INGOT, 10 + random.nextInt(6)));
+        } else { // Primo Geovishap: drops 1-2 smart Geo Driller salvage parts + trophy + disc
+            if (TeyvatBossesItems.primoGeovishapDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primoGeovishapDisc()));
+            int partDrops = 1 + random.nextInt(2); // 1-2 Geo Driller salvage parts
+            for (int i = 0; i < partDrops; i++) {
+                Item drillPart = pickSmartPart(player, TeyvatBossesItems.geoDrillerPartPool());
+                if (drillPart != null) giveToPlayer(sl, player, new ItemStack(drillPart));
+            }
+            giveToPlayer(sl, player, new ItemStack(Items.RAW_GOLD, 8 + random.nextInt(6)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
+            giveToPlayer(sl, player, new ItemStack(Items.AMETHYST_SHARD, 8 + random.nextInt(6)));
         }
         ExperienceOrb.award(sl, player.position().add(0.0D, 0.5D, 0.0D), 280);
         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.claimed")

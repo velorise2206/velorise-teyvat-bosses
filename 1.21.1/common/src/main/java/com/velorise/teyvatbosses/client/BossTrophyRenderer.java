@@ -7,16 +7,14 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.block.BossTrophyBlock;
 import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
-import com.velorise.teyvatbosses.client.model.AstralionAnimations;
-import com.velorise.teyvatbosses.client.model.AstralionModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineAnimations;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
+import com.velorise.teyvatbosses.client.model.PrimoGeovishapAnimations;
+import com.velorise.teyvatbosses.client.model.PrimoGeovishapModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardAnimations;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusAnimations;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
-import com.velorise.teyvatbosses.client.model.TheOpenEyedAnimations;
-import com.velorise.teyvatbosses.client.model.TheOpenEyedModel;
 import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -31,45 +29,38 @@ import org.joml.Matrix4f;
 
 /**
  * Renders 3D Miniature Boss Trophies as zero-lag static statues on a gilded pedestal.
- * All 5 boss poses are pre-baked once in the constructor so placing dozens of trophies
- * incurs zero per-frame animation calculation overhead.
  */
 public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEntity> {
 
     private static final ResourceLocation TEX_CRYO = TeyvatBossesConstants.id("textures/entity/cryo_regisvine_boss.png");
-    private static final ResourceLocation TEX_EYE = TeyvatBossesConstants.id("textures/entity/the_open_eyed.png");
     private static final ResourceLocation TEX_ANEMO = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis.png");
     private static final ResourceLocation TEX_ANEMO_EM = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis_emissive.png");
     private static final ResourceLocation TEX_RUIN = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss.png");
     private static final ResourceLocation TEX_RUIN_EM = TeyvatBossesConstants.id("textures/entity/ruin_guard_boss_emissive.png");
-    private static final ResourceLocation TEX_ASTRALION = TeyvatBossesConstants.id("textures/entity/astralion_boss.png");
-    private static final ResourceLocation TEX_ASTRALION_EM = TeyvatBossesConstants.id("textures/entity/astralion_boss_emissive.png");
     private static final ResourceLocation TEX_NAUTILUS = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss.png");
     private static final ResourceLocation TEX_NAUTILUS_EM = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss_emissive.png");
+    private static final ResourceLocation TEX_PRIMO = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss.png");
+    private static final ResourceLocation TEX_PRIMO_EM = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss_emissive.png");
 
     private final CryoRegisvineModel<Entity> cryoModel;
-    private final TheOpenEyedModel<Entity> eyeModel;
     private final AnemoHypostasisModel<Entity> anemoModel;
     private final RuinGuardModel<Entity> ruinModel;
-    private final AstralionModel<Entity> astralionModel;
     private final RuinNautilusModel<Entity> nautilusModel;
+    private final PrimoGeovishapModel<Entity> primoModel;
 
     public BossTrophyRenderer(BlockEntityRendererProvider.Context ctx) {
         this.cryoModel = new CryoRegisvineModel<>(ctx.bakeLayer(CryoRegisvineModel.LAYER_LOCATION));
-        this.eyeModel = new TheOpenEyedModel<>(ctx.bakeLayer(TheOpenEyedModel.LAYER_LOCATION));
         this.anemoModel = new AnemoHypostasisModel<>(ctx.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
         this.ruinModel = new RuinGuardModel<>(ctx.bakeLayer(RuinGuardModel.LAYER_LOCATION));
-        this.astralionModel = new AstralionModel<>(ctx.bakeLayer(AstralionModel.LAYER_LOCATION));
         this.nautilusModel = new RuinNautilusModel<>(ctx.bakeLayer(RuinNautilusModel.LAYER_LOCATION));
+        this.primoModel = new PrimoGeovishapModel<>(ctx.bakeLayer(PrimoGeovishapModel.LAYER_LOCATION));
 
-        // Pre-apply crisp static statue poses ONCE at startup (zero per-frame bone math!)
         CryoRegisvineAnimations.apply(cryoModel, "idle_combat", 0.0F);
-        TheOpenEyedAnimations.apply(eyeModel, "animation.the_open_eyed.idle", 0.0F);
         anemoModel.resetPose();
         RuinGuardAnimations.apply(ruinModel, "idle_combat", 0.0F);
-        AstralionAnimations.apply(astralionModel, "animation.astralion.idle", 0.0F);
         RuinNautilusAnimations.apply(nautilusModel, "idle_hover", 0.0F, false);
         if (nautilusModel.getBone("sub_cockpit_glass") != null) nautilusModel.getBone("sub_cockpit_glass").visible = false;
+        PrimoGeovishapAnimations.apply(primoModel, "idle", 0.0F);
     }
 
     @Override
@@ -87,25 +78,19 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         poseStack.mulPose(Axis.YP.rotationDegrees(rotY));
 
         switch (kind) {
-            case 0 -> { // Cryo Regisvine (static statue)
+            case BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE -> {
                 poseStack.scale(-0.16F, -0.16F, 0.16F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 cryoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_CRYO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            case 1 -> { // The Open-Eyed (static statue)
-                poseStack.translate(0.0D, 0.10D, 0.0D);
-                poseStack.scale(-0.22F, -0.22F, 0.22F);
-                poseStack.translate(0.0D, -1.501D, 0.0D);
-                eyeModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_EYE)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-            }
-            case 2 -> { // Anemo Hypostasis (static statue)
+            case BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS -> {
                 poseStack.translate(0.0D, 0.34D, 0.0D);
                 poseStack.scale(-0.28F, -0.28F, 0.28F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 anemoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_ANEMO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 anemoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_ANEMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            case 3 -> { // Ruin Guard (static statue)
+            case BossRespawnAnchorEntity.BOSS_RUIN_GUARD -> {
                 poseStack.scale(-0.24F, -0.24F, 0.24F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 ruinModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_RUIN)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
@@ -118,12 +103,11 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
                 nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_NAUTILUS)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_NAUTILUS_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            default -> { // Astralion (static statue)
-                poseStack.translate(0.0D, 0.06D, 0.0D);
-                poseStack.scale(-0.23F, -0.23F, 0.23F);
+            default -> { // Primo Geovishap
+                poseStack.scale(-0.18F, -0.18F, 0.18F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                astralionModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_ASTRALION)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-                astralionModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_ASTRALION_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                primoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                primoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_PRIMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
         }
         poseStack.popPose();
@@ -133,11 +117,11 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         VertexConsumer vc = buf.getBuffer(RenderType.lightning());
         Matrix4f m = poseStack.last().pose();
         int[] accent = switch (kind) {
-            case 0 -> new int[]{110, 225, 255};
-            case 1 -> new int[]{245, 210, 110};
-            case 2 -> new int[]{105, 250, 210};
-            case 3 -> new int[]{255, 175, 55};
-            default -> new int[]{210, 120, 255};
+            case BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE -> new int[]{110, 225, 255};
+            case BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS -> new int[]{105, 250, 210};
+            case BossRespawnAnchorEntity.BOSS_RUIN_GUARD -> new int[]{255, 175, 55};
+            case BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS -> new int[]{70, 195, 255};
+            default -> new int[]{245, 195, 65};
         };
         drawBox(vc, m, -0.36F, 0.00F, -0.36F, 0.36F, 0.14F, 0.36F, 48, 44, 52, 235);
         drawBox(vc, m, -0.30F, 0.14F, -0.30F, 0.30F, 0.22F, 0.30F, 68, 62, 74, 235);

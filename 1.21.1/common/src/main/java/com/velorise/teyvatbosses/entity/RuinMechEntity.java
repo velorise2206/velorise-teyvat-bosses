@@ -25,6 +25,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PlayerRideableJumping;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -809,12 +810,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 float f = (t - 70) / 15.0F;
                 float sf = f * f * (3.0F - 2.0F * f);
                 double arcY = Math.sin(f * Math.PI) * 3.2D;
-                setPos(Mth.lerp(sf, leapStart.x, leapTarget.x), Mth.lerp(f, leapStart.y, leapTarget.y) + arcY, Mth.lerp(sf, leapStart.z, leapTarget.z));
-                this.fallDistance = 0.0F;
+                moveLeapStep(Mth.lerp(sf, leapStart.x, leapTarget.x), Mth.lerp(f, leapStart.y, leapTarget.y) + arcY, Mth.lerp(sf, leapStart.z, leapTarget.z));
             } else if (t == 86) {
-                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-                setOnGround(true);
-                this.fallDistance = 0.0F;
+                finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
                 if (dealFrontAoE(sl, 6.6D, 38.0F, 1.55D)) rechargeMissileAmmo(sl, 1);
                 sl.playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.6F, 0.60F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.0D, 1.20F, 0.72F);
@@ -915,12 +913,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 double nx = Mth.lerp(sf, leapStart.x, leapTarget.x);
                 double nz = Mth.lerp(sf, leapStart.z, leapTarget.z);
                 double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
-                setPos(nx, ny, nz);
-                this.fallDistance = 0.0F;
+                moveLeapStep(nx, ny, nz);
             } else if (t == 36) {
-                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-                setOnGround(true);
-                this.fallDistance = 0.0F;
+                finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
                 if (dealRadialAoE(sl, 7.0D, 40.0F, 1.60D, 0.72D)) rechargeMissileAmmo(sl, 1);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.85F, 0.52F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.4D, 1.30F, 0.72F);
@@ -950,12 +945,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 double nx = Mth.lerp(sf, leapStart.x, leapTarget.x);
                 double nz = Mth.lerp(sf, leapStart.z, leapTarget.z);
                 double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
-                setPos(nx, ny, nz);
-                this.fallDistance = 0.0F;
+                moveLeapStep(nx, ny, nz);
             } else if (t == 23) {
-                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-                setOnGround(true);
-                this.fallDistance = 0.0F;
+                finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.55F, 0.44F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.3D, 1.05F, 0.80F);
                 playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.6D, 0.90F, 0.90F);
@@ -986,12 +978,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 double nx = Mth.lerp(sf, leapStart.x, leapTarget.x);
                 double nz = Mth.lerp(sf, leapStart.z, leapTarget.z);
                 double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
-                setPos(nx, ny, nz);
-                this.fallDistance = 0.0F;
+                moveLeapStep(nx, ny, nz);
             } else if (t == 31) {
-                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-                setOnGround(true);
-                this.fallDistance = 0.0F;
+                finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.85F, 0.38F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.3D, 1.30F, 0.72F);
                 playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.6D, 1.15F, 0.80F);
@@ -1002,6 +991,32 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
             if (t >= 46) playAnim(ANIM_IDLE);
         }
+    }
+
+    /**
+     * Advances a parabolic leap step using swept-AABB collision so Ruin Mech
+     * never clips through walls, pillars, roofs, or ceilings on server or client.
+     */
+    private void moveLeapStep(double nx, double ny, double nz) {
+        Vec3 delta = new Vec3(nx - getX(), ny - getY(), nz - getZ());
+        this.move(MoverType.SELF, delta);
+        this.setDeltaMovement(Vec3.ZERO);
+        this.fallDistance = 0.0F;
+    }
+
+    /**
+     * Settles Ruin Mech onto the ground on the landing tick using collision-aware
+     * movement instead of teleporting through walls into leapTarget.
+     */
+    private void finishLeapLanding(double tx, double ty, double tz) {
+        Vec3 toTarget = new Vec3(tx - getX(), ty - getY(), tz - getZ());
+        if (toTarget.horizontalDistanceSqr() > 2.25D) {
+            this.move(MoverType.SELF, new Vec3(0.0D, Math.min(-0.5D, ty - getY()), 0.0D));
+        } else {
+            this.move(MoverType.SELF, toTarget);
+        }
+        this.setDeltaMovement(Vec3.ZERO);
+        this.fallDistance = 0.0F;
     }
 
     @Override
@@ -1021,12 +1036,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                     float f = (t - 70) / 15.0F;
                     float sf = f * f * (3.0F - 2.0F * f);
                     double arcY = Math.sin(f * Math.PI) * 3.2D;
-                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
-                    setDeltaMovement(Vec3.ZERO);
+                    moveLeapStep(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
                     return;
                 } else if (t == 86) {
-                    setPos(tx, ty, tz);
-                    setDeltaMovement(Vec3.ZERO);
+                    finishLeapLanding(tx, ty, tz);
                     return;
                 }
             } else if (anim == ANIM_LEAP_SLAM) {
@@ -1035,12 +1048,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                     float sf = f * f * (3.0F - 2.0F * f);
                     double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
                     double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 5.0D;
-                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
-                    setDeltaMovement(Vec3.ZERO);
+                    moveLeapStep(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
                     return;
                 } else if (t == 36) {
-                    setPos(tx, ty, tz);
-                    setDeltaMovement(Vec3.ZERO);
+                    finishLeapLanding(tx, ty, tz);
                     return;
                 }
             } else if (anim == ANIM_BOOST_LEAP) {
@@ -1048,12 +1059,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                     float f = (t - 6) / 16.0F;
                     float sf = f * f * (3.0F - 2.0F * f);
                     double arcY = Math.sin(f * Math.PI) * 4.2D;
-                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
-                    setDeltaMovement(Vec3.ZERO);
+                    moveLeapStep(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
                     return;
                 } else if (t == 23) {
-                    setPos(tx, ty, tz);
-                    setDeltaMovement(Vec3.ZERO);
+                    finishLeapLanding(tx, ty, tz);
                     return;
                 }
             } else {
@@ -1061,12 +1070,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                     float f = (t - 6) / 24.0F;
                     float sf = f * f * (3.0F - 2.0F * f);
                     double arcY = Math.sin(f * Math.PI) * 8.8D;
-                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
-                    setDeltaMovement(Vec3.ZERO);
+                    moveLeapStep(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
                     return;
                 } else if (t == 31) {
-                    setPos(tx, ty, tz);
-                    setDeltaMovement(Vec3.ZERO);
+                    finishLeapLanding(tx, ty, tz);
                     return;
                 }
             }

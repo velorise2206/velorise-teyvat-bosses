@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "velorise_teyvat_bosses:item/the_open_eyed_trophy"
-  }
-}

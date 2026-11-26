@@ -45,6 +45,11 @@ public final class TeyvatBossesJeiPlugin implements IModPlugin {
 
         // 4. Anemo Cube Companion (8 cubes assembled on 1 block)
         addInfo(registration, TeyvatBossesItems.anemoPrismCube(), "jei.velorise_teyvat_bosses.anemo_cube");
+
+        // 5. Geo Tunnel Driller (3 modular parts + 1-2 vanilla Chests)
+        addInfo(registration, TeyvatBossesItems.geoDrillerChassis(), "jei.velorise_teyvat_bosses.geo_driller");
+        addInfo(registration, TeyvatBossesItems.geoDrillerDrill(), "jei.velorise_teyvat_bosses.geo_driller");
+        addInfo(registration, TeyvatBossesItems.geoDrillerEngine(), "jei.velorise_teyvat_bosses.geo_driller");
     }
 
     private static void addInfo(IRecipeRegistration reg, Item item, String key) {

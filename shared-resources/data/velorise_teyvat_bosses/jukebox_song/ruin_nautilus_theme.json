@@ -3,6 +3,6 @@
   "description": {
     "translate": "jukebox_song.velorise_teyvat_bosses.ruin_nautilus_theme"
   },
-  "length_in_seconds": 96.0,
+  "length_in_seconds": 150.0,
   "sound_event": "velorise_teyvat_bosses:music.ruin_nautilus_theme"
 }

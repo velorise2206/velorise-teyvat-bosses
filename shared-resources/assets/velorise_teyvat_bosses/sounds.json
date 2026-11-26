@@ -7,14 +7,6 @@
       }
     ]
   },
-  "music.the_open_eyed_theme": {
-    "sounds": [
-      {
-        "name": "velorise_teyvat_bosses:music/the_open_eyed_theme",
-        "stream": true
-      }
-    ]
-  },
   "music.anemo_hypostasis_theme": {
     "sounds": [
       {
@@ -80,14 +72,6 @@
       }
     ]
   },
-  "music.astralion_theme": {
-    "sounds": [
-      {
-        "name": "velorise_teyvat_bosses:music/astralion_theme",
-        "stream": true
-      }
-    ]
-  },
   "music.ruin_nautilus_theme": {
     "sounds": [
       {
@@ -114,6 +98,14 @@
   "sfx.sub_ballast_hiss": {
     "sounds": [
       "velorise_teyvat_bosses:sfx/sub_ballast_hiss"
+    ]
+  },
+  "music.primo_geovishap_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/primo_geovishap_theme",
+        "stream": true
+      }
     ]
   }
 }

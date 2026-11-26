@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.compat;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
+import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -26,12 +27,14 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
     private static final ResourceLocation RUIN_MECH_UID = TeyvatBossesConstants.id("ruin_mech_info");
     private static final ResourceLocation CRYO_TURRET_UID = TeyvatBossesConstants.id("cryo_turret_info");
     private static final ResourceLocation RUIN_SUB_UID = TeyvatBossesConstants.id("ruin_sub_info");
+    private static final ResourceLocation GEO_DRILLER_UID = TeyvatBossesConstants.id("geo_driller_info");
 
     @Override
     public void registerClient(IWailaClientRegistration registration) {
         registration.registerEntityComponent(RuinMechProvider.INSTANCE, RuinMechEntity.class);
         registration.registerEntityComponent(CryoTurretProvider.INSTANCE, CryoTurretEntity.class);
         registration.registerEntityComponent(RuinSubProvider.INSTANCE, RuinSubmersibleEntity.class);
+        registration.registerEntityComponent(GeoDrillerProvider.INSTANCE, GeoDrillerEntity.class);
     }
 
     private enum RuinMechProvider implements IEntityComponentProvider {
@@ -116,6 +119,28 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
         @Override
         public ResourceLocation getUid() {
             return RUIN_SUB_UID;
+        }
+    }
+
+    private enum GeoDrillerProvider implements IEntityComponentProvider {
+        INSTANCE;
+
+        @Override
+        public void appendTooltip(ITooltip tooltip, EntityAccessor accessor, IPluginConfig config) {
+            if (!(accessor.getEntity() instanceof GeoDrillerEntity driller)) return;
+            if (!driller.isFullyAssembled()) {
+                tooltip.add(Component.literal("Assembly: " + driller.getAssembledCount() + "/3 parts").withStyle(ChatFormatting.YELLOW));
+                return;
+            }
+            tooltip.add(Component.literal("Fuel: " + driller.getFuel() + " / " + GeoDrillerEntity.MAX_FUEL).withStyle(ChatFormatting.GOLD));
+            String cargoStr = driller.getChestCount() == 0 ? "None (RMB w/ Chest)"
+                    : (driller.getChestCount() == 1 ? "Single Chest (27 slots)" : "Double Chest (54 slots)");
+            tooltip.add(Component.literal("Cargo: " + cargoStr).withStyle(ChatFormatting.GREEN));
+        }
+
+        @Override
+        public ResourceLocation getUid() {
+            return GEO_DRILLER_UID;
         }
     }
 }

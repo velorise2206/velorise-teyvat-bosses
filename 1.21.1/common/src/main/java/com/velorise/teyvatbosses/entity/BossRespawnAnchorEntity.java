@@ -26,11 +26,10 @@ import net.minecraft.world.phys.Vec3;
 public class BossRespawnAnchorEntity extends Entity {
 
     public static final int BOSS_CRYO_REGISVINE   = 0;
-    public static final int BOSS_THE_OPEN_EYED    = 1;
-    public static final int BOSS_ANEMO_HYPOSTASIS = 2;
-    public static final int BOSS_RUIN_GUARD       = 3;
-    public static final int BOSS_ASTRALION        = 4;
-    public static final int BOSS_RUIN_NAUTILUS    = 5;
+    public static final int BOSS_ANEMO_HYPOSTASIS = 1;
+    public static final int BOSS_RUIN_GUARD       = 2;
+    public static final int BOSS_RUIN_NAUTILUS    = 3;
+    public static final int BOSS_PRIMO_GEOVISHAP  = 4;
     public static final int DEFAULT_RESPAWN_TICKS = 2400;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
@@ -123,15 +122,13 @@ public class BossRespawnAnchorEntity extends Entity {
             case BOSS_CRYO_REGISVINE -> "entity.velorise_teyvat_bosses.cryo_regisvine";
             case BOSS_ANEMO_HYPOSTASIS -> "entity.velorise_teyvat_bosses.anemo_hypostasis";
             case BOSS_RUIN_GUARD -> "entity.velorise_teyvat_bosses.ruin_guard";
-            case BOSS_ASTRALION -> "entity.velorise_teyvat_bosses.astralion";
             case BOSS_RUIN_NAUTILUS -> "entity.velorise_teyvat_bosses.ruin_nautilus";
-            default -> "entity.velorise_teyvat_bosses.the_open_eyed";
+            default -> "entity.velorise_teyvat_bosses.primo_geovishap";
         };
         ChatFormatting col = switch (getBossKind()) {
             case BOSS_CRYO_REGISVINE -> ChatFormatting.AQUA;
             case BOSS_ANEMO_HYPOSTASIS -> ChatFormatting.GREEN;
             case BOSS_RUIN_GUARD -> ChatFormatting.GOLD;
-            case BOSS_ASTRALION -> ChatFormatting.LIGHT_PURPLE;
             case BOSS_RUIN_NAUTILUS -> ChatFormatting.AQUA;
             default -> ChatFormatting.YELLOW;
         };
@@ -169,24 +166,16 @@ public class BossRespawnAnchorEntity extends Entity {
         } else if (kind == BOSS_RUIN_NAUTILUS) {
             RuinNautilusEntity boss = TeyvatBossesEntities.ruinNautilus().create(sl);
             if (boss != null) {
-                boss.moveTo(getX(), getY(), getZ(), getYRot(), 0.0F);
-                sl.addFreshEntity(boss);
-            }
-        } else if (kind == BOSS_ASTRALION) {
-            AstralionEntity boss = TeyvatBossesEntities.astralion().create(sl);
-            if (boss != null) {
                 boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
                 sl.addFreshEntity(boss);
-                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 2.6D, getZ(), 56, 2.0D, 2.2D, 2.0D, 0.12D);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.4F, 1.15F);
             }
         } else {
-            TheOpenEyedEntity boss = TeyvatBossesEntities.theOpenEyed().create(sl);
+            PrimoGeovishapEntity boss = TeyvatBossesEntities.primoGeovishap().create(sl);
             if (boss != null) {
                 boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
                 sl.addFreshEntity(boss);
-                sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 2.5D, getZ(), 48, 1.6D, 2.0D, 1.6D, 0.1D);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.4F, 1.1F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 1.6D, getZ(), 48, 2.0D, 1.4D, 2.0D, 0.09D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.6F, 0.60F);
             }
         }
         discard();

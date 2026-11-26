@@ -1,19 +1,18 @@
 package com.velorise.teyvatbosses.registry;
 
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 
 import java.util.function.Supplier;
 
 /**
- * Loader-agnostic holder for registered boss loot, music discs, and Ruin Mech salvage parts.
+ * Loader-agnostic holder for registered boss loot, music discs, and modular vehicle/turret salvage parts.
  */
 public final class TeyvatBossesItems {
     private static Supplier<Item> cryoDisc;
-    private static Supplier<Item> openEyedDisc;
     private static Supplier<Item> anemoDisc;
     private static Supplier<Item> ruinGuardDisc;
-    private static Supplier<Item> astralionDisc;
+    private static Supplier<Item> ruinNautilusDisc;
+    private static Supplier<Item> primoGeovishapDisc;
 
     private static Supplier<Item> mechCore;
     private static Supplier<Item> mechLeftArm;
@@ -25,20 +24,22 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> cryoTurretCorolla;
     private static Supplier<Item> anemoPrismCube;
     private static Supplier<Item> anemoJetpack;
-    private static Supplier<Item> ruinNautilusDisc;
     private static Supplier<Item> ruinSubHull;
     private static Supplier<Item> ruinSubCockpit;
     private static Supplier<Item> ruinSubPropeller;
     private static Supplier<Item> ruinSubTorpedoPod;
+    private static Supplier<Item> geoDrillerChassis;
+    private static Supplier<Item> geoDrillerDrill;
+    private static Supplier<Item> geoDrillerEngine;
 
     private TeyvatBossesItems() {}
 
     public static void bind(
             Supplier<Item> cryoDiscSupplier,
-            Supplier<Item> openEyedDiscSupplier,
             Supplier<Item> anemoDiscSupplier,
             Supplier<Item> ruinGuardDiscSupplier,
-            Supplier<Item> astralionDiscSupplier,
+            Supplier<Item> ruinNautilusDiscSupplier,
+            Supplier<Item> primoGeovishapDiscSupplier,
             Supplier<Item> mechCoreSupplier,
             Supplier<Item> mechLeftArmSupplier,
             Supplier<Item> mechRightArmSupplier,
@@ -49,17 +50,19 @@ public final class TeyvatBossesItems {
             Supplier<Item> cryoTurretCorollaSupplier,
             Supplier<Item> anemoPrismCubeSupplier,
             Supplier<Item> anemoJetpackSupplier,
-            Supplier<Item> ruinNautilusDiscSupplier,
             Supplier<Item> ruinSubHullSupplier,
             Supplier<Item> ruinSubCockpitSupplier,
             Supplier<Item> ruinSubPropellerSupplier,
-            Supplier<Item> ruinSubTorpedoPodSupplier
+            Supplier<Item> ruinSubTorpedoPodSupplier,
+            Supplier<Item> geoDrillerChassisSupplier,
+            Supplier<Item> geoDrillerDrillSupplier,
+            Supplier<Item> geoDrillerEngineSupplier
     ) {
         cryoDisc = cryoDiscSupplier;
-        openEyedDisc = openEyedDiscSupplier;
         anemoDisc = anemoDiscSupplier;
         ruinGuardDisc = ruinGuardDiscSupplier;
-        astralionDisc = astralionDiscSupplier;
+        ruinNautilusDisc = ruinNautilusDiscSupplier;
+        primoGeovishapDisc = primoGeovishapDiscSupplier;
         mechCore = mechCoreSupplier;
         mechLeftArm = mechLeftArmSupplier;
         mechRightArm = mechRightArmSupplier;
@@ -70,18 +73,20 @@ public final class TeyvatBossesItems {
         cryoTurretCorolla = cryoTurretCorollaSupplier;
         anemoPrismCube = anemoPrismCubeSupplier;
         anemoJetpack = anemoJetpackSupplier;
-        ruinNautilusDisc = ruinNautilusDiscSupplier;
         ruinSubHull = ruinSubHullSupplier;
         ruinSubCockpit = ruinSubCockpitSupplier;
         ruinSubPropeller = ruinSubPropellerSupplier;
         ruinSubTorpedoPod = ruinSubTorpedoPodSupplier;
+        geoDrillerChassis = geoDrillerChassisSupplier;
+        geoDrillerDrill = geoDrillerDrillSupplier;
+        geoDrillerEngine = geoDrillerEngineSupplier;
     }
 
     public static Item cryoDisc() { return cryoDisc != null ? cryoDisc.get() : null; }
-    public static Item openEyedDisc() { return openEyedDisc != null ? openEyedDisc.get() : null; }
     public static Item anemoDisc() { return anemoDisc != null ? anemoDisc.get() : null; }
     public static Item ruinGuardDisc() { return ruinGuardDisc != null ? ruinGuardDisc.get() : null; }
-    public static Item astralionDisc() { return astralionDisc != null ? astralionDisc.get() : null; }
+    public static Item ruinNautilusDisc() { return ruinNautilusDisc != null ? ruinNautilusDisc.get() : null; }
+    public static Item primoGeovishapDisc() { return primoGeovishapDisc != null ? primoGeovishapDisc.get() : null; }
 
     public static Item mechCore() { return mechCore != null ? mechCore.get() : null; }
     public static Item mechLeftArm() { return mechLeftArm != null ? mechLeftArm.get() : null; }
@@ -93,36 +98,16 @@ public final class TeyvatBossesItems {
     public static Item cryoTurretCorolla() { return cryoTurretCorolla != null ? cryoTurretCorolla.get() : null; }
     public static Item anemoPrismCube() { return anemoPrismCube != null ? anemoPrismCube.get() : null; }
     public static Item anemoJetpack() { return anemoJetpack != null ? anemoJetpack.get() : null; }
-    public static Item ruinNautilusDisc() { return ruinNautilusDisc != null ? ruinNautilusDisc.get() : null; }
     public static Item ruinSubHull() { return ruinSubHull != null ? ruinSubHull.get() : null; }
     public static Item ruinSubCockpit() { return ruinSubCockpit != null ? ruinSubCockpit.get() : null; }
     public static Item ruinSubPropeller() { return ruinSubPropeller != null ? ruinSubPropeller.get() : null; }
     public static Item ruinSubTorpedoPod() { return ruinSubTorpedoPod != null ? ruinSubTorpedoPod.get() : null; }
+    public static Item geoDrillerChassis() { return geoDrillerChassis != null ? geoDrillerChassis.get() : null; }
+    public static Item geoDrillerDrill() { return geoDrillerDrill != null ? geoDrillerDrill.get() : null; }
+    public static Item geoDrillerEngine() { return geoDrillerEngine != null ? geoDrillerEngine.get() : null; }
 
-    public static Item randomSubPart(RandomSource random) {
-        return switch (random.nextInt(4)) {
-            case 0 -> ruinSubHull();
-            case 1 -> ruinSubCockpit();
-            case 2 -> ruinSubPropeller();
-            default -> ruinSubTorpedoPod();
-        };
-    }
-
-    public static Item randomCryoTurretPart(RandomSource random) {
-        return switch (random.nextInt(3)) {
-            case 0 -> cryoTurretRoot();
-            case 1 -> cryoTurretStem();
-            default -> cryoTurretCorolla();
-        };
-    }
-
-    public static Item randomMechPart(RandomSource random) {
-        return switch (random.nextInt(5)) {
-            case 0 -> mechCore();
-            case 1 -> mechLeftArm();
-            case 2 -> mechRightArm();
-            case 3 -> mechLeftLeg();
-            default -> mechRightLeg();
-        };
-    }
+    public static Item[] mechPartPool() { return new Item[]{mechCore(), mechLeftArm(), mechRightArm(), mechLeftLeg(), mechRightLeg()}; }
+    public static Item[] subPartPool() { return new Item[]{ruinSubHull(), ruinSubCockpit(), ruinSubPropeller(), ruinSubTorpedoPod()}; }
+    public static Item[] cryoTurretPartPool() { return new Item[]{cryoTurretRoot(), cryoTurretStem(), cryoTurretCorolla()}; }
+    public static Item[] geoDrillerPartPool() { return new Item[]{geoDrillerChassis(), geoDrillerDrill(), geoDrillerEngine()}; }
 }

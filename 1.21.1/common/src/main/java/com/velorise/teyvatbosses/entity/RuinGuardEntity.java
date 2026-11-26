@@ -24,6 +24,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
@@ -720,13 +721,41 @@ public class RuinGuardEntity extends Monster {
             BlockState state = sl.getBlockState(pos);
             if (!state.getCollisionShape(sl, pos).isEmpty()) {
                 double topY = y + state.getCollisionShape(sl, pos).max(Direction.Axis.Y);
-                BlockPos above = pos.above();
-                if (sl.getBlockState(above).getCollisionShape(sl, above).isEmpty()) {
+                if (sl.getBlockState(pos.above()).getCollisionShape(sl, pos.above()).isEmpty()
+                        && sl.getBlockState(pos.above(2)).getCollisionShape(sl, pos.above(2)).isEmpty()
+                        && sl.getBlockState(pos.above(3)).getCollisionShape(sl, pos.above(3)).isEmpty()) {
                     return topY;
                 }
             }
         }
         return referenceY;
+    }
+
+
+    /**
+     * Advances a parabolic leap step using Minecraft's swept-AABB collision solver so
+     * Ruin Guard never clips through walls, pillars, roofs, or ceilings.
+     */
+    private void moveLeapStep(double nx, double ny, double nz) {
+        Vec3 delta = new Vec3(nx - getX(), ny - getY(), nz - getZ());
+        this.move(MoverType.SELF, delta);
+        this.setDeltaMovement(Vec3.ZERO);
+        this.fallDistance = 0.0F;
+    }
+
+    /**
+     * Settles Ruin Guard onto the ground on the landing tick using collision-aware movement
+     * rather than teleporting through obstacles into leapTarget.
+     */
+    private void finishLeapLanding(double tx, double ty, double tz) {
+        Vec3 toTarget = new Vec3(tx - getX(), ty - getY(), tz - getZ());
+        if (toTarget.horizontalDistanceSqr() > 2.25D) {
+            this.move(MoverType.SELF, new Vec3(0.0D, Math.min(-0.5D, ty - getY()), 0.0D));
+        } else {
+            this.move(MoverType.SELF, toTarget);
+        }
+        this.setDeltaMovement(Vec3.ZERO);
+        this.fallDistance = 0.0F;
     }
 
     private Vec3 clampTargetToArena(Vec3 pos) {
@@ -822,16 +851,10 @@ public class RuinGuardEntity extends Monster {
             double nx = Mth.lerp(horizF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(horizF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
-            Vec3 next = new Vec3(nx, ny, nz);
-            setDeltaMovement(next.subtract(position()));
-            setPos(nx, ny, nz);
-            this.fallDistance = 0.0F;
+            moveLeapStep(nx, ny, nz);
         } else if (stateTick == 86) {
             clearTelegraph();
-            setDeltaMovement(Vec3.ZERO);
-            setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-            setOnGround(true);
-            this.fallDistance = 0.0F;
+            finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
             dealRadialDamage(sl, 5.4D, 27.0F, 1.35D, 0.62D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.56F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.50F);
@@ -982,16 +1005,10 @@ public class RuinGuardEntity extends Monster {
             double nx = Mth.lerp(smoothF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(smoothF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
-            Vec3 next = new Vec3(nx, ny, nz);
-            setDeltaMovement(next.subtract(position()));
-            setPos(nx, ny, nz);
-            this.fallDistance = 0.0F;
+            moveLeapStep(nx, ny, nz);
         } else if (stateTick == 36) {
             clearTelegraph();
-            setDeltaMovement(Vec3.ZERO);
-            setPos(leapTarget.x, leapTarget.y, leapTarget.z);
-            setOnGround(true);
-            this.fallDistance = 0.0F;
+            finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
             dealRadialDamage(sl, 6.4D, 29.0F, 1.50D, 0.72D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.85F, 0.52F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.55F, 0.48F);

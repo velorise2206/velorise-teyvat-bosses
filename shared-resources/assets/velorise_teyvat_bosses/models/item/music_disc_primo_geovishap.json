@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "velorise_teyvat_bosses:item/music_disc_primo_geovishap"
+  }
+}
