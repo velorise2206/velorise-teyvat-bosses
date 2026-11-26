@@ -41,20 +41,38 @@ import java.util.UUID;
  * Miniature 1-block 8-cube Anemo Hypostasis Companion Pet assembled on a single block outdoors
  * from 8 {@code anemo_prism_cube} drops.
  *
- * <p>Smart AI modeled after {@code velorise-staves} flying companions:
+ * <p>Uses the Mini Ender Dragon Pet world-space free-flight AI &amp; 3-state FSM
+ * ({@code FOLLOW} / {@code ENGAGE} / {@code ATTACK}, plus {@code RECHARGE}) from {@code velorise-staves}:
  * <ul>
- *   <li>Terrain-aware natural hover height ({@link #resolveNaturalGroundY}) so it never clips into floors or ceilings.</li>
- *   <li>Organic idle wandering around owner, tactical 4.2–6.0 block combat standoff &amp; kiting when engaging enemies,
- *       and automatic defensive regroup near owner while recharging all 8 shell cubes.</li>
- *   <li>Full ally protection (owner, players, owner's tamed pets, mechs, submarines, turrets) and fire immunity.</li>
+ *   <li>World-space independent orbit around owner (never jerks when the player spins their camera).</li>
+ *   <li>Aerodynamic acceleration, arrival braking, smooth turn-rate limiting, and terrain-safe hover clearance.</li>
+ *   <li>Hysteresis-buffered combat engage orbit ({@code 4.2} blocks), brief aim-lock brake on each shot,
+ *       and defensive return-to-owner orbit while regenerating all 8 shell cubes.</li>
  * </ul>
  */
 public class AnemoCompanionEntity extends Mob {
     public static final int MAX_CUBES = 8;
     private static final int FIRE_INTERVAL_TICKS = 11;
     private static final int RECHARGE_PER_CUBE_TICKS = 22;
-    private static final double TARGET_RANGE = 18.0D;
+    private static final double ENGAGE_DETECT_RANGE = 20.0D;
+    private static final double TELEPORT_DIST = 32.0D;
     private static final float CUBE_DAMAGE = 8.5F;
+
+    // Mini Ender Dragon Pet world-space free-flight physics constants (per-tick equivalents, dt = 0.05s)
+    private static final double FOLLOW_ORBIT_RADIUS = 1.75D;
+    private static final double FOLLOW_HEIGHT_OFFSET = 0.55D;
+    private static final double FOLLOW_BOB_AMP = 0.16D;
+    private static final float FOLLOW_OMEGA_PER_TICK = 1.05F * 0.05F;
+    private static final double ENGAGE_ORBIT_RADIUS = 4.20D;
+    private static final double ENGAGE_HEIGHT_OFFSET = 1.45D;
+    private static final float ENGAGE_OMEGA_PER_TICK = 1.35F * 0.05F;
+    private static final double MAX_SPEED_FOLLOW = 0.35D;   // 7.0 blocks/s
+    private static final double MAX_SPEED_COMBAT = 0.50D;   // 10.0 blocks/s
+    private static final double MAX_ACCEL_TICK = 0.08D;     // 32.0 blocks/s^2 * dt^2 scaled cleanly
+    private static final double ARRIVAL_K = 0.21D;          // smooth arrival braking gain
+    private static final float MAX_TURN_FOLLOW_TICK = 13.5F; // 270 deg/s
+    private static final float MAX_TURN_COMBAT_TICK = 36.0F; // 720 deg/s
+    private static final int ENGAGE_HYSTERESIS_TICKS = 5;   // 250ms grace window
 
     private static final EntityDataAccessor<Integer> DATA_ASSEMBLED =
             SynchedEntityData.defineId(AnemoCompanionEntity.class, EntityDataSerializers.INT);
@@ -69,8 +87,10 @@ public class AnemoCompanionEntity extends Mob {
 
     private int fireCooldown = 0;
     private int rechargeTimer = 0;
-    private Vec3 wanderPos = Vec3.ZERO;
-    private int nextWanderTick = 0;
+    private float orbitAngle = 0.0F;
+    private int attackBrakeTicks = 0;
+    private int targetGraceTicks = 0;
+    private @Nullable UUID lastTargetUuid = null;
 
     public AnemoCompanionEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -142,6 +162,7 @@ public class AnemoCompanionEntity extends Mob {
             entityData.set(DATA_OWNER, Optional.of(player.getUUID()));
             entityData.set(DATA_RECHARGING, false);
             entityData.set(DATA_STAYING, false);
+            orbitAngle = (getId() * 1.618F) % ((float) Math.PI * 2.0F);
             updateAssemblyLabel();
             sl.playSound(null, getX(), getY() + 0.5D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.1F, 1.30F);
             sl.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, getX(), getY() + 0.6D, getZ(), 1, 0, 0, 0, 0);
@@ -221,7 +242,6 @@ public class AnemoCompanionEntity extends Mob {
         if (isOwnedBy(player)) {
             boolean nextStay = !isStaying();
             entityData.set(DATA_STAYING, nextStay);
-            wanderPos = position();
             sl.playSound(null, getX(), getY() + 0.5D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, nextStay ? 0.90F : 1.35F);
             player.displayClientMessage(Component.translatable(
                     nextStay ? "message.velorise_teyvat_bosses.anemo_pet.stay" : "message.velorise_teyvat_bosses.anemo_pet.follow"
@@ -229,6 +249,11 @@ public class AnemoCompanionEntity extends Mob {
             return InteractionResult.CONSUME;
         }
         return InteractionResult.PASS;
+    }
+
+    private static float approachAngle(float cur, float tgt, float maxStep) {
+        float d = Mth.wrapDegrees(tgt - cur);
+        return cur + Mth.clamp(d, -maxStep, maxStep);
     }
 
     private static double resolveNaturalGroundY(ServerLevel level, double x, double refY, double z) {
@@ -273,75 +298,95 @@ public class AnemoCompanionEntity extends Mob {
         if (tickCount % 40 == 0 && getHealth() < getMaxHealth()) {
             heal(2.0F);
         }
+        if (attackBrakeTicks > 0) attackBrakeTicks--;
 
         UUID ownerId = getOwnerUuid();
         Player owner = ownerId != null ? sl.getPlayerByUUID(ownerId) : null;
-        LivingEntity target = findTarget(sl, owner);
 
-        // 1. Smart Terrain-Aware Navigation, Organic Wandering & Tactical Combat Standoff
+        // Hysteresis-buffered target acquisition (prevents rapid state flickering like Mini Ender Dragon Pet)
+        LivingEntity target = findTarget(sl, owner);
+        if (target != null) {
+            lastTargetUuid = target.getUUID();
+            targetGraceTicks = ENGAGE_HYSTERESIS_TICKS;
+        } else if (targetGraceTicks > 0 && lastTargetUuid != null) {
+            targetGraceTicks--;
+            Entity prev = sl.getEntity(lastTargetUuid);
+            if (prev instanceof LivingEntity le && isValidTarget(le, owner)
+                    && distanceToSqr(le) <= (ENGAGE_DETECT_RANGE + 3.0D) * (ENGAGE_DETECT_RANGE + 3.0D)) {
+                target = le;
+            }
+        } else {
+            lastTargetUuid = null;
+        }
+
+        boolean inCombat = (target != null && !isRecharging());
+
+        // 1. Mini Ender Dragon Pet World-Space Free-Flight Physics (FOLLOW / ENGAGE / ATTACK)
         if (owner != null && owner.isAlive() && !isStaying()) {
             double ownerDistSq = distanceToSqr(owner);
-            if (ownerDistSq > 24.0D * 24.0D) {
-                // Teleport cleanly to terrain-safe hover height near owner
-                double ang = Math.toRadians(owner.getYRot() + 125.0D);
-                double tx = owner.getX() + Math.cos(ang) * 2.2D;
-                double tz = owner.getZ() + Math.sin(ang) * 2.2D;
-                double ty = resolveNaturalGroundY(sl, tx, owner.getY(), tz) + 1.45D;
-                wanderPos = new Vec3(tx, ty, tz);
+            if (ownerDistSq > TELEPORT_DIST * TELEPORT_DIST) {
+                orbitAngle = (getId() * 1.618F) % ((float) Math.PI * 2.0F);
+                double tx = owner.getX() + Math.cos(orbitAngle) * FOLLOW_ORBIT_RADIUS;
+                double tz = owner.getZ() + Math.sin(orbitAngle) * FOLLOW_ORBIT_RADIUS;
+                double ty = Math.max(resolveNaturalGroundY(sl, tx, owner.getY(), tz) + 1.1D,
+                        owner.getY() + owner.getBbHeight() + FOLLOW_HEIGHT_OFFSET);
                 moveTo(tx, ty, tz, owner.getYRot(), 0.0F);
                 setDeltaMovement(Vec3.ZERO);
-                nextWanderTick = tickCount + 40;
                 sl.sendParticles(ParticleTypes.CLOUD, tx, ty, tz, 8, 0.25D, 0.25D, 0.25D, 0.04D);
             } else {
-                boolean needNewSpot = wanderPos.equals(Vec3.ZERO) || tickCount >= nextWanderTick;
-                if (target != null && !isRecharging()) {
-                    double dTargetSq = wanderPos.distanceToSqr(target.position());
-                    if (dTargetSq > 48.0D || dTargetSq < 5.5D) needNewSpot = true;
-                } else if (wanderPos.distanceToSqr(owner.position()) > 28.0D) {
-                    needNewSpot = true;
+                // World-space orbit angle advances smoothly, completely independent of player camera rotation!
+                orbitAngle += inCombat ? ENGAGE_OMEGA_PER_TICK : FOLLOW_OMEGA_PER_TICK;
+                if (orbitAngle > Math.PI * 2.0D) orbitAngle -= (float) (Math.PI * 2.0D);
+
+                Vec3 anchor;
+                if (inCombat) {
+                    double bob = Math.sin(tickCount * 0.085D) * 0.26D;
+                    double ax = target.getX() + Math.cos(orbitAngle) * ENGAGE_ORBIT_RADIUS;
+                    double az = target.getZ() + Math.sin(orbitAngle) * ENGAGE_ORBIT_RADIUS;
+                    double groundY = resolveNaturalGroundY(sl, ax, target.getY(), az);
+                    double ay = Math.max(groundY + 1.15D, target.getY() + ENGAGE_HEIGHT_OFFSET + bob);
+                    anchor = new Vec3(ax, ay, az);
+                } else {
+                    double bob = Math.sin(tickCount * 0.075D) * FOLLOW_BOB_AMP;
+                    double r = isRecharging() ? 1.45D : FOLLOW_ORBIT_RADIUS;
+                    double ax = owner.getX() + Math.cos(orbitAngle) * r;
+                    double az = owner.getZ() + Math.sin(orbitAngle) * r;
+                    double groundY = resolveNaturalGroundY(sl, ax, owner.getY(), az);
+                    double ay = Math.max(groundY + 1.10D, owner.getY() + owner.getBbHeight() + FOLLOW_HEIGHT_OFFSET + bob);
+                    anchor = new Vec3(ax, ay, az);
                 }
 
-                if (needNewSpot) {
-                    if (target != null && !isRecharging()) {
-                        // Tactical combat standoff (4.2 - 6.0 blocks) on owner's flank, kiting away from close mobs
-                        double standOff = 4.2D + random.nextDouble() * 1.8D;
-                        Vec3 fromTargetToOwner = owner.position().subtract(target.position());
-                        double baseAng = fromTargetToOwner.lengthSqr() > 1.0E-4D
-                                ? Math.atan2(fromTargetToOwner.z, fromTargetToOwner.x)
-                                : random.nextDouble() * Math.PI * 2.0D;
-                        double ang = baseAng + (random.nextDouble() - 0.5D) * 1.4D;
-                        double wx = target.getX() + Math.cos(ang) * standOff;
-                        double wz = target.getZ() + Math.sin(ang) * standOff;
-                        double wy = resolveNaturalGroundY(sl, wx, target.getY(), wz) + 1.55D;
-                        wanderPos = new Vec3(wx, wy, wz);
-                        nextWanderTick = tickCount + 30 + random.nextInt(30);
-                    } else {
-                        // Defensive regroup close to owner when recharging, or natural idle orbit when peaceful
-                        double dist = isRecharging() ? (1.7D + random.nextDouble() * 0.9D) : (2.0D + random.nextDouble() * 2.2D);
-                        double ang = Math.toRadians(owner.getYRot() + 100.0D) + (random.nextDouble() - 0.5D) * 1.6D;
-                        double wx = owner.getX() + Math.cos(ang) * dist;
-                        double wz = owner.getZ() + Math.sin(ang) * dist;
-                        double wy = resolveNaturalGroundY(sl, wx, owner.getY(), wz) + 1.50D;
-                        wanderPos = new Vec3(wx, wy, wz);
-                        nextWanderTick = tickCount + (isRecharging() ? 24 : 45 + random.nextInt(40));
+                Vec3 curVel = getDeltaMovement();
+                Vec3 nextVel;
+                if (attackBrakeTicks > 0) {
+                    // Brief hover-brake right as a shell cube launches (exact Mini Ender Dragon ATTACK feel!)
+                    nextVel = curVel.scale(0.55D);
+                } else {
+                    Vec3 toAnchor = anchor.subtract(position());
+                    Vec3 desiredVel = toAnchor.scale(ARRIVAL_K);
+                    double maxSpd = (inCombat || ownerDistSq > 49.0D) ? MAX_SPEED_COMBAT : MAX_SPEED_FOLLOW;
+                    double dLen = desiredVel.length();
+                    if (dLen > maxSpd) {
+                        desiredVel = desiredVel.scale(maxSpd / dLen);
                     }
+                    // Aerodynamic steering with acceleration limit + subtle drag
+                    Vec3 steer = desiredVel.subtract(curVel);
+                    double sLen = steer.length();
+                    if (sLen > MAX_ACCEL_TICK) {
+                        steer = steer.scale(MAX_ACCEL_TICK / sLen);
+                    }
+                    nextVel = curVel.add(steer).scale(0.945D);
                 }
 
-                double bob = Mth.sin(tickCount * 0.10F) * 0.14D;
-                Vec3 goal = new Vec3(wanderPos.x, wanderPos.y + bob, wanderPos.z);
-                Vec3 diff = goal.subtract(position());
-                double len = diff.length();
-                double maxSpd = (ownerDistSq > 64.0D) ? 0.44D : 0.24D;
-                Vec3 desired = len > 0.12D ? diff.scale(Math.min(maxSpd, 0.08D + len * 0.14D) / len) : Vec3.ZERO;
-                Vec3 nextVel = getDeltaMovement().lerp(desired, 0.26D);
                 setDeltaMovement(nextVel);
                 move(MoverType.SELF, nextVel);
 
-                // Smoothly face target or movement direction
-                Vec3 lookVec = (target != null) ? target.position().subtract(position()) : nextVel;
+                // Smooth yaw tracking with realistic turn-rate limit (270 deg/s follow, 720 deg/s combat)
+                Vec3 lookVec = inCombat ? target.position().subtract(position()) : nextVel;
                 if (lookVec.horizontalDistanceSqr() > 1.0E-4D) {
                     float desiredYaw = (float) (Mth.atan2(-lookVec.x, lookVec.z) * Mth.RAD_TO_DEG);
-                    float nextYaw = Mth.rotLerp(0.24F, getYRot(), desiredYaw);
+                    float maxTurn = inCombat ? MAX_TURN_COMBAT_TICK : MAX_TURN_FOLLOW_TICK;
+                    float nextYaw = approachAngle(getYRot(), desiredYaw, maxTurn);
                     setYRot(nextYaw);
                     yBodyRot = nextYaw;
                     yHeadRot = nextYaw;
@@ -386,7 +431,6 @@ public class AnemoCompanionEntity extends Mob {
         }
 
         Vec3 origin = position().add(0.0D, 0.45D, 0.0D);
-        // Slight predictive lead on moving targets
         Vec3 leadTarget = target.position().add(target.getDeltaMovement().scale(3.0D)).add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
         Vec3 aim = leadTarget.subtract(origin);
         if (aim.lengthSqr() < 1.0e-4D) return;
@@ -394,9 +438,10 @@ public class AnemoCompanionEntity extends Mob {
         setYRot(aimYaw);
         yBodyRot = aimYaw;
         yHeadRot = aimYaw;
+        attackBrakeTicks = 4;
 
         LivingEntity credit = owner != null ? owner : this;
-        Vec3 vel = aim.normalize().scale(1.22D);
+        Vec3 vel = aim.normalize().scale(1.24D);
         AnemoMissileProjectile.launchPetCube(sl, credit, origin, vel, CUBE_DAMAGE);
         sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BREEZE_SHOOT, SoundSource.PLAYERS, 0.75F, 1.25F + (MAX_CUBES - shells) * 0.04F);
         sl.sendParticles(ParticleTypes.CLOUD, origin.x, origin.y, origin.z, 4, 0.16D, 0.16D, 0.16D, 0.03D);
@@ -412,21 +457,22 @@ public class AnemoCompanionEntity extends Mob {
     }
 
     private @Nullable LivingEntity findTarget(ServerLevel sl, @Nullable Player owner) {
+        Vec3 scanCenter = owner != null && !isStaying() ? owner.position() : position();
         if (owner != null) {
             LivingEntity hurtMob = owner.getLastHurtMob();
-            if (isValidTarget(hurtMob, owner) && distanceToSqr(hurtMob) <= TARGET_RANGE * TARGET_RANGE && hasLineOfSight(hurtMob)) {
+            if (isValidTarget(hurtMob, owner) && hurtMob.position().distanceToSqr(scanCenter) <= ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE && hasLineOfSight(hurtMob)) {
                 return hurtMob;
             }
             LivingEntity hurtBy = owner.getLastHurtByMob();
-            if (isValidTarget(hurtBy, owner) && distanceToSqr(hurtBy) <= TARGET_RANGE * TARGET_RANGE && hasLineOfSight(hurtBy)) {
+            if (isValidTarget(hurtBy, owner) && hurtBy.position().distanceToSqr(scanCenter) <= ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE && hasLineOfSight(hurtBy)) {
                 return hurtBy;
             }
         }
-        AABB box = getBoundingBox().inflate(TARGET_RANGE);
+        AABB box = new AABB(scanCenter, scanCenter).inflate(ENGAGE_DETECT_RANGE);
         LivingEntity best = null;
-        double bestDistSq = TARGET_RANGE * TARGET_RANGE;
+        double bestDistSq = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> isValidTarget(le, owner))) {
-            double dSq = distanceToSqr(e);
+            double dSq = e.position().distanceToSqr(scanCenter);
             if (dSq < bestDistSq && hasLineOfSight(e)) {
                 bestDistSq = dSq;
                 best = e;
@@ -441,7 +487,6 @@ public class AnemoCompanionEntity extends Mob {
                 || e instanceof RuinMechEntity || e instanceof CryoTurretEntity) {
             return false;
         }
-        // Protect owner's tamed pets / allies (same as velorise-staves)
         if (owner != null && e instanceof OwnableEntity ownable && owner.getUUID().equals(ownable.getOwnerUUID())) {
             return false;
         }
