@@ -27,6 +27,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
 import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
 import net.fabricmc.api.ModInitializer;
@@ -221,6 +222,15 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_RUIN_GUARD_THEME = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("music.ruin_guard_theme"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_guard_theme")));
+    public static final SoundEvent SOUND_MECH_ENGINE_HUM = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_engine_hum"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_engine_hum")));
+    public static final SoundEvent SOUND_MECH_LOCKON_BEEP = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_lockon_beep"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_lockon_beep")));
+    public static final SoundEvent SOUND_MECH_VISOR_SEAL = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_visor_seal"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_visor_seal")));
 
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_cryo_regisvine"),
@@ -306,6 +316,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         );
 
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
+        TeyvatBossesSounds.bind(() -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL);
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE,
                 () -> MUSIC_DISC_THE_OPEN_EYED,

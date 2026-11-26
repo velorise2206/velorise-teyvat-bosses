@@ -26,6 +26,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
+import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
 import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
 import net.minecraft.core.registries.Registries;
@@ -221,6 +222,12 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("music.anemo_hypostasis_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.anemo_hypostasis_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_GUARD_THEME =
             SOUNDS.register("music.ruin_guard_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_guard_theme")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_ENGINE_HUM =
+            SOUNDS.register("sfx.mech_engine_hum", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_engine_hum")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_LOCKON_BEEP =
+            SOUNDS.register("sfx.mech_lockon_beep", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_lockon_beep")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_VISOR_SEAL =
+            SOUNDS.register("sfx.mech_visor_seal", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_visor_seal")));
 
     public static final DeferredHolder<Item, Item> MUSIC_DISC_CRYO_REGISVINE =
             ITEMS.register("music_disc_cryo_regisvine", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
@@ -272,6 +279,7 @@ public class VeloriseTeyvatBossesNeoForge {
         TABS.register(modEventBus);
         STRUCTURE_TYPES.register(modEventBus);
         TeyvatBossesStructures.bind(FLAT_ARENA);
+        TeyvatBossesSounds.bind(SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL);
 
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,

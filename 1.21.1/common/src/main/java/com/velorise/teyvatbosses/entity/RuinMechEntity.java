@@ -2,6 +2,8 @@ package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -102,6 +104,20 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_COOLDOWN =
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_LOCKED_TARGET_ID =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_SX =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_SY =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_SZ =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_TX =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_TY =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_LEAP_TZ =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
 
     private int serverAnimTick = 0;
     private int clientAnimTick = 0;
@@ -111,6 +127,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     private boolean lastPilotSwinging = false;
     private Vec3 leapStart = Vec3.ZERO;
     private Vec3 leapTarget = Vec3.ZERO;
+    private double prevServerX = 0.0D;
+    private double prevServerZ = 0.0D;
+    private float prevServerYaw = 0.0F;
+    private int walkGraceTicks = 0;
 
     public RuinMechEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -136,6 +156,13 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         builder.define(DATA_ENERGY, 200.0F);
         builder.define(DATA_ARMOR, MAX_ARMOR);
         builder.define(DATA_COOLDOWN, 0);
+        builder.define(DATA_LOCKED_TARGET_ID, -1);
+        builder.define(DATA_LEAP_SX, 0.0F);
+        builder.define(DATA_LEAP_SY, 0.0F);
+        builder.define(DATA_LEAP_SZ, 0.0F);
+        builder.define(DATA_LEAP_TX, 0.0F);
+        builder.define(DATA_LEAP_TY, 0.0F);
+        builder.define(DATA_LEAP_TZ, 0.0F);
     }
 
     public void initAssemblyChassis() {
@@ -155,6 +182,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public float getEnergy() { return entityData.get(DATA_ENERGY); }
     public float getArmorIntegrity() { return entityData.get(DATA_ARMOR); }
     public int getActionCooldown() { return entityData.get(DATA_COOLDOWN); }
+    public int getLockedTargetId() { return entityData.get(DATA_LOCKED_TARGET_ID); }
 
     public String getBaseClipName() {
         return switch (getAnimId()) {
@@ -298,6 +326,12 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 this.yHeadRot = aimYaw;
                 leapStart = position();
                 leapTarget = findExplorationLanding(aimYaw, 11.0D);
+                entityData.set(DATA_LEAP_SX, (float) leapStart.x);
+                entityData.set(DATA_LEAP_SY, (float) leapStart.y);
+                entityData.set(DATA_LEAP_SZ, (float) leapStart.z);
+                entityData.set(DATA_LEAP_TX, (float) leapTarget.x);
+                entityData.set(DATA_LEAP_TY, (float) leapTarget.y);
+                entityData.set(DATA_LEAP_TZ, (float) leapTarget.z);
                 playAnim(ANIM_LEAP_SLAM);
                 setCooldown(48);
                 yield true;
@@ -386,7 +420,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 playAnim(ANIM_ENTER_COCKPIT);
                 player.startRiding(this);
                 player.setInvisible(true);
-                sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.2F, 1.15F);
+                SoundEvent seal = TeyvatBossesSounds.mechVisorSeal();
+                sl.playSound(null, getX(), getY() + 2.4D, getZ(), seal != null ? seal : SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.15F, 1.0F);
                 return InteractionResult.SUCCESS;
             }
         }
@@ -443,7 +478,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 // Phase 3b: Hydraulic lock-in slam -> +100 Energy + redstone/gold spark burst
                 float nextE = Math.min(MAX_ENERGY, getEnergy() + ENERGY_PER_BLOCK);
                 entityData.set(DATA_ENERGY, nextE);
-                sl.playSound(null, bx, by, bz, SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 1.25F, 0.78F);
+                sl.playSound(null, bx, by, bz, SoundEvents.PISTON_CONTRACT, SoundSource.PLAYERS, 1.35F, 0.72F);
                 sl.playSound(null, bx, by, bz, SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.4F, 1.15F);
                 sl.sendParticles(DustParticleOptions.REDSTONE, bx, by, bz, 28, 0.45D, 0.40D, 0.45D, 0.08D);
                 sl.sendParticles(ParticleTypes.END_ROD, bx, by, bz, 14, 0.35D, 0.35D, 0.35D, 0.07D);
@@ -463,14 +498,72 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             playAnim(ANIM_IDLE);
             return;
         }
-        if (anim == ANIM_ENTER_COCKPIT && t >= 24) {
+        if (anim == ANIM_ENTER_COCKPIT && t >= 26) {
             playAnim(ANIM_IDLE);
             return;
+        }
+
+        // Damage smoke & electric sparks when Armor < 30%
+        if (isFullyAssembled() && getArmorIntegrity() < 30.0F && tickCount % 4 == 0) {
+            boolean crit = getArmorIntegrity() <= 0.5F;
+            sl.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 2.6D, getZ(), crit ? 3 : 1, 0.75D, 0.45D, 0.75D, 0.02D);
+            if (tickCount % 8 == 0) {
+                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.3D, getZ(), crit ? 8 : 4, 0.85D, 0.55D, 0.85D, 0.08D);
+            }
         }
 
         LivingEntity pilot = getControllingPassenger();
         if (pilot instanceof Player player) {
             if (!player.isInvisible()) player.setInvisible(true);
+
+            // Continuous low mechanical engine hum while piloted
+            if (tickCount % 26 == 0) {
+                SoundEvent hum = TeyvatBossesSounds.mechEngineHum();
+                if (hum != null) {
+                    float pitch = (anim == ANIM_WALK || anim == ANIM_CYCLONE_ACTIVE) ? 1.10F : 0.96F;
+                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), hum, SoundSource.PLAYERS, 0.36F, pitch);
+                }
+            }
+
+            // Live crosshair aim target lock-on (every 3 ticks)
+            if (tickCount % 3 == 0) {
+                LivingEntity aimed = findAimedHostile(sl, player, 34.0D);
+                entityData.set(DATA_LOCKED_TARGET_ID, aimed != null ? aimed.getId() : -1);
+            }
+
+            // Server-side movement & pivot-turn detection (travel() runs on controlling client, so server detects displacement here!)
+            if (anim == ANIM_IDLE || anim == ANIM_WALK) {
+                double dx = getX() - prevServerX;
+                double dz = getZ() - prevServerZ;
+                double movedSq = dx * dx + dz * dz;
+                float yawMoved = Math.abs(Mth.wrapDegrees(getYRot() - prevServerYaw));
+                if (movedSq > 0.00018D || yawMoved > 0.85F) {
+                    walkGraceTicks = 7;
+                } else if (walkGraceTicks > 0) {
+                    walkGraceTicks--;
+                }
+
+                if (walkGraceTicks > 0) {
+                    if (anim != ANIM_WALK) {
+                        playAnim(ANIM_WALK);
+                        anim = ANIM_WALK;
+                    }
+                    if (serverAnimTick % 24 == 2) {
+                        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 0.35F, 0.54F);
+                    } else if (serverAnimTick % 24 == 12) {
+                        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, movedSq > 0.00018D ? 1.40F : 0.90F, 0.45F);
+                        sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.12D, getZ(), movedSq > 0.00018D ? 9 : 4, 0.75D, 0.06D, 0.75D, 0.025D);
+                    }
+                } else if (anim == ANIM_WALK) {
+                    playAnim(ANIM_IDLE);
+                    anim = ANIM_IDLE;
+                }
+            } else {
+                walkGraceTicks = 0;
+            }
+            prevServerX = getX();
+            prevServerZ = getZ();
+            prevServerYaw = getYRot();
 
             // Gentle passive drain (-0.5 energy per 2s -> 10 Redstone Blocks = ~66 minutes idle / ~25 min combat)
             if (tickCount % 40 == 0) {
@@ -484,6 +577,14 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
 
             // All 6 skills are dispatched cleanly via LMB/RMB Tap, Double-Tap, and Hold gestures (RuinMechSkillPayload)
+        }
+
+        if (pilot == null) {
+            if (getLockedTargetId() != -1) entityData.set(DATA_LOCKED_TARGET_ID, -1);
+            prevServerX = getX();
+            prevServerZ = getZ();
+            prevServerYaw = getYRot();
+            walkGraceTicks = 0;
         }
 
         // Execute all 6 Ruin Guard Boss Combat Skills
@@ -539,7 +640,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         } else if (anim == ANIM_MISSILE_SALVO) {
             if (t >= 16 && t < 34 && (t - 16) % 3 == 0) {
                 int idx = (t - 16) / 3;
-                LivingEntity lock = findNearestHostile(sl, 32.0D);
+                Entity lockedEnt = getLockedTargetId() != -1 ? sl.getEntity(getLockedTargetId()) : null;
+                LivingEntity lock = (lockedEnt instanceof LivingEntity le && le.isAlive()) ? le : findNearestHostile(sl, 34.0D);
                 double side = (idx % 2 == 0) ? -1.1D : 1.1D;
                 float rad = getYRot() * Mth.DEG_TO_RAD;
                 Vec3 right = new Vec3(Math.cos(rad), 0.0D, Math.sin(rad));
@@ -574,6 +676,32 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     @Override
     public void travel(Vec3 travelVector) {
         int anim = getAnimId();
+        // Controlling client must execute the exact same parabolic leap arc so vehicle position sync never rubber-bands!
+        if (anim == ANIM_LEAP_SLAM && level().isClientSide() && isVehicle()) {
+            int t = getAnimTick();
+            double sx = entityData.get(DATA_LEAP_SX);
+            double sy = entityData.get(DATA_LEAP_SY);
+            double sz = entityData.get(DATA_LEAP_SZ);
+            double tx = entityData.get(DATA_LEAP_TX);
+            double ty = entityData.get(DATA_LEAP_TY);
+            double tz = entityData.get(DATA_LEAP_TZ);
+            if (t >= 10 && t <= 28) {
+                float f = (t - 10) / 18.0F;
+                float sf = f * f * (3.0F - 2.0F * f);
+                double nx = Mth.lerp(sf, sx, tx);
+                double nz = Mth.lerp(sf, sz, tz);
+                double apex = Math.max(sy, ty) + 4.6D;
+                double baseLine = Mth.lerp(f, sy, ty);
+                double ny = baseLine + Math.sin(f * Math.PI) * Math.max(4.4D, apex - baseLine);
+                setPos(nx, ny, nz);
+                setDeltaMovement(Vec3.ZERO);
+                return;
+            } else if (t == 29) {
+                setPos(tx, ty, tz);
+                setDeltaMovement(Vec3.ZERO);
+                return;
+            }
+        }
         boolean canMove = (anim == ANIM_IDLE || anim == ANIM_WALK || anim == ANIM_CYCLONE_ACTIVE);
         if (isAlive() && isVehicle() && getControllingPassenger() instanceof Player pilot && canMove) {
             // 1. Heavy mechanical turn-rate limit matching original RuinGuardEntity (4.2 deg/tick, 6.2 during cyclone)
@@ -714,6 +842,30 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 }
             }
         }
+    }
+
+
+    @Nullable
+    private LivingEntity findAimedHostile(ServerLevel sl, Player pilot, double range) {
+        Vec3 eyePos = pilot.getEyePosition();
+        Vec3 look = pilot.getLookAngle().normalize();
+        AABB box = getBoundingBox().inflate(range, 14.0D, range);
+        LivingEntity best = null;
+        double bestScore = -1e9;
+        for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
+                le -> le.isAlive() && le != this && le != pilot && !(le instanceof RuinMechEntity) && le instanceof Enemy)) {
+            Vec3 to = e.position().add(0.0D, e.getBbHeight() * 0.5D, 0.0D).subtract(eyePos);
+            double dist = to.length();
+            if (dist > range || dist < 1.5D) continue;
+            double dot = to.normalize().dot(look);
+            if (dot < 0.72D) continue;
+            double score = dot * 40.0D - dist * 0.45D;
+            if (score > bestScore) {
+                bestScore = score;
+                best = e;
+            }
+        }
+        return best;
     }
 
     @Nullable

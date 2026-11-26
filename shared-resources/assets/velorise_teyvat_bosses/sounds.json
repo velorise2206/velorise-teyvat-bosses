@@ -30,5 +30,26 @@
         "stream": true
       }
     ]
+  },
+  "sfx.mech_engine_hum": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_engine_hum"
+      }
+    ]
+  },
+  "sfx.mech_lockon_beep": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_lockon_beep"
+      }
+    ]
+  },
+  "sfx.mech_visor_seal": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_visor_seal"
+      }
+    ]
   }
 }

@@ -124,14 +124,18 @@ public class RuinMissileProjectile extends Entity {
         ServerLevel sl = (ServerLevel) level();
         boolean impacted = false;
 
-        AABB box = new AABB(getX() - 0.95D, getY() - 0.95D, getZ() - 0.95D,
-                getX() + 0.95D, getY() + 0.95D, getZ() + 0.95D);
-        List<LivingEntity> hits = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e.isAlive() && !(e instanceof RuinGuardEntity)
-                        && !(e instanceof Player p && (p.isCreative() || p.isSpectator())));
-        if (!hits.isEmpty()) {
-            impacted = true;
-        } else if (tickCount > 6 && !sl.getBlockState(blockPosition()).isAir() && sl.getBlockState(blockPosition()).blocksMotion()) {
+        LivingEntity owner = (ownerUuid != null && sl.getEntity(ownerUuid) instanceof LivingEntity le) ? le : null;
+        if (tickCount > 3) {
+            AABB box = new AABB(getX() - 0.95D, getY() - 0.95D, getZ() - 0.95D,
+                    getX() + 0.95D, getY() + 0.95D, getZ() + 0.95D);
+            List<LivingEntity> hits = sl.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !isFriendlyToOwner(e, owner)
+                            && !(e instanceof Player p && (p.isCreative() || p.isSpectator())));
+            if (!hits.isEmpty()) {
+                impacted = true;
+            }
+        }
+        if (!impacted && tickCount > 6 && !sl.getBlockState(blockPosition()).isAir() && sl.getBlockState(blockPosition()).blocksMotion()) {
             impacted = true;
         }
 
@@ -150,13 +154,31 @@ public class RuinMissileProjectile extends Entity {
         AABB blast = new AABB(getX() - 2.4D, getY() - 2.0D, getZ() - 2.4D,
                 getX() + 2.4D, getY() + 2.4D, getZ() + 2.4D);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, blast,
-                ent -> ent.isAlive() && !(ent instanceof RuinGuardEntity)
+                ent -> ent.isAlive() && !isFriendlyToOwner(ent, owner)
                         && !(ent instanceof Player p && (p.isCreative() || p.isSpectator())))) {
             StavesElementBridge.dealElementalDamage(e, owner, "PYRO", damage, 0.5F, false, 0.20F);
             Vec3 push = e.position().subtract(position()).normalize().scale(0.55D);
             e.setDeltaMovement(e.getDeltaMovement().add(push.x, 0.32D, push.z));
             e.hurtMarked = true;
         }
+    }
+
+
+    private boolean isFriendlyToOwner(LivingEntity candidate, LivingEntity owner) {
+        if (owner != null) {
+            if (candidate == owner || owner.hasPassenger(candidate) || candidate.getVehicle() == owner) {
+                return true;
+            }
+            if (owner instanceof RuinMechEntity && candidate instanceof RuinMechEntity) {
+                return true;
+            }
+            if (owner instanceof RuinGuardEntity && candidate instanceof RuinGuardEntity) {
+                return true;
+            }
+        } else if (candidate instanceof RuinGuardEntity) {
+            return true;
+        }
+        return false;
     }
 
     @Override

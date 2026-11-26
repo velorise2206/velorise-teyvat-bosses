@@ -7,21 +7,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
- * Clean, zero-text-spam Khaenri'ah Mech Cockpit HUD:
+ * Titanfall-inspired Khaenri'ah Mech Cockpit HUD:
  * <ul>
- *   <li><b>1st-Person Visor Frame:</b> Sleek bronze corner brackets, subtle top/bottom visor vignette,
- *       amber boot-up flash during cockpit entry, and red low-battery pulse when energy &lt; 100.</li>
- *   <li><b>VIP Pixel Telemetry Panel:</b> Crisp pixel-art Heart-Core (HP), Shield (Armor), and
- *       10-Cell Redstone Battery bar (each cell = 1 Redstone Block).</li>
- *   <li><b>6-Skill Pixel Icon Dock:</b> Shows all 6 Ruin Guard combat skills with keybind badges
- *       and live cooldown / low-energy darkening.</li>
+ *   <li><b>Embark Visor Drop & Scanline Boot:</b> Top/bottom armored shutters clamp shut and retract with a golden scanline sweep.</li>
+ *   <li><b>Target Lock-On Aim Reticle:</b> Center Khaenri'ah crosshair that locks onto aimed hostiles in crimson with target name, HP bar, and distance.</li>
+ *   <li><b>Cracked Visor Overlay:</b> Fractured glass cracks appear at the screen corners whenever Armor drops below 30%.</li>
+ *   <li><b>VIP Pixel Telemetry & 6-Skill LMB/RMB Dock:</b> Crisp HP, Armor, 10-Cell Redstone Battery, and L1/L2/L+/R1/R2/R+ gesture icons.</li>
  * </ul>
  */
 public final class RuinMechCockpitHud {
     private static final ResourceLocation HUD_TEX = TeyvatBossesConstants.id("textures/gui/ruin_mech_hud.png");
-    // Order matches HUD dock: [L1 Clap, L2 3-Hit, L+ Cyclone, R1 Stomp, R2 Leap, R+ Missiles]
     private static final int[] SKILL_COSTS = {12, 22, 30, 15, 18, 25};
     private static final int[] ICON_UV_IDX = {0, 1, 3, 2, 4, 5};
 
@@ -30,7 +29,7 @@ public final class RuinMechCockpitHud {
     public static void render(GuiGraphics gui, float partialTicks) {
         Minecraft mc = Minecraft.getInstance();
         RuinMechEntity mech = RuinMechCameraController.getPilotedMech();
-        if (mech == null || mc.options.hideGui) return;
+        if (mech == null || mc.options.hideGui || mc.level == null) return;
 
         int sw = gui.guiWidth();
         int sh = gui.guiHeight();
@@ -38,34 +37,34 @@ public final class RuinMechCockpitHud {
 
         RenderSystem.enableBlend();
 
-        // 1. 1st-Person Cockpit Visor Frame & Boot-up Flash
+        // 1. 1st-Person Cockpit Visor Frame, Embark Shutters & Cracked Glass
         if (firstPerson) {
             renderVisorOverlay(gui, mech, sw, sh, partialTicks);
         }
 
-        // 2. Bottom-Left Telemetry Panel (HP + Armor + 10-Cell Redstone Battery)
+        // 2. Center Aim & Target Lock-On Reticle (shows WHO you are aiming at!)
+        renderAimLockReticle(gui, mc, mech, sw, sh, partialTicks);
+
+        // 3. Bottom-Left Telemetry Panel (HP + Armor + 10-Cell Redstone Battery)
         int panelX = 12;
         int panelY = sh - 66;
         int panelW = 148;
         int panelH = 54;
 
-        // Dark armored backing with subtle bronze trim
         gui.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xB8141110);
         drawBorder(gui, panelX, panelY, panelW, panelH, 0xCC9C7A48);
 
-        // Row 1: HP Heart-Core Icon + Segmented Crimson Bar
         float hpPct = Mth.clamp(mech.getHealth() / Math.max(1.0F, mech.getMaxHealth()), 0.0F, 1.0F);
         gui.blit(HUD_TEX, panelX + 5, panelY + 4, 0, 0, 16, 16, 256, 128);
         drawBar(gui, panelX + 24, panelY + 8, 86, 8, hpPct, 0xFFD92B3A, 0xFF361418);
         gui.drawString(mc.font, Math.round(mech.getHealth()) + "", panelX + 114, panelY + 8, 0xFFFFD8D8, true);
 
-        // Row 2: Armor Shield Icon + Segmented Steel-Blue Bar
         float armPct = Mth.clamp(mech.getArmorIntegrity() / RuinMechEntity.MAX_ARMOR, 0.0F, 1.0F);
         gui.blit(HUD_TEX, panelX + 5, panelY + 20, 16, 0, 16, 16, 256, 128);
-        drawBar(gui, panelX + 24, panelY + 24, 86, 8, armPct, 0xFF64B5F6, 0xFF152536);
-        gui.drawString(mc.font, Math.round(mech.getArmorIntegrity()) + "%", panelX + 114, panelY + 24, 0xFFD6EEFF, true);
+        int armColor = armPct < 0.30F ? 0xFFFF7043 : 0xFF64B5F6;
+        drawBar(gui, panelX + 24, panelY + 24, 86, 8, armPct, armColor, 0xFF152536);
+        gui.drawString(mc.font, Math.round(mech.getArmorIntegrity()) + "%", panelX + 114, panelY + 24, armPct < 0.30F ? 0xFFFFAB91 : 0xFFD6EEFF, true);
 
-        // Row 3: Redstone Battery Icon + 10 Individual Glowing Redstone Cells
         float energy = mech.getEnergy();
         int fullCells = Mth.clamp((int) Math.ceil(energy / RuinMechEntity.ENERGY_PER_BLOCK), 0, RuinMechEntity.MAX_REDSTONE_CELLS);
         gui.blit(HUD_TEX, panelX + 5, panelY + 36, 32, 0, 16, 16, 256, 128);
@@ -78,7 +77,7 @@ public final class RuinMechCockpitHud {
         int cellColor = fullCells <= 1 ? 0xFFFF5555 : 0xFFFFCC66;
         gui.drawString(mc.font, fullCells + "/10", panelX + 116, panelY + 40, cellColor, true);
 
-        // 3. Bottom-Right 6-Skill Pixel Icon Dock
+        // 4. Bottom-Right 6-Skill Pixel Icon Dock (L1/L2/L+ | R1/R2/R+)
         int slotSize = 22;
         int gap = 4;
         int dockW = 6 * slotSize + 5 * gap + 10;
@@ -96,19 +95,16 @@ public final class RuinMechCockpitHud {
             int sy = dockY + 4;
             gui.blit(HUD_TEX, sx + 1, sy + 1, ICON_UV_IDX[i] * 24, 24, 20, 20, 256, 128);
 
-            // Darken if on cooldown or insufficient energy
             if (cd > 0 || energy < SKILL_COSTS[i]) {
                 gui.fill(sx + 1, sy + 1, sx + 21, sy + 21, 0x99000000);
             }
 
-            // Live amber charge fill bar on Hold slots (L+ at i=2, R+ at i=5)
             float charge = (i == 2) ? lmbHold : (i == 5 ? rmbHold : 0.0F);
             if (charge > 0.01F) {
                 int chH = Math.round(20 * charge);
                 gui.fill(sx + 1, sy + 21 - chH, sx + 21, sy + 21, 0x88FFB300);
             }
 
-            // Crisp LMB (gold) / RMB (cyan) gesture badge
             String lbl = keys[i];
             int lw = mc.font.width(lbl);
             int badgeColor = (i < 3) ? 0xFFFFD54F : 0xFF80DEEA;
@@ -119,32 +115,111 @@ public final class RuinMechCockpitHud {
         RenderSystem.disableBlend();
     }
 
+    private static void renderAimLockReticle(GuiGraphics gui, Minecraft mc, RuinMechEntity mech, int sw, int sh, float partialTicks) {
+        int cx = sw / 2;
+        int cy = sh / 2;
+
+        Entity raw = mech.getLockedTargetId() != -1 ? mc.level.getEntity(mech.getLockedTargetId()) : null;
+        LivingEntity locked = (raw instanceof LivingEntity le && le.isAlive()) ? le : null;
+        float rmbCharge = RuinMechInputController.getRmbHoldProgress();
+
+        if (locked != null) {
+            // Crimson tactical lock-on brackets tightening around center reticle!
+            float pulse = Mth.sin((mech.tickCount + partialTicks) * 0.45F) * 1.5F;
+            int spread = Math.round(14.0F - rmbCharge * 6.0F + pulse);
+            int col = (rmbCharge > 0.1F) ? 0xFFFF2A2A : 0xEEFF5252;
+            int len = 6;
+            // 4 corner brackets
+            gui.fill(cx - spread, cy - spread, cx - spread + len, cy - spread + 1, col);
+            gui.fill(cx - spread, cy - spread, cx - spread + 1, cy - spread + len, col);
+            gui.fill(cx + spread - len, cy - spread, cx + spread, cy - spread + 1, col);
+            gui.fill(cx + spread - 1, cy - spread, cx + spread, cy - spread + len, col);
+            gui.fill(cx - spread, cy + spread - 1, cx - spread + len, cy + spread, col);
+            gui.fill(cx - spread, cy + spread - len, cx - spread + 1, cy + spread, col);
+            gui.fill(cx + spread - len, cy + spread - 1, cx + spread, cy + spread, col);
+            gui.fill(cx + spread - 1, cy + spread - len, cx + spread, cy + spread, col);
+
+            // Target readout card right beneath reticle: Name + Distance + Live HP Bar
+            int dist = Math.round((float) Math.sqrt(mech.distanceToSqr(locked)));
+            String tag = locked.getDisplayName().getString() + " [" + dist + "m]";
+            int tw = mc.font.width(tag);
+            int bx = cx - Math.max(44, tw / 2 + 4);
+            int bw = Math.max(88, tw + 8);
+            int by = cy + 20;
+            gui.fill(bx, by, bx + bw, by + 17, 0xAA160E0E);
+            drawBorder(gui, bx, by, bw, 17, 0xCCDD3333);
+            gui.drawString(mc.font, tag, cx - tw / 2, by + 2, 0xFFFFCDD2, true);
+            float tHp = Mth.clamp(locked.getHealth() / Math.max(1.0F, locked.getMaxHealth()), 0.0F, 1.0F);
+            gui.fill(bx + 3, by + 12, bx + bw - 3, by + 15, 0xFF331111);
+            gui.fill(bx + 3, by + 12, bx + 3 + Math.round((bw - 6) * tHp), by + 15, 0xFFFF3D3D);
+        } else {
+            // Subtle Khaenri'ah golden standby crosshair brackets
+            int s = 9;
+            int col = 0x88EEB84B;
+            gui.fill(cx - s, cy - 2, cx - s + 1, cy + 3, col);
+            gui.fill(cx + s - 1, cy - 2, cx + s, cy + 3, col);
+            gui.fill(cx - 2, cy - s, cx + 3, cy - s + 1, col);
+            gui.fill(cx - 2, cy + s - 1, cx + 3, cy + s, col);
+        }
+    }
+
     private static void renderVisorOverlay(GuiGraphics gui, RuinMechEntity mech, int sw, int sh, float partialTicks) {
-        // Subtle top & bottom dark visor trim (keeps center 100% clear)
+        // Sleek top & bottom dark visor trim
         gui.fill(0, 0, sw, 10, 0x88100D0B);
         gui.fill(0, sh - 8, sw, sh, 0x88100D0B);
         gui.fill(0, 10, sw, 11, 0xAA9C7A48);
 
-        // Sleek Khaenri'ah corner HUD brackets
+        // Khaenri'ah corner brackets
         int m = 18;
         int len = 24;
         int col = 0xAAEEB84B;
-        // Top-Left
         gui.fill(m, m, m + len, m + 2, col);
         gui.fill(m, m, m + 2, m + len, col);
-        // Top-Right
         gui.fill(sw - m - len, m, sw - m, m + 2, col);
         gui.fill(sw - m - 2, m, sw - m, m + len, col);
-        // Bottom-Left & Bottom-Right (above panels)
         gui.fill(m, sh - 74, m + 2, sh - 74 - 14, col);
         gui.fill(sw - m - 2, sh - 74, sw - m, sh - 74 - 14, col);
 
-        // Cockpit boot-up amber visor flash during ANIM_ENTER_COCKPIT
+        // Cracked visor glass fractures when Armor < 30%
+        float armor = mech.getArmorIntegrity();
+        if (armor < 30.0F) {
+            boolean critical = armor <= 0.5F;
+            int crackCol = critical ? 0xBBFFE0D0 : 0x77E8D8C8;
+            // Top-right jagged crack radiating inward
+            drawPixelCrack(gui, sw - 2, 12, -1, 1, critical ? 52 : 34, crackCol);
+            drawPixelCrack(gui, sw - 18, 12, -1, 2, critical ? 36 : 22, crackCol);
+            // Bottom-left jagged crack above telemetry panel
+            drawPixelCrack(gui, 2, sh - 82, 1, -1, critical ? 44 : 26, crackCol);
+            if (critical) {
+                drawPixelCrack(gui, 2, 18, 1, 1, 38, crackCol);
+            }
+        }
+
+        // Titanfall-style Embark Armored Visor Shutter Drop + Golden Scanline Boot (ANIM_ENTER_COCKPIT, 26 ticks)
         if (mech.getAnimId() == RuinMechEntity.ANIM_ENTER_COCKPIT) {
-            float p = Mth.clamp((mech.getAnimTick() + partialTicks) / 24.0F, 0.0F, 1.0F);
-            int alpha = (int) ((1.0F - p) * 115.0F);
-            if (alpha > 2) {
-                gui.fill(0, 0, sw, sh, (alpha << 24) | 0xFF9922);
+            float t = mech.getAnimTick() + partialTicks;
+            if (t < 13.0F) {
+                // Phase 1: Heavy armored shutters drop from top & rise from bottom and clamp shut at center
+                float p = Mth.clamp(t / 13.0F, 0.0F, 1.0F);
+                float ease = p * p * (3.0F - 2.0F * p);
+                int shutterH = Math.round((sh * 0.52F) * ease);
+                gui.fill(0, 0, sw, shutterH, 0xEE14110F);
+                gui.fill(0, sh - shutterH, sw, sh, 0xEE14110F);
+                gui.fill(0, shutterH - 2, sw, shutterH, 0xFFEEB84B);
+                gui.fill(0, sh - shutterH, sw, sh - shutterH + 2, 0xFFEEB84B);
+            } else if (t < 26.0F) {
+                // Phase 2: Shutters open to visor rim + glowing golden scanline sweeps top-to-bottom
+                float p = Mth.clamp((t - 13.0F) / 13.0F, 0.0F, 1.0F);
+                float openEase = 1.0F - (float) Math.pow(1.0F - p, 3.0F);
+                int shutterH = Math.round((sh * 0.52F) * (1.0F - openEase));
+                if (shutterH > 10) {
+                    gui.fill(0, 0, sw, shutterH, 0xDD14110F);
+                    gui.fill(0, sh - shutterH, sw, sh, 0xDD14110F);
+                }
+                int scanY = Math.round(sh * p);
+                int glowAlpha = Math.round((1.0F - p) * 140.0F);
+                gui.fill(0, Math.max(0, scanY - 3), sw, scanY + 3, (glowAlpha << 24) | 0xFFBB33);
+                gui.fill(0, scanY, sw, scanY + 1, 0xEEFFF0AA);
             }
         }
 
@@ -157,6 +232,26 @@ public final class RuinMechCockpitHud {
             gui.fill(0, sh - 4, sw, sh, red);
             gui.fill(0, 0, 4, sh, red);
             gui.fill(sw - 4, 0, sw, sh, red);
+        }
+    }
+
+    private static void drawPixelCrack(GuiGraphics gui, int x0, int y0, int dx, int dy, int steps, int color) {
+        int x = x0;
+        int y = y0;
+        for (int i = 0; i < steps; i++) {
+            gui.fill(x, y, x + 2, y + 1, color);
+            x += dx;
+            if (i % 3 == 0) y += dy;
+            if (i % 7 == 4) x += dx;
+            if (i == steps / 2) {
+                // Small branch fracture
+                int bx = x, by = y;
+                for (int b = 0; b < steps / 3; b++) {
+                    gui.fill(bx, by, bx + 1, by + 1, color);
+                    bx += dx;
+                    by -= dy;
+                }
+            }
         }
     }
 

@@ -23,10 +23,11 @@ import org.joml.Matrix4f;
 /**
  * Renderer for the Pilotable Ruin Mech:
  * <ul>
- *   <li>Live 5-part outdoor assembly bone toggling.</li>
- *   <li>Upper-body turret aim tracking (+-38 deg) while heavy legs pivot slowly behind.</li>
- *   <li>Seamless 58-tick AAA Rear-Reactor Redstone Block Reload choreography anchored strictly
- *       in {@code torso} local bone space (zero posture popping, real textured {@link Blocks#REDSTONE_BLOCK}).</li>
+ *   <li>Accurate anatomical 5-part outdoor assembly bone toggling (accounting for Mojang X-mirroring).</li>
+ *   <li>Zero-lag walk animation + upper-body turret aim tracking (+-38 deg).</li>
+ *   <li>58-tick AAA Rear-Reactor Redstone Block Reload: level service crouch, shoulder pods slide outward,
+ *       rear hatch hinges downward/backward, glowing magnetic rail pulls a real 3D textured Redstone Block
+ *       horizontally into the illuminated back socket with recoil & power surge.</li>
  *   <li>Unobstructed 1st-person cockpit visibility.</li>
  * </ul>
  */
@@ -77,7 +78,15 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         poseStack.scale(-MECH_SCALE, -MECH_SCALE, MECH_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        RuinGuardAnimations.apply(model, entity.getBaseClipName(), currSec);
+        // Zero-lag walk clip fallback while local pilot is steering
+        String clipName = entity.getBaseClipName();
+        float clipSec = currSec;
+        if (animId == RuinMechEntity.ANIM_IDLE && entity.isVehicle()
+                && entity.getDeltaMovement().horizontalDistanceSqr() > 0.00035D) {
+            clipName = "walk_combat";
+            clipSec = (entity.tickCount + partialTicks) / 20.0F;
+        }
+        RuinGuardAnimations.apply(model, clipName, clipSec);
 
         // Upper-body turret aim lag: torso tracks pilot camera (+-38 deg) while heavy legs pivot slowly behind
         if (animId == RuinMechEntity.ANIM_IDLE || animId == RuinMechEntity.ANIM_WALK) {
@@ -89,9 +98,9 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
             }
         }
 
-        // Procedural cockpit entry animation (kneel -> open -> lock upright)
+        // Procedural cockpit entry animation
         if (animId == RuinMechEntity.ANIM_ENTER_COCKPIT) {
-            float p = Mth.clamp(animTicksF / 24.0F, 0.0F, 1.0F);
+            float p = Mth.clamp(animTicksF / 26.0F, 0.0F, 1.0F);
             float dip = Mth.sin(p * Mth.PI);
             ModelPart pelvis = model.getBone("pelvis");
             ModelPart torso = model.getBone("torso");
@@ -100,22 +109,22 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         }
 
         // 58-tick (2.9s) AAA Mechanical Rear-Reactor Redstone Block Reload Choreography
-        // Seamlessly layered over dormant_kneeling -> ZERO posture popping at start or end!
         float hatchOpen = 0.0F;
         float shroudOpen = 0.0F;
         float cellVisible = 0.0F;
-        float cellSlideZ = 16.0F;
-        float cellScale = 0.42F;
+        float cellSlideZ = 18.0F;
+        float cellScale = 0.56F;
         float socketGlow = 0.0F;
+        float beamAlpha = 0.0F;
 
         if (animId == RuinMechEntity.ANIM_RECHARGE_BACK) {
-            // 1. Maintenance torso forward-lean envelope (0..12 lean in, 12..44 hold, 44..58 settle cleanly to 0)
-            float leanEnv;
-            if (animTicksF < 12.0F) leanEnv = easeInOutCubic(animTicksF / 12.0F);
-            else if (animTicksF < 44.0F) leanEnv = 1.0F;
-            else leanEnv = 1.0F - easeInOutCubic((animTicksF - 44.0F) / 14.0F);
+            // 1. Smooth service posture envelope: straighten torso slightly from deep dormant kneel so rear bay faces HORIZONTALLY!
+            float env;
+            if (animTicksF < 12.0F) env = easeInOutCubic(animTicksF / 12.0F);
+            else if (animTicksF < 44.0F) env = 1.0F;
+            else env = 1.0F - easeInOutCubic((animTicksF - 44.0F) / 14.0F);
 
-            // 2. Shoulder missile shrouds split wide (8..20 open with easeOutBack, 42..52 clamp shut)
+            // 2. Shoulder missile shrouds slide outward on mechanical rails (8..20 open, 42..52 lock shut)
             if (animTicksF >= 8.0F && animTicksF < 20.0F) {
                 shroudOpen = easeOutBack((animTicksF - 8.0F) / 12.0F);
             } else if (animTicksF >= 20.0F && animTicksF < 42.0F) {
@@ -124,7 +133,7 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 shroudOpen = 1.0F - easeInOutCubic((animTicksF - 42.0F) / 10.0F);
             }
 
-            // 3. Rear reactor hatch unlatches & hinges backward/downward (12..23 open, 39..48 slam shut)
+            // 3. Rear reactor hatch hinges WIDE DOWNWARD & BACKWARD like an armored drawbridge door (12..23 open, 39..48 slam shut)
             if (animTicksF >= 12.0F && animTicksF < 23.0F) {
                 hatchOpen = easeOutBack((animTicksF - 12.0F) / 11.0F);
             } else if (animTicksF >= 23.0F && animTicksF < 39.0F) {
@@ -133,81 +142,86 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 hatchOpen = 1.0F - easeOutExpo((animTicksF - 39.0F) / 9.0F);
             }
 
-            // 4. Recoil jolts on lock-in (t=36) and hatch slam (t=47)
+            // 4. Crisp mechanical recoil jolts at cartridge lock-in (t=36) and hatch seal (t=47)
             float recoil = 0.0F;
             if (animTicksF >= 35.0F && animTicksF < 43.0F) {
                 float rp = (animTicksF - 35.0F) / 8.0F;
-                recoil += Mth.sin(rp * Mth.PI * 2.0F) * (1.0F - rp) * 0.11F;
+                recoil += Mth.sin(rp * Mth.PI * 2.0F) * (1.0F - rp) * 0.12F;
             }
             if (animTicksF >= 46.0F && animTicksF < 53.0F) {
                 float sp = (animTicksF - 46.0F) / 7.0F;
                 recoil += Mth.sin(sp * Mth.PI) * (1.0F - sp) * 0.06F;
             }
 
-            // Apply layered multi-bone mechanical offsets
             ModelPart pelvis = model.getBone("pelvis");
             ModelPart waist = model.getBone("waist");
             ModelPart torso = model.getBone("torso");
-            ModelPart eye = model.getBone("eye_assembly");
             ModelPart reactor = model.getBone("back_reactor");
             ModelPart podL = model.getBone("missile_pod_l");
             ModelPart podR = model.getBone("missile_pod_r");
             ModelPart shL = model.getBone("shoulder_l");
             ModelPart shR = model.getBone("shoulder_r");
 
-            if (pelvis != null) pelvis.y += leanEnv * 1.8F + recoil * 4.0F;
-            if (waist != null) waist.xRot += leanEnv * 0.14F + recoil * 0.5F;
-            if (torso != null) torso.xRot += leanEnv * 0.18F + recoil;
-            if (eye != null) eye.xRot += leanEnv * 0.16F;
-            if (shL != null) { shL.zRot += leanEnv * 0.14F; shL.xRot -= leanEnv * 0.10F; }
-            if (shR != null) { shR.zRot -= leanEnv * 0.14F; shR.xRot -= leanEnv * 0.10F; }
+            // Level the kneeling torso slightly (-xRot) so the rear reactor bay faces straight back at eye level
+            if (pelvis != null) pelvis.y += recoil * 3.5F;
+            if (waist != null) waist.xRot -= env * 0.14F - recoil * 0.45F;
+            if (torso != null) torso.xRot -= env * 0.20F - recoil;
+            if (shL != null) shL.zRot -= env * 0.12F;
+            if (shR != null) shR.zRot += env * 0.12F;
 
+            // Slide + angle shoulder shrouds cleanly outward away from the back bay
             if (podL != null) {
-                podL.zRot += shroudOpen * 0.54F;
-                podL.yRot -= shroudOpen * 0.28F;
+                podL.x -= shroudOpen * 4.2F;
+                podL.zRot -= shroudOpen * 0.48F;
+                podL.yRot += shroudOpen * 0.25F;
             }
             if (podR != null) {
-                podR.zRot -= shroudOpen * 0.54F;
-                podR.yRot += shroudOpen * 0.28F;
+                podR.x += shroudOpen * 4.2F;
+                podR.zRot += shroudOpen * 0.48F;
+                podR.yRot -= shroudOpen * 0.25F;
             }
+            // Negative xRot in Mojang space rotates +Z (back) DOWNWARD & BACKWARD like a true armored hatch!
             if (reactor != null) {
-                reactor.xRot += hatchOpen * 1.18F;
-                reactor.z += hatchOpen * 4.2F;
-                reactor.y += hatchOpen * 1.4F;
+                reactor.xRot -= hatchOpen * 1.18F;
+                reactor.z += hatchOpen * 3.8F;
+                reactor.y += hatchOpen * 2.4F;
             }
 
-            // 5. Real 3D Redstone Block 2-stage mechanical insertion (t=18..38)
+            // 5. Large textured 3D Redstone Core Cartridge sliding horizontally along magnetic tractor rail (t=17..39)
             socketGlow = Mth.clamp(hatchOpen, 0.0F, 1.0F);
-            if (animTicksF >= 18.0F && animTicksF <= 38.0F) {
+            if (animTicksF >= 17.0F && animTicksF <= 39.0F) {
                 cellVisible = 1.0F;
                 if (animTicksF < 26.0F) {
-                    // Stage A: Approach & align cleanly behind the open rear bay
-                    float p = easeInOutCubic((animTicksF - 18.0F) / 8.0F);
-                    cellSlideZ = Mth.lerp(p, 18.0F, 6.5F);
-                    cellScale = Mth.lerp(p, 0.18F, 0.44F);
+                    float p = easeInOutCubic((animTicksF - 17.0F) / 9.0F);
+                    cellSlideZ = Mth.lerp(p, 20.0F, 8.5F);
+                    cellScale = Mth.lerp(p, 0.25F, 0.56F);
+                    beamAlpha = p;
                 } else if (animTicksF < 30.0F) {
-                    // Stage B: Micro-pause at socket rim with subtle magnetic hum vibration
-                    float vib = Mth.sin((animTicksF - 26.0F) * 5.0F) * 0.25F;
-                    cellSlideZ = 6.5F + vib;
-                    cellScale = 0.44F;
+                    // Magnetic lock hover right in front of open bay
+                    float vib = Mth.sin((animTicksF - 26.0F) * 5.2F) * 0.30F;
+                    cellSlideZ = 8.5F + vib;
+                    cellScale = 0.56F;
+                    beamAlpha = 1.0F;
                 } else if (animTicksF < 36.0F) {
-                    // Stage C: Snappy hydraulic slam home into the reactor core!
+                    // Hydraulic slam straight into reactor chamber
                     float p = easeOutExpo((animTicksF - 30.0F) / 6.0F);
-                    cellSlideZ = Mth.lerp(p, 6.5F, -0.5F);
-                    cellScale = Mth.lerp(p, 0.44F, 0.36F);
+                    cellSlideZ = Mth.lerp(p, 8.5F, 0.0F);
+                    cellScale = Mth.lerp(p, 0.56F, 0.44F);
+                    beamAlpha = 1.0F - p;
                 } else {
-                    // Seated inside glowing bay as hatch begins closing
-                    cellSlideZ = -0.5F;
-                    cellScale = 0.36F;
+                    cellSlideZ = 0.0F;
+                    cellScale = 0.44F;
+                    beamAlpha = 0.0F;
                 }
             }
         }
 
-        // Toggle limb visibility based on outdoor 5-part assembly mask
-        setBoneVisible("shoulder_l", entity.hasPart(RuinMechEntity.PART_LEFT_ARM));
-        setBoneVisible("shoulder_r", entity.hasPart(RuinMechEntity.PART_RIGHT_ARM));
-        setBoneVisible("hip_l", entity.hasPart(RuinMechEntity.PART_LEFT_LEG));
-        setBoneVisible("hip_r", entity.hasPart(RuinMechEntity.PART_RIGHT_LEG));
+        // Exact anatomical 5-part bone visibility (in RuinGuardModel, +X = shoulder_r/hip_r = robot's TRUE LEFT,
+        // and -X = shoulder_l/hip_l = robot's TRUE RIGHT after Mojang's scale(-1,-1,1) + 180° Y-rot!)
+        setBoneVisible("shoulder_r", entity.hasPart(RuinMechEntity.PART_LEFT_ARM));
+        setBoneVisible("shoulder_l", entity.hasPart(RuinMechEntity.PART_RIGHT_ARM));
+        setBoneVisible("hip_r", entity.hasPart(RuinMechEntity.PART_LEFT_LEG));
+        setBoneVisible("hip_l", entity.hasPart(RuinMechEntity.PART_RIGHT_LEG));
 
         // Unobstructed 1st-person cockpit view
         setBoneVisible("eye_assembly", !firstPersonPilot);
@@ -217,13 +231,12 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
         model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
 
-        // Glow emissive eye & reactor whenever assembled and powered (or surging during reload)
         if (entity.isFullyAssembled() && (entity.getEnergy() > 0.1F || (animId == RuinMechEntity.ANIM_RECHARGE_BACK && animTicksF >= 36.0F))) {
             VertexConsumer evc = bufferSource.getBuffer(RenderType.eyes(EMISSIVE));
             model.renderToBuffer(poseStack, evc, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
         }
 
-        // Render REAL 3D textured Redstone Block + internal socket glow strictly locked to torso local bone space!
+        // Render glowing back socket + magnetic tractor beam + REAL textured 3D Redstone Block in torso local space!
         if (socketGlow > 0.05F || cellVisible > 0.05F) {
             poseStack.pushPose();
             transformToBone(poseStack, "root");
@@ -234,19 +247,20 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
             // Anchor at exact back_reactor coordinates inside torso: (0, -12/16, +11/16) -> TRUE BACK!
             poseStack.translate(0.0D, -12.0D / 16.0D, 11.0D / 16.0D);
 
-            // Warm golden-red internal reactor socket glow behind the open hatch
             if (socketGlow > 0.05F) {
                 poseStack.pushPose();
-                poseStack.translate(0.0D, 0.0D, -0.04D);
-                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.24F * socketGlow);
+                poseStack.translate(0.0D, 0.0D, -0.02D);
+                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.30F * socketGlow);
                 poseStack.popPose();
             }
 
-            // Real textured Minecraft Redstone Block sliding cleanly into the rear reactor bay
+            if (beamAlpha > 0.05F) {
+                drawTractorBeam(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), cellSlideZ / 16.0F, beamAlpha);
+            }
+
             if (cellVisible > 0.05F) {
                 poseStack.pushPose();
                 poseStack.translate(0.0D, 0.0D, cellSlideZ / 16.0D);
-                // Undo model Y-flip so block textures orient upright
                 poseStack.scale(cellScale, -cellScale, cellScale);
                 poseStack.translate(-0.5D, -0.5D, -0.5D);
                 mc.getBlockRenderer().renderSingleBlock(
@@ -287,11 +301,25 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
     }
 
     private static void drawSocketGlow(VertexConsumer vc, Matrix4f m, float s) {
-        // Compact glowing amber-crimson core recess inside the open back reactor
-        vc.addVertex(m, -s, -s, 0.0F).setColor(255, 110, 35, 190);
-        vc.addVertex(m,  s, -s, 0.0F).setColor(255, 110, 35, 190);
-        vc.addVertex(m,  s,  s, 0.0F).setColor(255, 210, 75, 210);
-        vc.addVertex(m, -s,  s, 0.0F).setColor(255, 210, 75, 210);
+        vc.addVertex(m, -s, -s, 0.0F).setColor(255, 80, 25, 210);
+        vc.addVertex(m,  s, -s, 0.0F).setColor(255, 80, 25, 210);
+        vc.addVertex(m,  s,  s, 0.0F).setColor(255, 215, 70, 230);
+        vc.addVertex(m, -s,  s, 0.0F).setColor(255, 215, 70, 230);
+    }
+
+    private static void drawTractorBeam(VertexConsumer vc, Matrix4f m, float lenZ, float alpha) {
+        int a = (int) (135 * alpha);
+        float w = 0.09F;
+        // Horizontal & vertical glowing magnetic guide rail pulling the Redstone Block straight into the core
+        vc.addVertex(m, -w, 0.0F, 0.0F).setColor(255, 65, 45, a);
+        vc.addVertex(m,  w, 0.0F, 0.0F).setColor(255, 65, 45, a);
+        vc.addVertex(m,  w, 0.0F, lenZ).setColor(255, 200, 90, a / 2);
+        vc.addVertex(m, -w, 0.0F, lenZ).setColor(255, 200, 90, a / 2);
+
+        vc.addVertex(m, 0.0F, -w, 0.0F).setColor(255, 65, 45, a);
+        vc.addVertex(m, 0.0F,  w, 0.0F).setColor(255, 65, 45, a);
+        vc.addVertex(m, 0.0F,  w, lenZ).setColor(255, 200, 90, a / 2);
+        vc.addVertex(m, 0.0F, -w, lenZ).setColor(255, 200, 90, a / 2);
     }
 
     @Override
