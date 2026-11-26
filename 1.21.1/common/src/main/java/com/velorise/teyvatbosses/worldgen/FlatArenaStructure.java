@@ -101,13 +101,19 @@ public class FlatArenaStructure extends Structure {
         LevelHeightAccessor heightAccessor = context.heightAccessor();
         RandomState randomState = context.randomState();
         int seaFloorLimit = Math.max(this.minSurfaceY, gen.getSeaLevel() + 1);
+        boolean underwaterArena = !this.undergroundCave && this.minSurfaceY < gen.getSeaLevel();
 
         // 1. Fast center check (2 heightmap queries + 1 biome check) — rejects >85% of chunks immediately
-        int centerSurfaceY = gen.getFirstOccupiedHeight(
-                cx, cz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
         int centerFloorY = gen.getFirstOccupiedHeight(
                 cx, cz, Heightmap.Types.OCEAN_FLOOR_WG, heightAccessor, randomState);
-        if (centerSurfaceY > centerFloorY || centerSurfaceY < seaFloorLimit) {
+        int centerSurfaceY = underwaterArena
+                ? centerFloorY
+                : gen.getFirstOccupiedHeight(cx, cz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
+        if (underwaterArena) {
+            if (centerFloorY < this.minSurfaceY || centerFloorY > gen.getSeaLevel() - 6) {
+                return Optional.empty();
+            }
+        } else if (centerSurfaceY > centerFloorY || centerSurfaceY < seaFloorLimit) {
             return Optional.empty();
         }
 
@@ -140,12 +146,17 @@ public class FlatArenaStructure extends Structure {
                 int sx = cx + (int) Math.round(Math.cos(ang) * r);
                 int sz = cz + (int) Math.round(Math.sin(ang) * r);
 
-                int surfaceY = gen.getFirstOccupiedHeight(
-                        sx, sz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
                 int floorY = gen.getFirstOccupiedHeight(
                         sx, sz, Heightmap.Types.OCEAN_FLOOR_WG, heightAccessor, randomState);
+                int surfaceY = underwaterArena
+                        ? floorY
+                        : gen.getFirstOccupiedHeight(sx, sz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
 
-                if (surfaceY > floorY || surfaceY < seaFloorLimit) {
+                if (underwaterArena) {
+                    if (floorY < this.minSurfaceY || floorY > gen.getSeaLevel() - 4) {
+                        return Optional.empty();
+                    }
+                } else if (surfaceY > floorY || surfaceY < seaFloorLimit) {
                     return Optional.empty();
                 }
 
@@ -183,15 +194,17 @@ public class FlatArenaStructure extends Structure {
         }
 
         // 3. Deferred 3D NoiseColumn ice/fluid check ONLY on 5 points (center + 4 cardinals) after all fast checks pass!
-        int[][] iceCheckOffsets = {{0, 0}, {perimR, 0}, {-perimR, 0}, {0, perimR}, {0, -perimR}};
-        for (int[] off : iceCheckOffsets) {
-            int ix = cx + off[0];
-            int iz = cz + off[1];
-            int sy = (off[0] == 0 && off[1] == 0)
-                    ? centerSurfaceY
-                    : gen.getFirstOccupiedHeight(ix, iz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
-            if (isWaterOrIceColumn(gen, ix, iz, sy, heightAccessor, randomState)) {
-                return Optional.empty();
+        if (!underwaterArena) {
+            int[][] iceCheckOffsets = {{0, 0}, {perimR, 0}, {-perimR, 0}, {0, perimR}, {0, -perimR}};
+            for (int[] off : iceCheckOffsets) {
+                int ix = cx + off[0];
+                int iz = cz + off[1];
+                int sy = (off[0] == 0 && off[1] == 0)
+                        ? centerSurfaceY
+                        : gen.getFirstOccupiedHeight(ix, iz, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
+                if (isWaterOrIceColumn(gen, ix, iz, sy, heightAccessor, randomState)) {
+                    return Optional.empty();
+                }
             }
         }
 
@@ -289,6 +302,7 @@ public class FlatArenaStructure extends Structure {
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int minBuildY = level.getMinBuildHeight() + 2;
+        boolean underwaterArena = targetGroundY < level.getSeaLevel() - 2;
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
@@ -312,7 +326,7 @@ public class FlatArenaStructure extends Structure {
                             }
                         }
 
-                        if (this.clearInteriorRadius > 0 && dist <= this.clearInteriorRadius) {
+                        if (!underwaterArena && this.clearInteriorRadius > 0 && dist <= this.clearInteriorRadius) {
                             int topScan = Math.min(level.getMaxBuildHeight() - 1, targetGroundY + 14);
                             for (int y = targetGroundY + 1; y <= topScan; y++) {
                                 pos.set(x, y, z);
@@ -337,6 +351,9 @@ public class FlatArenaStructure extends Structure {
                     }
                     // Empty natural-ground notch right against the circular stone rim:
                     // fall through to blend flush to targetGroundY (s = 0.0) so ZERO 1-block slits remain!
+                }
+                if (underwaterArena) {
+                    continue;
                 }
 
                 double outerLimit = this.sampleRadius + this.blendRadius + organicNoise;
