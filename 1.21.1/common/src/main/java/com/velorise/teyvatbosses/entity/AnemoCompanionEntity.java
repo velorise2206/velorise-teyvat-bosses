@@ -148,8 +148,30 @@ public class AnemoCompanionEntity extends Mob {
         }
     }
 
+    /**
+     * Checks across all loaded server dimensions whether {@code playerUuid} already owns an active,
+     * fully assembled {@link AnemoCompanionEntity} (strictly 1 pet cube per player).
+     */
+    public static boolean hasActiveCompanion(ServerLevel sl, UUID playerUuid) {
+        if (playerUuid == null) return false;
+        for (ServerLevel lvl : sl.getServer().getAllLevels()) {
+            for (Entity e : lvl.getAllEntities()) {
+                if (e instanceof AnemoCompanionEntity pet && pet.isAlive()
+                        && pet.isFullyAssembled() && playerUuid.equals(pet.getOwnerUuid())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean addAssemblyCube(ServerLevel sl, Player player, ItemStack stack) {
         if (isFullyAssembled()) return false;
+        if (hasActiveCompanion(sl, player.getUUID())) {
+            player.displayClientMessage(Component.literal("You can only own 1 Anemo Cube Pet at a time!")
+                    .withStyle(net.minecraft.ChatFormatting.RED), true);
+            return false;
+        }
         int next = Math.min(MAX_CUBES, getAssembledCount() + 1);
         entityData.set(DATA_ASSEMBLED, next);
         entityData.set(DATA_ACTIVE_SHELLS, next);

@@ -42,7 +42,7 @@ public class AnemoMissileRenderer extends EntityRenderer<AnemoMissileProjectile>
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(t * 22.0F));
             poseStack.mulPose(Axis.XP.rotationDegrees(t * 16.0F));
-            poseStack.scale(-0.28F, -0.28F, 0.28F);
+            poseStack.scale(-0.14F, -0.14F, 0.14F);
 
             ModelPart shell = cubeModel.getBone("shell_0");
             if (shell != null) {

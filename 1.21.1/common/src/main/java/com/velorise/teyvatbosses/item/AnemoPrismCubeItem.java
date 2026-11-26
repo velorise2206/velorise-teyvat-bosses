@@ -19,7 +19,6 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
-import java.util.List;
 
 /**
  * Single Anemo Hypostasis shell cube dropped (2–4 per kill) by Anemo Hypostasis.
@@ -39,6 +38,11 @@ public class AnemoPrismCubeItem extends Item {
         if (player == null) return InteractionResult.PASS;
 
         if (!level.isClientSide() && level instanceof ServerLevel sl) {
+            if (AnemoCompanionEntity.hasActiveCompanion(sl, player.getUUID())) {
+                player.displayClientMessage(Component.literal("You can only own 1 Anemo Cube Pet at a time!")
+                        .withStyle(ChatFormatting.RED), true);
+                return InteractionResult.FAIL;
+            }
             BlockPos pos = ctx.getClickedPos().relative(ctx.getClickedFace());
             double cx = pos.getX() + 0.5D;
             double cy = pos.getY() + 0.15D;

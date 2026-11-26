@@ -11,6 +11,7 @@ import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
+import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
@@ -55,6 +56,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(PrimoGeovishapModel.LAYER_LOCATION, PrimoGeovishapModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         EntityModelLayerRegistry.registerModelLayer(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
@@ -89,6 +91,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             RuinSubClientController.tick(client);
             GeoDrillerClientController.setPacketSender(ClientPlayNetworking::send);
             GeoDrillerClientController.tick(client);
+            BossCameraShake.clientTick();
         });
         HudRenderCallback.EVENT.register((gui, deltaTracker) -> {
             RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false));

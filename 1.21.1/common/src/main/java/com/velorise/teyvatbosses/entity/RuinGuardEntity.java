@@ -106,6 +106,7 @@ public class RuinGuardEntity extends Monster {
     private int noTargetTicks = 0;
     private int attackCooldown = 40;
     private int finisherCooldown = 0;
+    private int speechCooldownTicks = 0;
     private int lastAttack = -1;
     private int eyeHits = 0;
     private int eyeResetTimer = 0;
@@ -341,12 +342,32 @@ public class RuinGuardEntity extends Monster {
         return super.hurt(source, amount);
     }
 
+    private void playAttackSpeech(ServerLevel sl, float chance) {
+        if (speechCooldownTicks > 0 || random.nextFloat() >= chance) return;
+        net.minecraft.sounds.SoundEvent speech = TeyvatBossesSounds.ruinGuardSpeech();
+        if (speech != null) {
+            float pitch = 0.96F + random.nextFloat() * 0.08F;
+            sl.playSound(null, getX(), getY() + 2.4D, getZ(), speech, SoundSource.HOSTILE, 1.45F, pitch);
+            speechCooldownTicks = 60;
+        }
+    }
+
+    private void playPowerDownSpeech(ServerLevel sl) {
+        net.minecraft.sounds.SoundEvent powerDown = TeyvatBossesSounds.ruinGuardPowerDown();
+        if (powerDown != null) {
+            float pitch = 0.96F + random.nextFloat() * 0.08F;
+            sl.playSound(null, getX(), getY() + 2.4D, getZ(), powerDown, SoundSource.HOSTILE, 1.55F, pitch);
+            speechCooldownTicks = 60;
+        }
+    }
+
     private void triggerEyeStun(ServerLevel sl) {
         eyeHits = 0;
         eyeResetTimer = 0;
         transitionTo(STATE_STUNNED, ANIM_STUNNED);
         sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.6F, 0.62F);
         sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 1.35F, 0.78F);
+        playPowerDownSpeech(sl);
         sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.0D, getZ(), 36, 0.9D, 0.7D, 0.9D, 0.12D);
         for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(32.0D))) {
             p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_guard.weakpoint_stun")
@@ -371,6 +392,7 @@ public class RuinGuardEntity extends Monster {
             if (level() instanceof ServerLevel sl) {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DEATH, SoundSource.HOSTILE, 1.6F, 0.58F);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.72F);
+                playPowerDownSpeech(sl);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1.8D, getZ(), 2, 0.6D, 0.6D, 0.6D, 0.0D);
                 if (!cause.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
                     Vec3 pos = arenaInit ? arenaCenter : position();
@@ -386,6 +408,7 @@ public class RuinGuardEntity extends Monster {
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.4F, 0.75F);
         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.5F, 0.65F);
+        playAttackSpeech(sl, 1.0F);
     }
 
     private void resetToDormant() {
@@ -395,6 +418,7 @@ public class RuinGuardEntity extends Monster {
         weakpointImmuneTicks = 0;
         pendingPhase2 = false;
         finisherCooldown = 0;
+        speechCooldownTicks = 0;
         lastAttack = -1;
         attackCooldown = 40;
         setTarget(null);
@@ -440,6 +464,9 @@ public class RuinGuardEntity extends Monster {
         }
         if (finisherCooldown > 0) {
             finisherCooldown--;
+        }
+        if (speechCooldownTicks > 0) {
+            speechCooldownTicks--;
         }
 
         int st = getBossState();
@@ -487,6 +514,8 @@ public class RuinGuardEntity extends Monster {
             entityData.set(DATA_PHASE2, true);
             transitionTo(STATE_COMBAT, ANIM_PHASE2_OVERDRIVE);
             sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.3F, 0.72F);
+            speechCooldownTicks = 0;
+            playAttackSpeech(sl, 1.0F);
             return;
         }
 
@@ -675,6 +704,7 @@ public class RuinGuardEntity extends Monster {
                 setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
                 if (stateTick == 1) {
                     sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.4F, 0.64F);
+                    playAttackSpeech(sl, 0.80F);
                 } else if (stateTick == 22) {
                     sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.3F, 0.58F);
                 }
@@ -740,7 +770,11 @@ public class RuinGuardEntity extends Monster {
         leapTarget = new Vec3(clamped.x, groundY, clamped.z);
         transitionTo(STATE_COMBAT, ANIM_LEAP_SLAM);
         setTelegraph(leapTarget, 6.0F);
-        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.2F, 0.65F);
+        if (TeyvatBossesSounds.ruinGuardSpeech() != null) {
+            playAttackSpeech(sl, 0.85F);
+        } else {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.2F, 0.65F);
+        }
         sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.58F);
     }
 
@@ -825,6 +859,9 @@ public class RuinGuardEntity extends Monster {
         setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
         if (stateTick == 8 || stateTick == 46) {
             sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.65F);
+            if (stateTick == 8) {
+                playAttackSpeech(sl, 0.75F);
+            }
         }
         int totalMissiles = 6;
         if (stateTick >= 20 && stateTick < 20 + totalMissiles * 3 && (stateTick - 20) % 3 == 0) {
@@ -915,6 +952,7 @@ public class RuinGuardEntity extends Monster {
 
         if (stateTick == 7) {
             sl.playSound(null, getX(), getY() + 2.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 0.85F, 0.82F);
+            playAttackSpeech(sl, 0.75F);
             Vec3 clapSpot = position().add(forward.scale(1.4D));
             sl.sendParticles(ParticleTypes.FLAME, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 10, 0.25D, 0.2D, 0.25D, 0.05D);
             sl.sendParticles(ParticleTypes.CRIT, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 8, 0.3D, 0.25D, 0.3D, 0.12D);
@@ -947,6 +985,7 @@ public class RuinGuardEntity extends Monster {
         if (stateTick < 20) faceTarget(target, 6.0F);
         if (stateTick == 13) {
             sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.3F, 0.62F);
+            playAttackSpeech(sl, 0.70F);
         }
         Vec3 cur = getDeltaMovement();
         if (stateTick >= 21 && stateTick <= 23) {
@@ -972,6 +1011,7 @@ public class RuinGuardEntity extends Monster {
         setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
         if (stateTick == 10) {
             sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.58F);
+            playAttackSpeech(sl, 0.70F);
         }
         if (stateTick == 13) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 5.0F);
         if (stateTick == 20) {
@@ -1101,7 +1141,12 @@ public class RuinGuardEntity extends Monster {
             }
         }
         if (stateTick == 16) {
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.5F, 0.60F);
+            if (TeyvatBossesSounds.ruinGuardSpeech() != null) {
+                speechCooldownTicks = 0;
+                playAttackSpeech(sl, 1.0F);
+            } else {
+                sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.5F, 0.60F);
+            }
         }
         if (stateTick == 25) {
             clearTelegraph();

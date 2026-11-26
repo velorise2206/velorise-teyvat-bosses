@@ -1,41 +1,44 @@
 package com.velorise.teyvatbosses.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.core.Direction;
+import net.minecraft.client.resources.model.Material;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.ChestBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.ChestType;
 
 /**
  * Renders {@link GeoDrillerEntity} with smooth partial-tick interpolated procedural animations:
  * spinning drill head, true-travel wheel &amp; tread rotation, dual independent drive/drill levers,
- * engine spool-up shudder, and 1x/2x Vanilla Chest mounted on the rear deck.
+ * engine spool-up shudder, and a true merged Vanilla Single / Double Chest on the rear deck.
  */
 public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/geo_driller.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/geo_driller_emissive.png");
 
     private final GeoDrillerModel<GeoDrillerEntity> model;
+    private final ModelPart singleChestModel;
+    private final ModelPart doubleChestLeftModel;
+    private final ModelPart doubleChestRightModel;
 
     public GeoDrillerRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
         this.model = new GeoDrillerModel<>(ctx.bakeLayer(GeoDrillerModel.LAYER_LOCATION));
+        this.singleChestModel = ctx.bakeLayer(ModelLayers.CHEST);
+        this.doubleChestLeftModel = ctx.bakeLayer(ModelLayers.DOUBLE_CHEST_LEFT);
+        this.doubleChestRightModel = ctx.bakeLayer(ModelLayers.DOUBLE_CHEST_RIGHT);
         this.shadowRadius = 1.6F;
     }
 
@@ -113,41 +116,36 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(EMISSIVE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
         poseStack.popPose();
 
-        // 6. Render 1x Single or 2x Double Vanilla Chest on rear deck
+        // 6. Render true Vanilla Single Chest (1x) or seamlessly merged Double Chest (2x, single centered latch)
         int chestCount = entity.getChestCount();
         if (chestCount > 0) {
-            BlockRenderDispatcher brd = Minecraft.getInstance().getBlockRenderer();
             poseStack.pushPose();
             poseStack.translate(0.0D, 0.82D, 0.96D);
             float scale = 0.62F;
             poseStack.scale(scale, scale, scale);
             if (chestCount == 1) {
-                BlockState single = Blocks.CHEST.defaultBlockState()
-                        .setValue(ChestBlock.FACING, Direction.SOUTH)
-                        .setValue(ChestBlock.TYPE, ChestType.SINGLE);
-                poseStack.translate(-0.5D, 0.0D, -0.5D);
-                brd.renderSingleBlock(single, poseStack, buf, packedLight, OverlayTexture.NO_OVERLAY);
+                renderChestHalf(singleChestModel, Sheets.CHEST_LOCATION, -0.5D, poseStack, buf, packedLight);
             } else {
-                BlockState left = Blocks.CHEST.defaultBlockState()
-                        .setValue(ChestBlock.FACING, Direction.SOUTH)
-                        .setValue(ChestBlock.TYPE, ChestType.LEFT);
-                BlockState right = Blocks.CHEST.defaultBlockState()
-                        .setValue(ChestBlock.FACING, Direction.SOUTH)
-                        .setValue(ChestBlock.TYPE, ChestType.RIGHT);
-                poseStack.pushPose();
-                poseStack.translate(-1.0D, 0.0D, -0.5D);
-                brd.renderSingleBlock(right, poseStack, buf, packedLight, OverlayTexture.NO_OVERLAY);
-                poseStack.popPose();
-                poseStack.pushPose();
-                poseStack.translate(0.0D, 0.0D, -0.5D);
-                brd.renderSingleBlock(left, poseStack, buf, packedLight, OverlayTexture.NO_OVERLAY);
-                poseStack.popPose();
+                // Facing SOUTH (+Z): DOUBLE_CHEST_RIGHT sits on -X and DOUBLE_CHEST_LEFT on +X so their
+                // inner seam & half-latches fuse seamlessly into one true Vanilla Double Chest!
+                renderChestHalf(doubleChestRightModel, Sheets.CHEST_LOCATION_RIGHT, -1.0D, poseStack, buf, packedLight);
+                renderChestHalf(doubleChestLeftModel, Sheets.CHEST_LOCATION_LEFT, 0.0D, poseStack, buf, packedLight);
             }
             poseStack.popPose();
         }
 
         poseStack.popPose();
         super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
+    }
+
+    private static void renderChestHalf(ModelPart chestPart, Material material, double offsetX, PoseStack poseStack, MultiBufferSource buf, int packedLight) {
+        poseStack.pushPose();
+        poseStack.translate(offsetX + 0.5D, 0.5D, 0.0D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.translate(-0.5D, -0.5D, -0.5D);
+        VertexConsumer vc = material.buffer(buf, RenderType::entityCutout);
+        chestPart.render(poseStack, vc, packedLight, OverlayTexture.NO_OVERLAY);
+        poseStack.popPose();
     }
 
     private void setVisible(String bone, boolean vis) {

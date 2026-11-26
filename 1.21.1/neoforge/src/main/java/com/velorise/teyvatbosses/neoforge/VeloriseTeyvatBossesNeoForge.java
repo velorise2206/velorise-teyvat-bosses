@@ -148,10 +148,10 @@ public class VeloriseTeyvatBossesNeoForge {
                     .sized(3.4F, 2.6F).clientTrackingRange(14).build("ruin_submersible"));
     public static final DeferredHolder<EntityType<?>, EntityType<AnemoCompanionEntity>> ANEMO_COMPANION =
             ENTITIES.register("anemo_companion", () -> EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC)
-                    .sized(0.8F, 0.8F).clientTrackingRange(12).build("anemo_companion"));
+                    .sized(0.45F, 0.45F).clientTrackingRange(12).build("anemo_companion"));
     public static final DeferredHolder<EntityType<?>, EntityType<PrimoGeovishapEntity>> PRIMO_GEOVISHAP =
             ENTITIES.register("primo_geovishap", () -> EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER)
-                    .sized(5.2F, 4.8F).clientTrackingRange(16).build("primo_geovishap"));
+                    .sized(4.4F, 4.0F).clientTrackingRange(16).build("primo_geovishap"));
     public static final DeferredHolder<EntityType<?>, EntityType<GeoDrillerEntity>> GEO_DRILLER =
             ENTITIES.register("geo_driller", () -> EntityType.Builder.of(GeoDrillerEntity::new, MobCategory.MISC)
                     .sized(2.4F, 2.1F).clientTrackingRange(14).build("geo_driller"));
@@ -275,6 +275,10 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("sfx.drill_engine_idle", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_engine_idle")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_DRILL_BORE_SPIN =
             SOUNDS.register("sfx.drill_bore_spin", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_bore_spin")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_GUARD_SPEECH =
+            SOUNDS.register("sfx.ruin_guard_speech", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_speech")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_GUARD_POWER_DOWN =
+            SOUNDS.register("sfx.ruin_guard_power_down", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_power_down")));
 
     // 5 Music Discs
     public static final DeferredHolder<Item, Item> MUSIC_DISC_CRYO_REGISVINE =
@@ -346,7 +350,8 @@ public class VeloriseTeyvatBossesNeoForge {
                 SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL,
                 SOUND_MECH_SERVO_WHIR, SOUND_MECH_JOINT_CREAK, SOUND_MECH_METAL_CLANK, SOUND_MECH_HYDRAULIC_HISS,
                 SOUND_SUB_PROPELLER_HUM, SOUND_SUB_SONAR_PING, SOUND_SUB_TORPEDO_LAUNCH, SOUND_SUB_BALLAST_HISS,
-                SOUND_DRILL_ENGINE_IDLE, SOUND_DRILL_BORE_SPIN
+                SOUND_DRILL_ENGINE_IDLE, SOUND_DRILL_BORE_SPIN,
+                SOUND_RUIN_GUARD_SPEECH, SOUND_RUIN_GUARD_POWER_DOWN
         );
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, BOSS_RESPAWN_ANCHOR,

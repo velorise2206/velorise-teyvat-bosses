@@ -23,7 +23,7 @@ import net.minecraft.util.Mth;
 public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis_emissive.png");
-    private static final float PET_SCALE = 0.30F;
+    private static final float PET_SCALE = 0.15F;
     // Bottom-up shell order: bottom 4 cubes (y = +9 in MC model space) first, then top 4 cubes (y = -9)
     private static final int[] BOTTOM_UP_ORDER = {4, 5, 6, 7, 0, 1, 2, 3};
 
@@ -31,7 +31,7 @@ public class AnemoCompanionRenderer extends EntityRenderer<AnemoCompanionEntity>
 
     public AnemoCompanionRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
-        this.shadowRadius = 0.28F;
+        this.shadowRadius = 0.14F;
         this.model = new AnemoHypostasisModel<>(ctx.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
     }
 

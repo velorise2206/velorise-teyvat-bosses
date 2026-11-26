@@ -117,5 +117,20 @@
     "sounds": [
       "velorise_teyvat_bosses:sfx/drill_bore_spin"
     ]
+  },
+  "sfx.ruin_guard_speech": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_1",
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_2",
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_3",
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_4",
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_5",
+      "velorise_teyvat_bosses:sfx/ruin_guard_speech_6"
+    ]
+  },
+  "sfx.ruin_guard_power_down": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/ruin_guard_power_down"
+    ]
   }
 }

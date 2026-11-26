@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.fabric.mixin;
 
+import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
@@ -44,6 +45,10 @@ public abstract class CameraMixin {
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             float[] off = RuinSubClientController.computeCameraOffsets(partialTick);
+            this.setRotation(this.yRot + off[0], this.xRot + off[1]);
+        }
+        if (BossCameraShake.isActive()) {
+            float[] off = BossCameraShake.computeOffsets(partialTick);
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
         }
     }

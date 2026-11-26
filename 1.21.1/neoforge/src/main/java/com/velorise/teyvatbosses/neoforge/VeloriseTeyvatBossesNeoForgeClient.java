@@ -55,6 +55,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
         event.registerLayerDefinition(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
         event.registerLayerDefinition(PrimoGeovishapModel.LAYER_LOCATION, PrimoGeovishapModel::createBodyLayer);
+        event.registerLayerDefinition(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         event.registerLayerDefinition(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
     }
 

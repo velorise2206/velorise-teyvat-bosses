@@ -128,10 +128,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             EntityType.Builder.of(RuinSubmersibleEntity::new, MobCategory.MISC).sized(3.4F, 2.6F).clientTrackingRange(14).build("ruin_submersible"));
     public static final EntityType<AnemoCompanionEntity> ANEMO_COMPANION = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("anemo_companion"),
-            EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.8F, 0.8F).clientTrackingRange(12).build("anemo_companion"));
+            EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.45F, 0.45F).clientTrackingRange(12).build("anemo_companion"));
     public static final EntityType<PrimoGeovishapEntity> PRIMO_GEOVISHAP = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("primo_geovishap"),
-            EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER).sized(5.2F, 4.8F).clientTrackingRange(16).build("primo_geovishap"));
+            EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER).sized(4.4F, 4.0F).clientTrackingRange(16).build("primo_geovishap"));
     public static final EntityType<GeoDrillerEntity> GEO_DRILLER = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("geo_driller"),
             EntityType.Builder.of(GeoDrillerEntity::new, MobCategory.MISC).sized(2.4F, 2.1F).clientTrackingRange(14).build("geo_driller"));
@@ -298,6 +298,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_DRILL_BORE_SPIN = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.drill_bore_spin"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.drill_bore_spin")));
+    public static final SoundEvent SOUND_RUIN_GUARD_SPEECH = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.ruin_guard_speech"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_speech")));
+    public static final SoundEvent SOUND_RUIN_GUARD_POWER_DOWN = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.ruin_guard_power_down"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_power_down")));
 
     // 5 Music Discs
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
@@ -386,7 +392,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
                 () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS,
                 () -> SOUND_SUB_PROPELLER_HUM, () -> SOUND_SUB_SONAR_PING, () -> SOUND_SUB_TORPEDO_LAUNCH, () -> SOUND_SUB_BALLAST_HISS,
-                () -> SOUND_DRILL_ENGINE_IDLE, () -> SOUND_DRILL_BORE_SPIN
+                () -> SOUND_DRILL_ENGINE_IDLE, () -> SOUND_DRILL_BORE_SPIN,
+                () -> SOUND_RUIN_GUARD_SPEECH, () -> SOUND_RUIN_GUARD_POWER_DOWN
         );
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE, () -> MUSIC_DISC_ANEMO_HYPOSTASIS, () -> MUSIC_DISC_RUIN_GUARD,

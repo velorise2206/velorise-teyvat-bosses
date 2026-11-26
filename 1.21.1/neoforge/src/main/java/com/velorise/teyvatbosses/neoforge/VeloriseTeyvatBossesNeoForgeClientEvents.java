@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.neoforge;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
+import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.Minecraft;
@@ -29,6 +30,7 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
         RuinSubClientController.tick(Minecraft.getInstance());
         GeoDrillerClientController.setPacketSender(PacketDistributor::sendToServer);
         GeoDrillerClientController.tick(Minecraft.getInstance());
+        BossCameraShake.clientTick();
     }
 
     @SubscribeEvent
@@ -49,6 +51,12 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setRoll(event.getRoll() + off[2]);
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             float[] off = RuinSubClientController.computeCameraOffsets((float) event.getPartialTick());
+            event.setYaw(event.getYaw() + off[0]);
+            event.setPitch(event.getPitch() + off[1]);
+            event.setRoll(event.getRoll() + off[2]);
+        }
+        if (BossCameraShake.isActive()) {
+            float[] off = BossCameraShake.computeOffsets((float) event.getPartialTick());
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);

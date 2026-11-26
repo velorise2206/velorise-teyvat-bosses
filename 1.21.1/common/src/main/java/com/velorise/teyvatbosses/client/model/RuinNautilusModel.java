@@ -153,77 +153,77 @@ public class RuinNautilusModel<T extends Entity> extends EntityModel<T> {
                 , PartPose.offsetAndRotation(-6.000F, -9.500F, -8.500F, -0.436F, -0.000F, -0.436F));
         PartDefinition b_belly_gear = b_hull_main.addOrReplaceChild("belly_gear", CubeListBuilder.create()
                 .texOffs(223, 148).addBox(-1.500F, -1.000F, -1.000F, 3.0F, 2.0F, 2.0F)
-                .texOffs(462, 133).addBox(-1.000F, -3.000F, -0.500F, 2.0F, 6.0F, 1.0F, new CubeDeformation(-0.120F))
-                .texOffs(325, 133).addBox(-1.000F, -0.500F, -3.000F, 2.0F, 1.0F, 6.0F, new CubeDeformation(-0.160F))
+                .texOffs(462, 133).addBox(-1.000F, -3.200F, -0.500F, 2.0F, 6.4F, 1.0F)
+                .texOffs(325, 133).addBox(-1.000F, -0.500F, -3.200F, 2.0F, 1.0F, 6.4F)
                 , PartPose.offset(0.000F, 10.200F, 5.000F));
         PartDefinition b_belly_gear_t_0 = b_belly_gear.addOrReplaceChild("belly_gear_t_0", CubeListBuilder.create()
-                .texOffs(234, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.020F))
-                .texOffs(1, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(234, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(1, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offset(0.000F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_1 = b_belly_gear.addOrReplaceChild("belly_gear_t_1", CubeListBuilder.create()
-                .texOffs(245, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.045F))
-                .texOffs(8, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(245, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(8, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.785F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_2 = b_belly_gear.addOrReplaceChild("belly_gear_t_2", CubeListBuilder.create()
-                .texOffs(256, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.020F))
-                .texOffs(15, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(256, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(15, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -1.571F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_3 = b_belly_gear.addOrReplaceChild("belly_gear_t_3", CubeListBuilder.create()
-                .texOffs(267, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.045F))
-                .texOffs(22, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(267, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(22, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -2.356F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_4 = b_belly_gear.addOrReplaceChild("belly_gear_t_4", CubeListBuilder.create()
-                .texOffs(278, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.020F))
-                .texOffs(29, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(278, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(29, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.142F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_5 = b_belly_gear.addOrReplaceChild("belly_gear_t_5", CubeListBuilder.create()
-                .texOffs(289, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.045F))
-                .texOffs(36, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(289, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(36, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.927F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_6 = b_belly_gear.addOrReplaceChild("belly_gear_t_6", CubeListBuilder.create()
-                .texOffs(300, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.020F))
-                .texOffs(43, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(300, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(43, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -4.712F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_t_7 = b_belly_gear.addOrReplaceChild("belly_gear_t_7", CubeListBuilder.create()
-                .texOffs(311, 148).addBox(-1.000F, -3.700F, -1.500F, 2.0F, 1.0F, 3.0F, new CubeDeformation(-0.045F))
-                .texOffs(50, 157).addBox(-1.000F, -5.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(311, 148).addBox(-1.000F, -3.850F, -1.750F, 2.0F, 1.35F, 3.50F)
+                .texOffs(50, 157).addBox(-1.000F, -4.950F, -0.600F, 2.0F, 1.40F, 1.20F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -5.498F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2 = b_hull_main.addOrReplaceChild("belly_gear_2", CubeListBuilder.create()
                 .texOffs(322, 148).addBox(-1.500F, -1.000F, -1.000F, 3.0F, 2.0F, 2.0F)
-                .texOffs(391, 141).addBox(-1.000F, -2.000F, -0.500F, 2.0F, 4.0F, 1.0F, new CubeDeformation(-0.120F))
-                .texOffs(290, 141).addBox(-1.000F, -0.500F, -2.000F, 2.0F, 1.0F, 4.0F, new CubeDeformation(-0.160F))
+                .texOffs(391, 141).addBox(-1.000F, -2.200F, -0.500F, 2.0F, 4.4F, 1.0F)
+                .texOffs(290, 141).addBox(-1.000F, -0.500F, -2.200F, 2.0F, 1.0F, 4.4F)
                 , PartPose.offset(0.000F, 10.000F, -3.500F));
         PartDefinition b_belly_gear_2_t_0 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_0", CubeListBuilder.create()
-                .texOffs(78, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(57, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(78, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(57, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offset(0.000F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_1 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_1", CubeListBuilder.create()
-                .texOffs(87, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(64, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(87, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(64, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.785F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_2 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_2", CubeListBuilder.create()
-                .texOffs(96, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(71, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(96, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(71, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -1.571F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_3 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_3", CubeListBuilder.create()
-                .texOffs(105, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(78, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(105, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(78, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -2.356F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_4 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_4", CubeListBuilder.create()
-                .texOffs(114, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(85, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(114, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(85, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.142F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_5 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_5", CubeListBuilder.create()
-                .texOffs(123, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(92, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(123, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(92, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.927F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_6 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_6", CubeListBuilder.create()
-                .texOffs(132, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(99, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(132, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(99, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -4.712F, -0.000F, 0.000F));
         PartDefinition b_belly_gear_2_t_7 = b_belly_gear_2.addOrReplaceChild("belly_gear_2_t_7", CubeListBuilder.create()
-                .texOffs(141, 153).addBox(-1.000F, -2.700F, -1.000F, 2.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(106, 157).addBox(-1.000F, -4.050F, -0.500F, 2.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(141, 153).addBox(-1.000F, -2.850F, -1.250F, 2.0F, 1.25F, 2.50F)
+                .texOffs(106, 157).addBox(-1.000F, -3.950F, -0.550F, 2.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -5.498F, -0.000F, 0.000F));
         PartDefinition b_sub_cockpit_frame = b_hull_main.addOrReplaceChild("sub_cockpit_frame", CubeListBuilder.create()
                 .texOffs(44, 76).addBox(-10.000F, -7.500F, -1.500F, 20.0F, 15.0F, 2.0F, new CubeDeformation(-0.040F))
@@ -258,16 +258,16 @@ public class RuinNautilusModel<T extends Entity> extends EntityModel<T> {
         PartDefinition b_cockpit_roof_brow = b_sub_cockpit_frame.addOrReplaceChild("cockpit_roof_brow", CubeListBuilder.create()
                 .texOffs(469, 133).addBox(-6.500F, -1.000F, -4.000F, 13.0F, 2.0F, 4.0F)
                 .texOffs(242, 141).addBox(-4.500F, -1.400F, -4.000F, 9.0F, 1.0F, 4.0F)
-                , PartPose.offsetAndRotation(0.000F, -7.200F, -7.500F, -0.419F, -0.000F, 0.000F));
+                , PartPose.offsetAndRotation(0.000F, -7.200F, -7.500F, 0.419F, 0.000F, 0.000F));
         PartDefinition b_rib_arch_side_l = b_sub_cockpit_frame.addOrReplaceChild("rib_arch_side_l", CubeListBuilder.create()
                 .texOffs(222, 141).addBox(-0.500F, -2.500F, -0.500F, 1.0F, 5.0F, 1.0F)
-                , PartPose.offsetAndRotation(-6.500F, -4.800F, -11.000F, -0.593F, -0.489F, 0.000F));
+                , PartPose.offsetAndRotation(-6.500F, -4.800F, -11.000F, -0.593F, 0.489F, 0.000F));
         PartDefinition b_rib_ws_top_l = b_sub_cockpit_frame.addOrReplaceChild("rib_ws_top_l", CubeListBuilder.create()
                 .texOffs(227, 141).addBox(-0.500F, -2.500F, -0.500F, 1.0F, 5.0F, 1.0F)
                 , PartPose.offsetAndRotation(-4.600F, -5.000F, -12.800F, -0.593F, -0.000F, 0.000F));
         PartDefinition b_rib_arch_side_r = b_sub_cockpit_frame.addOrReplaceChild("rib_arch_side_r", CubeListBuilder.create()
                 .texOffs(232, 141).addBox(-0.500F, -2.500F, -0.500F, 1.0F, 5.0F, 1.0F)
-                , PartPose.offsetAndRotation(6.500F, -4.800F, -11.000F, -0.593F, 0.489F, 0.000F));
+                , PartPose.offsetAndRotation(6.500F, -4.800F, -11.000F, -0.593F, -0.489F, 0.000F));
         PartDefinition b_rib_ws_top_r = b_sub_cockpit_frame.addOrReplaceChild("rib_ws_top_r", CubeListBuilder.create()
                 .texOffs(237, 141).addBox(-0.500F, -2.500F, -0.500F, 1.0F, 5.0F, 1.0F)
                 , PartPose.offsetAndRotation(4.600F, -5.000F, -12.800F, -0.593F, -0.000F, 0.000F));
@@ -306,16 +306,16 @@ public class RuinNautilusModel<T extends Entity> extends EntityModel<T> {
                 , PartPose.offsetAndRotation(0.000F, -3.500F, -14.000F, -0.593F, -0.000F, 0.000F));
         PartDefinition b_glass_cheek_l = b_sub_cockpit_glass.addOrReplaceChild("glass_cheek_l", CubeListBuilder.create()
                 .texOffs(1, 123).addBox(-2.000F, -4.000F, -0.500F, 4.0F, 8.0F, 1.0F)
-                , PartPose.offsetAndRotation(-5.800F, 0.500F, -12.800F, -0.000F, -0.628F, 0.000F));
+                , PartPose.offsetAndRotation(-5.800F, 0.500F, -12.800F, 0.000F, 0.628F, 0.000F));
         PartDefinition b_glass_cheek_top_l = b_sub_cockpit_glass.addOrReplaceChild("glass_cheek_top_l", CubeListBuilder.create()
                 .texOffs(336, 141).addBox(-2.000F, -2.000F, -0.500F, 4.0F, 4.0F, 1.0F)
-                , PartPose.offsetAndRotation(-5.600F, -4.800F, -12.000F, -0.593F, -0.524F, 0.000F));
+                , PartPose.offsetAndRotation(-5.600F, -4.800F, -12.000F, -0.593F, 0.524F, 0.000F));
         PartDefinition b_glass_cheek_r = b_sub_cockpit_glass.addOrReplaceChild("glass_cheek_r", CubeListBuilder.create()
                 .texOffs(12, 123).addBox(-2.000F, -4.000F, -0.500F, 4.0F, 8.0F, 1.0F)
-                , PartPose.offsetAndRotation(5.800F, 0.500F, -12.800F, -0.000F, 0.628F, 0.000F));
+                , PartPose.offsetAndRotation(5.800F, 0.500F, -12.800F, 0.000F, -0.628F, 0.000F));
         PartDefinition b_glass_cheek_top_r = b_sub_cockpit_glass.addOrReplaceChild("glass_cheek_top_r", CubeListBuilder.create()
                 .texOffs(347, 141).addBox(-2.000F, -2.000F, -0.500F, 4.0F, 4.0F, 1.0F)
-                , PartPose.offsetAndRotation(5.600F, -4.800F, -12.000F, -0.593F, 0.524F, 0.000F));
+                , PartPose.offsetAndRotation(5.600F, -4.800F, -12.000F, -0.593F, -0.524F, 0.000F));
         PartDefinition b_harpoon_arm_l = b_hull_main.addOrReplaceChild("harpoon_arm_l", CubeListBuilder.create()
                 .texOffs(196, 141).addBox(-2.100F, -1.500F, -1.500F, 3.0F, 3.0F, 3.0F)
                 .texOffs(49, 111).addBox(-2.000F, -1.500F, -7.500F, 2.0F, 3.0F, 7.0F)
@@ -361,77 +361,77 @@ public class RuinNautilusModel<T extends Entity> extends EntityModel<T> {
                 , PartPose.offset(0.000F, -9.500F, -1.000F));
         PartDefinition b_clockwork_gear_l = b_conning_tower.addOrReplaceChild("clockwork_gear_l", CubeListBuilder.create()
                 .texOffs(396, 148).addBox(-1.000F, -1.000F, -1.000F, 2.0F, 2.0F, 2.0F)
-                .texOffs(428, 141).addBox(-0.500F, -2.000F, -0.500F, 1.0F, 4.0F, 1.0F, new CubeDeformation(-0.120F))
-                .texOffs(358, 141).addBox(-0.500F, -0.500F, -2.000F, 1.0F, 1.0F, 4.0F, new CubeDeformation(-0.160F))
+                .texOffs(428, 141).addBox(-0.500F, -2.200F, -0.500F, 1.0F, 4.4F, 1.0F)
+                .texOffs(358, 141).addBox(-0.500F, -0.500F, -2.200F, 1.0F, 1.0F, 4.4F)
                 , PartPose.offset(-4.800F, -2.700F, 4.500F));
         PartDefinition b_clockwork_gear_l_t_0 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_0", CubeListBuilder.create()
-                .texOffs(198, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(113, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(198, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(113, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offset(0.000F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_1 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_1", CubeListBuilder.create()
-                .texOffs(205, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(118, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(205, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(118, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.785F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_2 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_2", CubeListBuilder.create()
-                .texOffs(212, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(123, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(212, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(123, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -1.571F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_3 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_3", CubeListBuilder.create()
-                .texOffs(219, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(128, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(219, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(128, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -2.356F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_4 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_4", CubeListBuilder.create()
-                .texOffs(226, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(133, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(226, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(133, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.142F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_5 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_5", CubeListBuilder.create()
-                .texOffs(233, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(138, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(233, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(138, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.927F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_6 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_6", CubeListBuilder.create()
-                .texOffs(240, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(143, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(240, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(143, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -4.712F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_l_t_7 = b_clockwork_gear_l.addOrReplaceChild("clockwork_gear_l_t_7", CubeListBuilder.create()
-                .texOffs(247, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(148, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(247, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(148, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -5.498F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r = b_conning_tower.addOrReplaceChild("clockwork_gear_r", CubeListBuilder.create()
                 .texOffs(405, 148).addBox(-1.000F, -1.000F, -1.000F, 2.0F, 2.0F, 2.0F)
-                .texOffs(433, 141).addBox(-0.500F, -2.000F, -0.500F, 1.0F, 4.0F, 1.0F, new CubeDeformation(-0.120F))
-                .texOffs(369, 141).addBox(-0.500F, -0.500F, -2.000F, 1.0F, 1.0F, 4.0F, new CubeDeformation(-0.160F))
+                .texOffs(433, 141).addBox(-0.500F, -2.200F, -0.500F, 1.0F, 4.4F, 1.0F)
+                .texOffs(369, 141).addBox(-0.500F, -0.500F, -2.200F, 1.0F, 1.0F, 4.4F)
                 , PartPose.offset(4.800F, -2.700F, 4.500F));
         PartDefinition b_clockwork_gear_r_t_0 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_0", CubeListBuilder.create()
-                .texOffs(254, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(153, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(254, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(153, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offset(0.000F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_1 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_1", CubeListBuilder.create()
-                .texOffs(261, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(158, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(261, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(158, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.785F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_2 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_2", CubeListBuilder.create()
-                .texOffs(268, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(163, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(268, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(163, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -1.571F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_3 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_3", CubeListBuilder.create()
-                .texOffs(275, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(168, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(275, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(168, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -2.356F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_4 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_4", CubeListBuilder.create()
-                .texOffs(282, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(173, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(282, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(173, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.142F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_5 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_5", CubeListBuilder.create()
-                .texOffs(289, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(178, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(289, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(178, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -3.927F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_6 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_6", CubeListBuilder.create()
-                .texOffs(296, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.020F))
-                .texOffs(183, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(296, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(183, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -4.712F, -0.000F, 0.000F));
         PartDefinition b_clockwork_gear_r_t_7 = b_clockwork_gear_r.addOrReplaceChild("clockwork_gear_r_t_7", CubeListBuilder.create()
-                .texOffs(303, 153).addBox(-0.500F, -2.700F, -1.000F, 1.0F, 1.0F, 2.0F, new CubeDeformation(-0.045F))
-                .texOffs(188, 157).addBox(-0.500F, -4.050F, -0.500F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.030F))
+                .texOffs(303, 153).addBox(-0.500F, -2.850F, -1.250F, 1.0F, 1.25F, 2.50F)
+                .texOffs(188, 157).addBox(-0.500F, -3.950F, -0.550F, 1.0F, 1.35F, 1.10F)
                 , PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -5.498F, -0.000F, 0.000F));
         PartDefinition b_periscope_head = b_conning_tower.addOrReplaceChild("periscope_head", CubeListBuilder.create()
                 .texOffs(349, 123).addBox(-1.000F, -5.800F, -1.000F, 2.0F, 6.0F, 2.0F)
