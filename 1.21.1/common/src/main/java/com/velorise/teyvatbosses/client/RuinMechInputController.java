@@ -34,6 +34,7 @@ public final class RuinMechInputController {
     );
 
     public static final String[] HUD_BADGES = {"L1", "L2", "L+", "R1", "R2", "R+"};
+    private static boolean mmbWasDown = false;
 
     private RuinMechInputController() {}
 
@@ -42,8 +43,14 @@ public final class RuinMechInputController {
         if (RuinMechCameraController.getPilotedMech() == null || mc.screen != null) {
             LMB.reset();
             RMB.reset();
+            mmbWasDown = false;
             return;
         }
+        boolean mmbDown = mc.options.keyPickItem.isDown();
+        if (mmbDown && !mmbWasDown) {
+            skillSender.accept(RuinMechEntity.SKILL_TOGGLE_LOCK);
+        }
+        mmbWasDown = mmbDown;
         LMB.update(mc.options.keyAttack.isDown(), skillSender);
         RMB.update(mc.options.keyUse.isDown(), skillSender);
     }

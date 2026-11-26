@@ -85,6 +85,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int SKILL_CYCLONE     = 4;
     public static final int SKILL_LEAP_SLAM   = 5;
     public static final int SKILL_MISSILES    = 6;
+    public static final int SKILL_TOGGLE_LOCK = 7;
 
     // 10 Redstone Blocks max (100 energy per block = 1000 max energy)
     public static final int   MAX_REDSTONE_CELLS = 10;
@@ -106,6 +107,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_LOCKED_TARGET_ID =
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HARD_LOCKED =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Float> DATA_LEAP_SX =
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_LEAP_SY =
@@ -157,6 +160,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         builder.define(DATA_ARMOR, MAX_ARMOR);
         builder.define(DATA_COOLDOWN, 0);
         builder.define(DATA_LOCKED_TARGET_ID, -1);
+        builder.define(DATA_HARD_LOCKED, false);
         builder.define(DATA_LEAP_SX, 0.0F);
         builder.define(DATA_LEAP_SY, 0.0F);
         builder.define(DATA_LEAP_SZ, 0.0F);
@@ -183,6 +187,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public float getArmorIntegrity() { return entityData.get(DATA_ARMOR); }
     public int getActionCooldown() { return entityData.get(DATA_COOLDOWN); }
     public int getLockedTargetId() { return entityData.get(DATA_LOCKED_TARGET_ID); }
+    public boolean isHardLocked() { return entityData.get(DATA_HARD_LOCKED); }
 
     public String getBaseClipName() {
         return switch (getAnimId()) {
@@ -283,7 +288,12 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
      * Triggers one of the 6 Ruin Guard combat skills on the server (called from C2S packet, mouse swing, or jump bar).
      */
     public boolean tryTriggerSkill(int skillId) {
-        if (level().isClientSide() || !isFullyAssembled() || actionCooldown > 0) return false;
+        if (level().isClientSide() || !isFullyAssembled()) return false;
+        if (skillId == SKILL_TOGGLE_LOCK && level() instanceof ServerLevel sl) {
+            toggleHardLock(sl);
+            return true;
+        }
+        if (actionCooldown > 0) return false;
         int anim = getAnimId();
         if (anim != ANIM_IDLE && anim != ANIM_WALK) return false;
 
@@ -292,6 +302,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case SKILL_DOUBLE_CLAP -> {
                 if (energy < 12.0F) yield false;
                 consumeEnergy(12.0F);
+                faceHardLockedTarget();
                 playAnim(ANIM_DOUBLE_CLAP);
                 setCooldown(42);
                 yield true;
@@ -299,6 +310,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case SKILL_MELEE_3HIT -> {
                 if (energy < 22.0F) yield false;
                 consumeEnergy(22.0F);
+                faceHardLockedTarget();
                 playAnim(ANIM_MELEE_3HIT);
                 setCooldown(126);
                 yield true;
@@ -320,12 +332,21 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case SKILL_LEAP_SLAM -> {
                 if (energy < 18.0F) yield false;
                 consumeEnergy(18.0F);
-                float aimYaw = (getControllingPassenger() instanceof Player p) ? p.getYRot() : getYRot();
+                LivingEntity locked = getHardLockedEntity();
+                float aimYaw;
+                leapStart = position();
+                if (locked != null && locked.distanceToSqr(this) <= 15.0D * 15.0D) {
+                    double dx = locked.getX() - getX();
+                    double dz = locked.getZ() - getZ();
+                    aimYaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+                    leapTarget = locked.position();
+                } else {
+                    aimYaw = (getControllingPassenger() instanceof Player p) ? p.getYRot() : getYRot();
+                    leapTarget = findExplorationLanding(aimYaw, 11.0D);
+                }
                 this.setYRot(aimYaw);
                 this.yBodyRot = aimYaw;
                 this.yHeadRot = aimYaw;
-                leapStart = position();
-                leapTarget = findExplorationLanding(aimYaw, 11.0D);
                 entityData.set(DATA_LEAP_SX, (float) leapStart.x);
                 entityData.set(DATA_LEAP_SY, (float) leapStart.y);
                 entityData.set(DATA_LEAP_SZ, (float) leapStart.z);
@@ -339,6 +360,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case SKILL_MISSILES -> {
                 if (energy < 25.0F) yield false;
                 consumeEnergy(25.0F);
+                faceHardLockedTarget();
                 playAnim(ANIM_MISSILE_SALVO);
                 setCooldown(56);
                 yield true;
@@ -525,10 +547,18 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 }
             }
 
-            // Live crosshair aim target lock-on (every 3 ticks)
+            // Hard-lock validation or soft aim-cone preview (every 3 ticks)
             if (tickCount % 3 == 0) {
-                LivingEntity aimed = findAimedHostile(sl, player, 34.0D);
-                entityData.set(DATA_LOCKED_TARGET_ID, aimed != null ? aimed.getId() : -1);
+                if (isHardLocked()) {
+                    Entity cur = sl.getEntity(getLockedTargetId());
+                    if (!(cur instanceof LivingEntity le) || !le.isAlive() || le.distanceToSqr(this) > 42.0D * 42.0D) {
+                        entityData.set(DATA_HARD_LOCKED, false);
+                        entityData.set(DATA_LOCKED_TARGET_ID, -1);
+                    }
+                } else {
+                    LivingEntity aimed = findAimedHostile(sl, player, 34.0D);
+                    entityData.set(DATA_LOCKED_TARGET_ID, aimed != null ? aimed.getId() : -1);
+                }
             }
 
             // Server-side movement & pivot-turn detection (travel() runs on controlling client, so server detects displacement here!)
@@ -581,6 +611,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
         if (pilot == null) {
             if (getLockedTargetId() != -1) entityData.set(DATA_LOCKED_TARGET_ID, -1);
+            if (isHardLocked()) entityData.set(DATA_HARD_LOCKED, false);
             prevServerX = getX();
             prevServerZ = getZ();
             prevServerYaw = getYRot();
@@ -844,6 +875,49 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         }
     }
 
+
+
+    private void toggleHardLock(ServerLevel sl) {
+        if (isHardLocked()) {
+            entityData.set(DATA_HARD_LOCKED, false);
+            entityData.set(DATA_LOCKED_TARGET_ID, -1);
+            SoundEvent beep = TeyvatBossesSounds.mechLockonBeep();
+            if (beep != null) sl.playSound(null, getX(), getY() + 2.4D, getZ(), beep, SoundSource.PLAYERS, 0.55F, 0.72F);
+            return;
+        }
+        LivingEntity target = null;
+        if (getControllingPassenger() instanceof Player pilot) {
+            target = findAimedHostile(sl, pilot, 38.0D);
+        }
+        if (target == null) {
+            target = findNearestHostile(sl, 24.0D);
+        }
+        if (target != null) {
+            entityData.set(DATA_LOCKED_TARGET_ID, target.getId());
+            entityData.set(DATA_HARD_LOCKED, true);
+            SoundEvent beep = TeyvatBossesSounds.mechLockonBeep();
+            if (beep != null) sl.playSound(null, getX(), getY() + 2.4D, getZ(), beep, SoundSource.PLAYERS, 0.75F, 1.45F);
+        }
+    }
+
+    @Nullable
+    private LivingEntity getHardLockedEntity() {
+        if (!isHardLocked() || !(level() instanceof ServerLevel sl)) return null;
+        Entity e = sl.getEntity(getLockedTargetId());
+        return (e instanceof LivingEntity le && le.isAlive()) ? le : null;
+    }
+
+    private void faceHardLockedTarget() {
+        LivingEntity locked = getHardLockedEntity();
+        if (locked != null) {
+            double dx = locked.getX() - getX();
+            double dz = locked.getZ() - getZ();
+            float yaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+            this.setYRot(yaw);
+            this.yBodyRot = yaw;
+            this.yHeadRot = yaw;
+        }
+    }
 
     @Nullable
     private LivingEntity findAimedHostile(ServerLevel sl, Player pilot, double range) {

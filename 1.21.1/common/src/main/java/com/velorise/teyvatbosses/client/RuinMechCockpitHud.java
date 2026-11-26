@@ -124,24 +124,28 @@ public final class RuinMechCockpitHud {
         float rmbCharge = RuinMechInputController.getRmbHoldProgress();
 
         if (locked != null) {
-            // Crimson tactical lock-on brackets tightening around center reticle!
-            float pulse = Mth.sin((mech.tickCount + partialTicks) * 0.45F) * 1.5F;
-            int spread = Math.round(14.0F - rmbCharge * 6.0F + pulse);
-            int col = (rmbCharge > 0.1F) ? 0xFFFF2A2A : 0xEEFF5252;
-            int len = 6;
-            // 4 corner brackets
-            gui.fill(cx - spread, cy - spread, cx - spread + len, cy - spread + 1, col);
-            gui.fill(cx - spread, cy - spread, cx - spread + 1, cy - spread + len, col);
-            gui.fill(cx + spread - len, cy - spread, cx + spread, cy - spread + 1, col);
-            gui.fill(cx + spread - 1, cy - spread, cx + spread, cy - spread + len, col);
-            gui.fill(cx - spread, cy + spread - 1, cx - spread + len, cy + spread, col);
-            gui.fill(cx - spread, cy + spread - len, cx - spread + 1, cy + spread, col);
-            gui.fill(cx + spread - len, cy + spread - 1, cx + spread, cy + spread, col);
-            gui.fill(cx + spread - 1, cy + spread - len, cx + spread, cy + spread, col);
+            boolean hard = mech.isHardLocked();
+            float pulse = Mth.sin((mech.tickCount + partialTicks) * (hard ? 0.55F : 0.35F)) * (hard ? 1.0F : 1.6F);
+            int spread = Math.round((hard ? 11.0F : 15.0F) - rmbCharge * 5.0F + pulse);
+            int col = hard ? 0xFFFF1E1E : ((rmbCharge > 0.1F) ? 0xFFFF3A3A : 0xCCFF8A50);
+            int len = hard ? 7 : 5;
+            int t = hard ? 2 : 1;
+            // 4 corner brackets (double thickness when Hard-Locked via MMB)
+            gui.fill(cx - spread, cy - spread, cx - spread + len, cy - spread + t, col);
+            gui.fill(cx - spread, cy - spread, cx - spread + t, cy - spread + len, col);
+            gui.fill(cx + spread - len, cy - spread, cx + spread, cy - spread + t, col);
+            gui.fill(cx + spread - t, cy - spread, cx + spread, cy - spread + len, col);
+            gui.fill(cx - spread, cy + spread - t, cx - spread + len, cy + spread, col);
+            gui.fill(cx - spread, cy + spread - len, cx - spread + t, cy + spread, col);
+            gui.fill(cx + spread - len, cy + spread - t, cx + spread, cy + spread, col);
+            gui.fill(cx + spread - t, cy + spread - len, cx + spread, cy + spread, col);
+            if (hard) {
+                gui.fill(cx - 1, cy - 1, cx + 2, cy + 2, 0xFFFF2222);
+            }
 
-            // Target readout card right beneath reticle: Name + Distance + Live HP Bar
+            // Target readout card right beneath reticle: [LOCK] + Name + Distance + Live HP Bar
             int dist = Math.round((float) Math.sqrt(mech.distanceToSqr(locked)));
-            String tag = locked.getDisplayName().getString() + " [" + dist + "m]";
+            String tag = (hard ? "[LOCK] " : "") + locked.getDisplayName().getString() + " [" + dist + "m]";
             int tw = mc.font.width(tag);
             int bx = cx - Math.max(44, tw / 2 + 4);
             int bw = Math.max(88, tw + 8);
