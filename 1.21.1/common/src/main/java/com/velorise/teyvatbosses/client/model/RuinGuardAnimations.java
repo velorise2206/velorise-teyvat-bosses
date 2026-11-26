@@ -1116,6 +1116,41 @@ public final class RuinGuardAnimations {
         }
     }
 
+    /**
+     * Samples live animated eye-core motion from a clip for 1st-person cockpit camera coupling.
+     * {@code out6 = [pelvisX, pelvisY, pelvisZ, torsoPitchDeg, waistYawDeg, torsoRollDeg]}.
+     */
+    public static void sampleCoreMotion(String clipName, float timeSeconds, float[] out6) {
+        for (int i = 0; i < 6; i++) out6[i] = 0.0F;
+        Clip clip = CLIPS.get(clipName);
+        if (clip == null) return;
+        float t = normalizeTime(clip, timeSeconds);
+        float[] v = new float[3];
+        for (Track tr : clip.tracks) {
+            if (tr.times.length == 0) continue;
+            if ("pelvis".equals(tr.bone) && tr.channel == CH_POS) {
+                sampleTrack(tr, t, clip.loop, v);
+                out6[0] = v[0];
+                out6[1] = v[1];
+                out6[2] = v[2];
+            } else if ("torso".equals(tr.bone) && tr.channel == CH_ROT) {
+                sampleTrack(tr, t, clip.loop, v);
+                out6[3] += v[0];
+                out6[4] += v[1];
+                out6[5] += v[2];
+            } else if ("waist".equals(tr.bone) && tr.channel == CH_ROT) {
+                sampleTrack(tr, t, clip.loop, v);
+                out6[3] += v[0];
+                out6[4] += v[1];
+                out6[5] += v[2];
+            } else if ("pelvis".equals(tr.bone) && tr.channel == CH_ROT) {
+                sampleTrack(tr, t, clip.loop, v);
+                out6[3] += v[0] * 0.65F;
+                out6[5] += v[2] * 0.65F;
+            }
+        }
+    }
+
     public static void apply(RuinGuardModel<?> model, String clipName, float timeSeconds) {
         model.resetPose();
         applyWeighted(model, CLIPS.get(clipName), timeSeconds, 1.0F);

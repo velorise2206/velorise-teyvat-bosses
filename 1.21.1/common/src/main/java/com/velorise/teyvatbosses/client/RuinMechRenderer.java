@@ -19,6 +19,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Blocks;
 import org.joml.Matrix4f;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Renderer for the Pilotable Ruin Mech:
@@ -37,6 +39,32 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
     private static final float MECH_SCALE = 1.12F;
 
     private final RuinGuardModel<RuinMechEntity> model;
+    private final Map<Integer, SmoothState> smoothStates = new HashMap<>();
+
+    private static final class BonePose {
+        float x, y, z, xRot, yRot, zRot, xScale, yScale, zScale;
+        void copyFrom(ModelPart p) {
+            this.x = p.x; this.y = p.y; this.z = p.z;
+            this.xRot = p.xRot; this.yRot = p.yRot; this.zRot = p.zRot;
+            this.xScale = p.xScale; this.yScale = p.yScale; this.zScale = p.zScale;
+        }
+    }
+
+    private static final class SmoothState {
+        String lastClip = null;
+        float blendStartTick = -100.0F;
+        float blendDurationTicks = 5.0F;
+        boolean hasLastPose = false;
+        final Map<String, BonePose> fromPose = new HashMap<>();
+        final Map<String, BonePose> lastPose = new HashMap<>();
+    }
+
+    private static float lerpAngleRad(float alpha, float from, float to) {
+        float diff = (to - from) % Mth.TWO_PI;
+        if (diff > Mth.PI) diff -= Mth.TWO_PI;
+        if (diff < -Mth.PI) diff += Mth.TWO_PI;
+        return from + diff * alpha;
+    }
 
     public RuinMechRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -81,6 +109,12 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         // Zero-lag walk clip fallback while local pilot is steering
         String clipName = entity.getBaseClipName();
         float clipSec = currSec;
+        if (animId == RuinMechEntity.ANIM_SUPER_LEAP) {
+            // Map 46-tick supercharged flight (coil 0..6, flight 6..31, recover 31..46) cleanly onto 38-tick mobility_leap clip
+            if (animTicksF <= 6.0F) clipSec = animTicksF / 20.0F;
+            else if (animTicksF <= 31.0F) clipSec = (6.0F + ((animTicksF - 6.0F) / 25.0F) * 17.0F) / 20.0F;
+            else clipSec = (23.0F + Math.min(15.0F, animTicksF - 31.0F)) / 20.0F;
+        }
         if (animId == RuinMechEntity.ANIM_IDLE && entity.isVehicle()
                 && entity.getDeltaMovement().horizontalDistanceSqr() > 0.00035D) {
             clipName = "walk_combat";
@@ -215,6 +249,49 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 }
             }
         }
+
+        // Smooth 28-bone shortest-arc pose-snapshot cross-fade (eliminates snapping when starting/stopping walk or skills!)
+        float liveTick = entity.tickCount + partialTicks;
+        SmoothState sm = smoothStates.computeIfAbsent(entity.getId(), k -> new SmoothState());
+        if (sm.lastClip != null && !sm.lastClip.equals(clipName) && sm.hasLastPose) {
+            for (Map.Entry<String, BonePose> entry : sm.lastPose.entrySet()) {
+                BonePose dst = sm.fromPose.computeIfAbsent(entry.getKey(), k -> new BonePose());
+                BonePose srcPose = entry.getValue();
+                dst.x = srcPose.x; dst.y = srcPose.y; dst.z = srcPose.z;
+                dst.xRot = srcPose.xRot; dst.yRot = srcPose.yRot; dst.zRot = srcPose.zRot;
+                dst.xScale = srcPose.xScale; dst.yScale = srcPose.yScale; dst.zScale = srcPose.zScale;
+            }
+            sm.blendStartTick = liveTick;
+            sm.blendDurationTicks = "idle_combat".equals(clipName) ? 6.0F : 4.5F;
+        }
+        sm.lastClip = clipName;
+
+        float blendElapsed = liveTick - sm.blendStartTick;
+        if (sm.hasLastPose && blendElapsed >= 0.0F && blendElapsed < sm.blendDurationTicks) {
+            float rawA = Mth.clamp(blendElapsed / sm.blendDurationTicks, 0.0F, 1.0F);
+            float alpha = rawA * rawA * (3.0F - 2.0F * rawA);
+            for (String bName : model.getBoneNames()) {
+                ModelPart part = model.getBone(bName);
+                BonePose prev = sm.fromPose.get(bName);
+                if (part == null || prev == null) continue;
+                part.x = Mth.lerp(alpha, prev.x, part.x);
+                part.y = Mth.lerp(alpha, prev.y, part.y);
+                part.z = Mth.lerp(alpha, prev.z, part.z);
+                part.xRot = lerpAngleRad(alpha, prev.xRot, part.xRot);
+                part.yRot = lerpAngleRad(alpha, prev.yRot, part.yRot);
+                part.zRot = lerpAngleRad(alpha, prev.zRot, part.zRot);
+                part.xScale = Mth.lerp(alpha, prev.xScale, part.xScale);
+                part.yScale = Mth.lerp(alpha, prev.yScale, part.yScale);
+                part.zScale = Mth.lerp(alpha, prev.zScale, part.zScale);
+            }
+        }
+        for (String bName : model.getBoneNames()) {
+            ModelPart part = model.getBone(bName);
+            if (part != null) {
+                sm.lastPose.computeIfAbsent(bName, k -> new BonePose()).copyFrom(part);
+            }
+        }
+        sm.hasLastPose = true;
 
         // Exact anatomical 5-part bone visibility (in RuinGuardModel, +X = shoulder_r/hip_r = robot's TRUE LEFT,
         // and -X = shoulder_l/hip_l = robot's TRUE RIGHT after Mojang's scale(-1,-1,1) + 180° Y-rot!)

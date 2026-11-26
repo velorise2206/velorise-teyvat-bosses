@@ -38,6 +38,8 @@ public final class RuinMechInputController {
     public static final String[] HUD_BADGES = {"L1", "L2", "L+", "R1", "R2", "R+"};
     private static boolean mmbWasDown = false;
     private static boolean spaceWasDown = false;
+    private static boolean spaceConsumed = false;
+    private static int spaceHoldTicks = 0;
 
     private RuinMechInputController() {}
 
@@ -48,6 +50,8 @@ public final class RuinMechInputController {
             RMB.reset();
             mmbWasDown = false;
             spaceWasDown = false;
+            spaceConsumed = false;
+            spaceHoldTicks = 0;
             return;
         }
         boolean mmbDown = mc.options.keyPickItem.isDown();
@@ -58,7 +62,22 @@ public final class RuinMechInputController {
 
         boolean spaceDown = mc.options.keyJump.isDown();
         if (spaceDown && !spaceWasDown) {
-            skillSender.accept(RuinMechEntity.SKILL_BOOST_LEAP);
+            spaceConsumed = false;
+            spaceHoldTicks = 1;
+        } else if (spaceDown) {
+            if (!spaceConsumed) {
+                spaceHoldTicks++;
+                if (spaceHoldTicks >= HOLD_TICKS) {
+                    spaceConsumed = true;
+                    skillSender.accept(RuinMechEntity.SKILL_SUPER_LEAP);
+                }
+            }
+        } else if (spaceWasDown) {
+            if (!spaceConsumed) {
+                skillSender.accept(RuinMechEntity.SKILL_BOOST_LEAP);
+            }
+            spaceHoldTicks = 0;
+            spaceConsumed = false;
         }
         spaceWasDown = spaceDown;
 
@@ -72,6 +91,11 @@ public final class RuinMechInputController {
 
     public static float getRmbHoldProgress() {
         return RMB.getHoldProgress();
+    }
+
+    public static float getSpaceHoldProgress() {
+        if (!spaceWasDown || spaceConsumed || spaceHoldTicks <= 1) return 0.0F;
+        return Mth.clamp((float) spaceHoldTicks / (float) HOLD_TICKS, 0.0F, 1.0F);
     }
 
     private static final class ButtonTracker {
