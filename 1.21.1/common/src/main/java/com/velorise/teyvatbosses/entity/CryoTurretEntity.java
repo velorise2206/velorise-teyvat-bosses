@@ -29,6 +29,7 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -121,7 +122,7 @@ public class CryoTurretEntity extends Mob {
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
-        if (level().isClientSide() && DATA_ANIM_EPOCH.equals(key)) {
+        if (level().isClientSide() && (DATA_ANIM_EPOCH.equals(key) || DATA_ANIM_ID.equals(key))) {
             lastSyncedAnimId = getAnimId();
             lastSyncedEpoch = getAnimEpoch();
             clientAnimTick = 0;
@@ -136,10 +137,27 @@ public class CryoTurretEntity extends Mob {
     @Override public void push(double x, double y, double z) {}
     @Override public void knockback(double strength, double x, double z) {}
 
+    private void uprootWithShovel(ServerLevel sl, Player player) {
+        if (hasPart(PART_ROOT) && TeyvatBossesItems.cryoTurretRoot() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretRoot());
+        if (hasPart(PART_STEM) && TeyvatBossesItems.cryoTurretStem() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretStem());
+        if (hasPart(PART_COROLLA) && TeyvatBossesItems.cryoTurretCorolla() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretCorolla());
+        sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 1.3F, 0.85F);
+        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.15F);
+        sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.0D, getZ(), 32, 0.9D, 1.4D, 0.9D, 0.08D);
+        player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.cryo_turret.uprooted"), true);
+        discard();
+    }
+
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING) || source.is(DamageTypes.FREEZE)) {
             return false;
+        }
+        if (!level().isClientSide() && level() instanceof ServerLevel sl
+                && source.getEntity() instanceof Player player
+                && player.getMainHandItem().getItem() instanceof ShovelItem) {
+            uprootWithShovel(sl, player);
+            return true;
         }
         return super.hurt(source, amount);
     }
@@ -173,10 +191,21 @@ public class CryoTurretEntity extends Mob {
         }
         ServerLevel sl = (ServerLevel) level();
 
-        // 1. Outdoor 3-part assembly (Root -> Stem -> Corolla)
+        // 0. Any Shovel uproots the entire Cryo Turret cleanly and drops all welded parts
+        if (stack.getItem() instanceof ShovelItem) {
+            uprootWithShovel(sl, player);
+            return InteractionResult.CONSUME;
+        }
+
+        // 1. Strict bottom-up 3-part assembly (Root -> Stem -> Corolla)
         if (!isFullyAssembled()) {
             if (stack.getItem() instanceof CryoTurretPartItem partItem) {
                 int bit = partItem.getPartBit();
+                if (bit == PART_COROLLA && !hasPart(PART_STEM)) {
+                    sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.8F, 1.1F);
+                    player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.cryo_turret.need_stem"), true);
+                    return InteractionResult.CONSUME;
+                }
                 if (!hasPart(bit)) {
                     int nextMask = getPartsMask() | bit;
                     entityData.set(DATA_PARTS_MASK, nextMask);
@@ -285,7 +314,7 @@ public class CryoTurretEntity extends Mob {
                     sl.sendParticles(ParticleTypes.SNOWFLAKE, origin.x, origin.y, origin.z, 8, 0.2D, 0.2D, 0.2D, 0.04D);
                 }
             }
-            if (t >= 32) {
+            if (t >= 52) {
                 attackCooldown = 28;
                 playAnim(ANIM_IDLE);
             }
@@ -308,7 +337,7 @@ public class CryoTurretEntity extends Mob {
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.0D, getZ(), 48, 3.2D, 0.5D, 3.2D, 0.10D);
                 sl.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 0.6D, getZ(), 20, 2.8D, 0.3D, 2.8D, 0.06D);
             }
-            if (t >= 34) {
+            if (t >= 68) {
                 attackCooldown = 36;
                 playAnim(ANIM_IDLE);
             }

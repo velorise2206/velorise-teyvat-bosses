@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
  * Stores toggleable animated/static display state for BossTrophyBlock.
  */
 public class BossTrophyBlockEntity extends BlockEntity {
-    private boolean animated = true;
+    private boolean animated = false;
 
     public BossTrophyBlockEntity(BlockPos pos, BlockState state) {
         super(TeyvatBossesBlocks.bossTrophyBe(), pos, state);

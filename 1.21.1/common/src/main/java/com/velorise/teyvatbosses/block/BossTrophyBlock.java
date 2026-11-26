@@ -5,14 +5,8 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -21,14 +15,12 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 3D Miniature Boss Trophy Block (reuses full boss models scaled onto an ancient pedestal).
- * Right-click toggles Animated Hologram vs Static Statue mode.
+ * 3D Miniature Boss Trophy Block (static zero-lag statue on an ancient pedestal).
  */
 public class BossTrophyBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
@@ -80,17 +72,5 @@ public class BossTrophyBlock extends BaseEntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new BossTrophyBlockEntity(pos, state);
-    }
-
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof BossTrophyBlockEntity be) {
-            boolean anim = be.toggleAnimated();
-            level.playSound(null, pos, anim ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME,
-                    SoundSource.BLOCKS, 0.7F, anim ? 1.25F : 0.9F);
-            player.displayClientMessage(Component.translatable(
-                    anim ? "message.velorise_teyvat_bosses.trophy.animated" : "message.velorise_teyvat_bosses.trophy.static"), true);
-        }
-        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 }

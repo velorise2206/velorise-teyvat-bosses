@@ -16,15 +16,55 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Renders the 3x6x3 miniature Cryo Regisvine Turret using {@link CryoRegisvineModel} scaled to 0.86x,
- * toggling Root / Stem / Corolla bone groups dynamically during 3-part outdoor assembly.
+ * toggling Root / Stem / Corolla bone groups dynamically during strict 3-part assembly and
+ * applying shortest-arc pose-snapshot cross-fading so transitions never snap.
  */
 public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/cryo_regisvine_boss.png");
     private static final float TURRET_SCALE = 0.86F;
+    private static final float BLEND_TICKS = 10.0F;
+
+    private static final String[] BLEND_BONES = {
+            "root", "root_base", "root_core",
+            "stem_1", "stem_2", "stem_3", "neck",
+            "corolla_head", "corolla_core",
+            "petal_ur", "petal_ul", "petal_lr", "petal_ll",
+            "back_sepal_r", "back_sepal_l",
+            "lash_r_base", "lash_r_mid", "lash_r_tip",
+            "lash_l_base", "lash_l_mid", "lash_l_tip",
+            "frost_ring"
+    };
+
+    private static final class BonePose {
+        float x, y, z, xRot, yRot, zRot, xScale, yScale, zScale;
+        void capture(ModelPart p) {
+            x = p.x; y = p.y; z = p.z;
+            xRot = p.xRot; yRot = p.yRot; zRot = p.zRot;
+            xScale = p.xScale; yScale = p.yScale; zScale = p.zScale;
+        }
+        void copyFrom(BonePose o) {
+            x = o.x; y = o.y; z = o.z;
+            xRot = o.xRot; yRot = o.yRot; zRot = o.zRot;
+            xScale = o.xScale; yScale = o.yScale; zScale = o.zScale;
+        }
+    }
+
+    private static final class SmoothState {
+        String lastClip = null;
+        int lastEpoch = -1;
+        float blendStartTick = -100.0F;
+        boolean hasLastPose = false;
+        final Map<String, BonePose> fromPose = new HashMap<>();
+        final Map<String, BonePose> lastPose = new HashMap<>();
+    }
 
     private final CryoRegisvineModel<CryoTurretEntity> model;
+    private final Map<Integer, SmoothState> smoothStates = new HashMap<>();
 
     public CryoTurretRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -32,17 +72,63 @@ public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
         this.model = new CryoRegisvineModel<>(context.bakeLayer(CryoRegisvineModel.LAYER_LOCATION));
     }
 
+    private static float lerpAngleRad(float from, float to, float alpha) {
+        float diff = (to - from) % Mth.TWO_PI;
+        if (diff > Mth.PI) diff -= Mth.TWO_PI;
+        if (diff < -Mth.PI) diff += Mth.TWO_PI;
+        return from + diff * alpha;
+    }
+
     @Override
     public void render(CryoTurretEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
         float yaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float liveTick = entity.tickCount + partialTicks;
         float sec = (entity.getAnimTick() + partialTicks) / 20.0F;
+        String currClip = entity.getBaseClipName();
+        int currEpoch = entity.getAnimEpoch();
+
+        SmoothState sm = smoothStates.computeIfAbsent(entity.getId(), k -> new SmoothState());
+        if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch) && sm.hasLastPose) {
+            for (Map.Entry<String, BonePose> e : sm.lastPose.entrySet()) {
+                sm.fromPose.computeIfAbsent(e.getKey(), k -> new BonePose()).copyFrom(e.getValue());
+            }
+            sm.blendStartTick = liveTick;
+        }
+        sm.lastClip = currClip;
+        sm.lastEpoch = currEpoch;
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
         poseStack.scale(-TURRET_SCALE, -TURRET_SCALE, TURRET_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        CryoRegisvineAnimations.apply(model, entity.getBaseClipName(), sec);
+        CryoRegisvineAnimations.apply(model, currClip, sec);
+
+        // Shortest-arc 10-tick pose-snapshot cross-fade so turret animations never snap on reset
+        float elapsed = liveTick - sm.blendStartTick;
+        if (sm.hasLastPose && elapsed >= 0.0F && elapsed < BLEND_TICKS) {
+            float rawA = Mth.clamp(elapsed / BLEND_TICKS, 0.0F, 1.0F);
+            float alpha = rawA * rawA * (3.0F - 2.0F * rawA);
+            for (String bName : BLEND_BONES) {
+                ModelPart part = model.getBone(bName);
+                BonePose prev = sm.fromPose.get(bName);
+                if (part == null || prev == null) continue;
+                part.x = Mth.lerp(alpha, prev.x, part.x);
+                part.y = Mth.lerp(alpha, prev.y, part.y);
+                part.z = Mth.lerp(alpha, prev.z, part.z);
+                part.xRot = lerpAngleRad(prev.xRot, part.xRot, alpha);
+                part.yRot = lerpAngleRad(prev.yRot, part.yRot, alpha);
+                part.zRot = lerpAngleRad(prev.zRot, part.zRot, alpha);
+                part.xScale = Mth.lerp(alpha, prev.xScale, part.xScale);
+                part.yScale = Mth.lerp(alpha, prev.yScale, part.yScale);
+                part.zScale = Mth.lerp(alpha, prev.zScale, part.zScale);
+            }
+        }
+        for (String bName : BLEND_BONES) {
+            ModelPart part = model.getBone(bName);
+            if (part != null) sm.lastPose.computeIfAbsent(bName, k -> new BonePose()).capture(part);
+        }
+        sm.hasLastPose = true;
 
         // Toggle 3 modular assembly bone groups (Root -> Stem -> Corolla)
         setBoneVisible("stem_1", entity.hasPart(CryoTurretEntity.PART_STEM));

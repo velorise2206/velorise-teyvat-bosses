@@ -74,5 +74,7 @@
   "jade.velorise_teyvat_bosses.energy": "Năng lượng lò: %s / %s (%s/%s Khối)",
   "jade.velorise_teyvat_bosses.armor": "Độ bền giáp: %s%%",
   "jade.velorise_teyvat_bosses.missiles": "Khoang tên lửa: %s / %s",
-  "jade.velorise_teyvat_bosses.turret_active": "Trạng thái: Đang phòng thủ Băng (24m)"
+  "jade.velorise_teyvat_bosses.turret_active": "Trạng thái: Đang phòng thủ Băng (24m)",
+  "message.velorise_teyvat_bosses.cryo_turret.need_stem": "Phải lắp Thân Hoa Băng Giá trước khi gắn Đài Hoa!",
+  "message.velorise_teyvat_bosses.cryo_turret.uprooted": "Đã dùng xẻng xúc Trụ Thủ Băng — thu hồi toàn bộ mảnh ghép!"
 }

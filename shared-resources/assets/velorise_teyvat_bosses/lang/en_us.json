@@ -75,5 +75,7 @@
   "jade.velorise_teyvat_bosses.energy": "Reactor Energy: %s / %s (%s/%s Cells)",
   "jade.velorise_teyvat_bosses.armor": "Armor Integrity: %s%%",
   "jade.velorise_teyvat_bosses.missiles": "Missile Pod: %s / %s",
-  "jade.velorise_teyvat_bosses.turret_active": "Status: Active Cryo Defense (24m)"
+  "jade.velorise_teyvat_bosses.turret_active": "Status: Active Cryo Defense (24m)",
+  "message.velorise_teyvat_bosses.cryo_turret.need_stem": "Attach the Cryo Regisvine Stem before welding the Corolla!",
+  "message.velorise_teyvat_bosses.cryo_turret.uprooted": "Cryo Regisvine Turret uprooted — all parts recovered!"
 }

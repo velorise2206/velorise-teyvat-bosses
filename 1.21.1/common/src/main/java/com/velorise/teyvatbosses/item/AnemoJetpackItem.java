@@ -4,11 +4,13 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ArmorMaterials;
+import net.minecraft.world.item.Equipable;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -18,20 +20,25 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Wearable Anemo Jet-Wing Jetpack crafted from the Anemo Hypostasis Core Cube ({@code anemo_prism_cube}).
- * <ul>
- *   <li>Equip in the Chestplate slot.</li>
- *   <li>Hold <b>Space</b> while mid-air to ignite dual Anemo wind thrusters (vertical lift + forward boost).</li>
- *   <li>Hold <b>Shift</b> while falling to wind-glide softly; grants complete fall-damage immunity.</li>
- *   <li>Self-recharges wind pressure rapidly whenever standing on solid ground (100 max pressure, never breaks).</li>
- * </ul>
+ * Wearable 3D Anemo Jet-Wing Jetpack crafted from the Anemo Hypostasis Core Cube ({@code anemo_prism_cube}).
+ * Implements {@link Equipable} (like Elytra) so it equips directly to the Chest slot without rendering a vanilla chestplate.
  */
-public class AnemoJetpackItem extends ArmorItem {
+public class AnemoJetpackItem extends Item implements Equipable {
     public static final int MAX_PRESSURE = 100;
     private static final Map<UUID, Boolean> BOOSTING_PLAYERS = new ConcurrentHashMap<>();
 
     public AnemoJetpackItem(Properties properties) {
-        super(ArmorMaterials.DIAMOND, Type.CHESTPLATE, properties.durability(MAX_PRESSURE));
+        super(properties.durability(MAX_PRESSURE));
+    }
+
+    @Override
+    public EquipmentSlot getEquipmentSlot() {
+        return EquipmentSlot.CHEST;
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        return this.swapWithEquipmentSlot(this, level, player, hand);
     }
 
     public static void setBoosting(UUID playerId, boolean boosting) {
@@ -53,7 +60,7 @@ public class AnemoJetpackItem extends ArmorItem {
 
     @Override
     public int getBarColor(ItemStack stack) {
-        return 0x55FFD8; // Anemo turquoise glow
+        return 0x55FFD8;
     }
 
     @Override

@@ -16,6 +16,10 @@ import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.AnemoJetpackController;
+import com.velorise.teyvatbosses.client.AnemoJetpackLayer;
+import com.velorise.teyvatbosses.client.model.AnemoJetpackModel;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
@@ -48,6 +52,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);
@@ -71,6 +76,11 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_TURRET, CryoTurretRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
+        LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {
+            if (entityRenderer instanceof PlayerRenderer playerRenderer) {
+                registrationHelper.register(new AnemoJetpackLayer<>(playerRenderer, context.getModelSet()));
+            }
+        });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             RuinMechCameraController.clientTick();

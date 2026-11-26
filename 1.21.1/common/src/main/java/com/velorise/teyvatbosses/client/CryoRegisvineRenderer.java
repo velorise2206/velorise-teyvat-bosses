@@ -40,7 +40,7 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/cryo_regisvine_boss.png");
     private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.cryo_regisvine_theme");
     private static final float BOSS_RENDER_SCALE = 1.6F;
-    private static final float BLEND_DURATION_TICKS = 8.0F;
+    private static final float BLEND_DURATION_TICKS = 10.0F;
 
     private static final String[] ALL_BONES = {
             "root", "root_base", "root_core",

@@ -181,7 +181,7 @@ public class CryoRegisvineEntity extends Monster {
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
-        if (level().isClientSide() && DATA_ANIM_EPOCH.equals(key)) {
+        if (level().isClientSide() && (DATA_ANIM_EPOCH.equals(key) || DATA_ANIM_ID.equals(key))) {
             lastSyncedAnimId = getAnimId();
             lastSyncedEpoch = getAnimEpoch();
             clientAnimTick = 0;

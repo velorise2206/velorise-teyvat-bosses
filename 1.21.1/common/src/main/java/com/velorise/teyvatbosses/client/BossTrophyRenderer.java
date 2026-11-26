@@ -27,7 +27,9 @@ import net.minecraft.world.entity.Entity;
 import org.joml.Matrix4f;
 
 /**
- * Renders 3D Miniature Boss Trophies by scaling the full boss models onto a gilded pedestal.
+ * Renders 3D Miniature Boss Trophies as zero-lag static statues on a gilded pedestal.
+ * All 5 boss poses are pre-baked once in the constructor so placing dozens of trophies
+ * incurs zero per-frame animation calculation overhead.
  */
 public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEntity> {
 
@@ -52,6 +54,13 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         this.anemoModel = new AnemoHypostasisModel<>(ctx.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
         this.ruinModel = new RuinGuardModel<>(ctx.bakeLayer(RuinGuardModel.LAYER_LOCATION));
         this.astralionModel = new AstralionModel<>(ctx.bakeLayer(AstralionModel.LAYER_LOCATION));
+
+        // Pre-apply crisp static statue poses ONCE at startup (zero per-frame bone math!)
+        CryoRegisvineAnimations.apply(cryoModel, "idle_combat", 0.0F);
+        TheOpenEyedAnimations.apply(eyeModel, "animation.the_open_eyed.idle", 0.0F);
+        anemoModel.resetPose();
+        RuinGuardAnimations.apply(ruinModel, "idle_combat", 0.0F);
+        AstralionAnimations.apply(astralionModel, "animation.astralion.idle", 0.0F);
     }
 
     @Override
@@ -60,9 +69,6 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         int kind = block.getBossKind();
         Direction facing = be.getBlockState().getValue(BossTrophyBlock.FACING);
         float rotY = -facing.toYRot();
-        float timeSec = be.isAnimated() && be.getLevel() != null
-                ? ((be.getLevel().getGameTime() + partialTicks) * 0.025F)
-                : 0.0F;
 
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.0D, 0.5D);
@@ -72,40 +78,34 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         poseStack.mulPose(Axis.YP.rotationDegrees(rotY));
 
         switch (kind) {
-            case 0 -> { // Cryo Regisvine
+            case 0 -> { // Cryo Regisvine (static statue)
                 poseStack.scale(-0.16F, -0.16F, 0.16F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                CryoRegisvineAnimations.apply(cryoModel, "idle_combat", timeSec);
                 cryoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_CRYO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            case 1 -> { // The Open-Eyed
+            case 1 -> { // The Open-Eyed (static statue)
                 poseStack.translate(0.0D, 0.10D, 0.0D);
                 poseStack.scale(-0.22F, -0.22F, 0.22F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                TheOpenEyedAnimations.apply(eyeModel, "animation.the_open_eyed.idle", timeSec);
                 eyeModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_EYE)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            case 2 -> { // Anemo Hypostasis
+            case 2 -> { // Anemo Hypostasis (static statue)
                 poseStack.translate(0.0D, 0.34D, 0.0D);
-                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * 36.0F));
                 poseStack.scale(-0.28F, -0.28F, 0.28F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                anemoModel.resetPose();
                 anemoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_ANEMO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 anemoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_ANEMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            case 3 -> { // Ruin Guard
+            case 3 -> { // Ruin Guard (static statue)
                 poseStack.scale(-0.24F, -0.24F, 0.24F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                RuinGuardAnimations.apply(ruinModel, "idle_combat", timeSec);
                 ruinModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_RUIN)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 ruinModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_RUIN_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            default -> { // Astralion
+            default -> { // Astralion (static statue)
                 poseStack.translate(0.0D, 0.06D, 0.0D);
                 poseStack.scale(-0.23F, -0.23F, 0.23F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
-                AstralionAnimations.apply(astralionModel, "animation.astralion.idle", timeSec);
                 astralionModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_ASTRALION)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 astralionModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_ASTRALION_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
@@ -129,27 +129,22 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
     }
 
     private static void drawBox(VertexConsumer vc, Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1, int r, int g, int b, int a) {
-        // Top
         vc.addVertex(m, x0, y1, z0).setColor(r, g, b, a);
         vc.addVertex(m, x0, y1, z1).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z0).setColor(r, g, b, a);
-        // Front (+Z)
         vc.addVertex(m, x0, y0, z1).setColor(r, g, b, a);
         vc.addVertex(m, x1, y0, z1).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
         vc.addVertex(m, x0, y1, z1).setColor(r, g, b, a);
-        // Back (-Z)
         vc.addVertex(m, x1, y0, z0).setColor(r, g, b, a);
         vc.addVertex(m, x0, y0, z0).setColor(r, g, b, a);
         vc.addVertex(m, x0, y1, z0).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z0).setColor(r, g, b, a);
-        // Right (+X)
         vc.addVertex(m, x1, y0, z1).setColor(r, g, b, a);
         vc.addVertex(m, x1, y0, z0).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z0).setColor(r, g, b, a);
         vc.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
-        // Left (-X)
         vc.addVertex(m, x0, y0, z0).setColor(r, g, b, a);
         vc.addVertex(m, x0, y0, z1).setColor(r, g, b, a);
         vc.addVertex(m, x0, y1, z1).setColor(r, g, b, a);

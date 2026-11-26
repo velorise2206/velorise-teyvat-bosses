@@ -14,7 +14,11 @@ import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
+import com.velorise.teyvatbosses.client.AnemoJetpackLayer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
+import com.velorise.teyvatbosses.client.model.AnemoJetpackModel;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.resources.PlayerSkin;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
@@ -46,6 +50,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         event.registerLayerDefinition(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
         event.registerLayerDefinition(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
+        event.registerLayerDefinition(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -72,6 +77,15 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_TURRET.get(), CryoTurretRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void addPlayerLayers(EntityRenderersEvent.AddLayers event) {
+        for (PlayerSkin.Model skin : event.getSkins()) {
+            if (event.getSkin(skin) instanceof PlayerRenderer playerRenderer) {
+                playerRenderer.addLayer(new AnemoJetpackLayer<>(playerRenderer, event.getEntityModels()));
+            }
+        }
     }
 
     @SubscribeEvent
