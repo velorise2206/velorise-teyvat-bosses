@@ -34,8 +34,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -1301,9 +1303,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         if (getControllingPassenger() instanceof Player pilot) {
             target = findAimedHostile(sl, pilot, 38.0D);
         }
-        if (target == null) {
-            target = findNearestHostile(sl, 24.0D);
-        }
+
         if (target != null) {
             entityData.set(DATA_LOCKED_TARGET_ID, target.getId());
             entityData.set(DATA_HARD_LOCKED, true);
@@ -1335,25 +1335,31 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     private LivingEntity findAimedHostile(ServerLevel sl, Player pilot, double range) {
         Vec3 eyePos = pilot.getEyePosition();
         Vec3 look = pilot.getLookAngle().normalize();
-        AABB box = getBoundingBox().inflate(range, 14.0D, range);
+        Vec3 endPos = eyePos.add(look.scale(range));
+
+        // Clamp ray distance to first solid block hit so we never lock through walls
+        HitResult blockHit = sl.clip(new ClipContext(eyePos, endPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        double maxDistSq = blockHit.getType() != HitResult.Type.MISS
+                ? blockHit.getLocation().distanceToSqr(eyePos)
+                : range * range;
+
+        AABB searchBox = new AABB(eyePos, endPos).inflate(1.5D);
         LivingEntity best = null;
-        double bestScore = -1e9;
-        for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
-                le -> le.isAlive() && le != this && le != pilot && !(le instanceof RuinMechEntity) && le instanceof Enemy)) {
-            Vec3 to = e.position().add(0.0D, e.getBbHeight() * 0.5D, 0.0D).subtract(eyePos);
-            double dist = to.length();
-            if (dist > range || dist < 1.5D) continue;
-            double dot = to.normalize().dot(look);
-            if (dot < 0.72D) continue;
-            double score = dot * 40.0D - dist * 0.45D;
-            if (score > bestScore) {
-                bestScore = score;
-                best = e;
+        double bestDistSq = maxDistSq;
+        for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, searchBox,
+                le -> le.isAlive() && le != this && le != pilot && !(le instanceof RuinMechEntity))) {
+            // Strict crosshair intersection (tiny 0.25-block tolerance for responsive reticle feel)
+            var hit = e.getBoundingBox().inflate(0.25D).clip(eyePos, endPos);
+            if (hit.isPresent()) {
+                double dSq = hit.get().distanceToSqr(eyePos);
+                if (dSq < bestDistSq) {
+                    bestDistSq = dSq;
+                    best = e;
+                }
             }
         }
         return best;
     }
-
     @Nullable
     private LivingEntity findNearestHostile(ServerLevel sl, double range) {
         AABB box = getBoundingBox().inflate(range, 10.0D, range);

@@ -35,12 +35,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -627,15 +629,27 @@ public class RuinSubmersibleEntity extends Mob {
     }
 
     public LivingEntity findConeTarget(Level level, Vec3 origin, Vec3 dir, double range) {
+        Vec3 normDir = dir.normalize();
+        Vec3 endPos = origin.add(normDir.scale(range));
+        HitResult blockHit = level.clip(new ClipContext(origin, endPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        double bestDistSq = blockHit.getType() != HitResult.Type.MISS
+                ? blockHit.getLocation().distanceToSqr(origin)
+                : range * range;
+
+        AABB searchBox = new AABB(origin, endPos).inflate(1.5D);
         LivingEntity best = null;
-        double bestScore = 0.88D;
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(range),
-                le -> le.isAlive() && le instanceof Enemy && le != this)) {
-            Vec3 to = e.position().add(0, e.getBbHeight() * 0.5D, 0).subtract(origin);
-            double d = to.length();
-            if (d < 1.0D || d > range) continue;
-            double dot = to.normalize().dot(dir);
-            if (dot > bestScore) { bestScore = dot; best = e; }
+        LivingEntity pilot = getControllingPassenger();
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, searchBox,
+                le -> le.isAlive() && le != this && le != pilot)) {
+            // Strict crosshair raycast only — no wide-cone auto-aim magnet
+            var hit = e.getBoundingBox().inflate(0.25D).clip(origin, endPos);
+            if (hit.isPresent()) {
+                double dSq = hit.get().distanceToSqr(origin);
+                if (dSq < bestDistSq) {
+                    bestDistSq = dSq;
+                    best = e;
+                }
+            }
         }
         return best;
     }
