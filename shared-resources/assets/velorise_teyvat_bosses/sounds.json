@@ -79,5 +79,13 @@
         "name": "velorise_teyvat_bosses:sfx/mech_hydraulic_hiss"
       }
     ]
+  },
+  "music.astralion_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/astralion_theme",
+        "stream": true
+      }
+    ]
   }
 }

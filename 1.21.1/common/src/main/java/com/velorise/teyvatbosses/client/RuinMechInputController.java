@@ -7,7 +7,7 @@ import net.minecraft.util.Mth;
 import java.util.function.IntConsumer;
 
 /**
- * Compact LMB + RMB gesture controller (Tap / Double-Tap / Hold) + Space Mobility Leap + MMB Lock-On:
+ * Compact LMB + RMB gesture controller (Tap / Double-Tap / Hold) + Space Tap/Hold Mobility Jump + MMB Lock-On:
  * <ul>
  *   <li><b>LMB Tap:</b> Double Clap</li>
  *   <li><b>LMB Double-Tap:</b> 3-Hit Heavy Combo</li>
@@ -15,7 +15,8 @@ import java.util.function.IntConsumer;
  *   <li><b>RMB Tap:</b> Stomp Shockwave</li>
  *   <li><b>RMB Double-Tap:</b> Leap Slam</li>
  *   <li><b>RMB Hold (0.45s):</b> 6x Homing Missile Barrage</li>
- *   <li><b>Space:</b> Mobility Long Jump (no combat slam)</li>
+ *   <li><b>Space Tap:</b> Mobility Long Jump (~14 blocks, no combat slam)</li>
+ *   <li><b>Space Hold (0.45s):</b> Supercharged Boost Leap (~36 blocks, 2.5x–3x range, no combat slam)</li>
  *   <li><b>MMB:</b> Toggle Hard Lock-On</li>
  * </ul>
  */
@@ -60,6 +61,7 @@ public final class RuinMechInputController {
         }
         mmbWasDown = mmbDown;
 
+        // Space Tap -> Standard Mobility Jump (~14b), Space Hold (0.45s) -> Supercharged Boost Leap (~36b)
         boolean spaceDown = mc.options.keyJump.isDown();
         if (spaceDown && !spaceWasDown) {
             spaceConsumed = false;
@@ -73,7 +75,7 @@ public final class RuinMechInputController {
                 }
             }
         } else if (spaceWasDown) {
-            if (!spaceConsumed) {
+            if (!spaceConsumed && spaceHoldTicks > 0) {
                 skillSender.accept(RuinMechEntity.SKILL_BOOST_LEAP);
             }
             spaceHoldTicks = 0;

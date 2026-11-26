@@ -35,7 +35,7 @@ import java.util.WeakHashMap;
 public class AstralionRenderer extends EntityRenderer<AstralionEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/astralion_boss.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/astralion_boss_emissive.png");
-    private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.the_open_eyed_theme");
+    private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.astralion_theme");
     private static final float BOSS_RENDER_SCALE = 1.22F;
 
     private static final String[] ALL_BONES = {

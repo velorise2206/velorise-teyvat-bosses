@@ -222,6 +222,8 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("music.anemo_hypostasis_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.anemo_hypostasis_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_GUARD_THEME =
             SOUNDS.register("music.ruin_guard_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_guard_theme")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_ASTRALION_THEME =
+            SOUNDS.register("music.astralion_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.astralion_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_ENGINE_HUM =
             SOUNDS.register("sfx.mech_engine_hum", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_engine_hum")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_LOCKON_BEEP =
@@ -249,6 +251,9 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> MUSIC_DISC_RUIN_GUARD =
             ITEMS.register("music_disc_ruin_guard", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("ruin_guard_theme")))));
+    public static final DeferredHolder<Item, Item> MUSIC_DISC_ASTRALION =
+            ITEMS.register("music_disc_astralion", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)
+                    .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("astralion_theme")))));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN_TAB =
             TABS.register("main", () -> CreativeModeTab.builder()
@@ -274,6 +279,7 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(MUSIC_DISC_THE_OPEN_EYED.get());
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS.get());
                         output.accept(MUSIC_DISC_RUIN_GUARD.get());
+                            output.accept(MUSIC_DISC_ASTRALION.get());
                     })
                     .build());
 
@@ -304,7 +310,7 @@ public class VeloriseTeyvatBossesNeoForge {
         );
 
         TeyvatBossesItems.bind(
-                MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
+                MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD, MUSIC_DISC_ASTRALION,
                 RUIN_MECH_CORE, RUIN_MECH_LEFT_ARM, RUIN_MECH_RIGHT_ARM, RUIN_MECH_LEFT_LEG, RUIN_MECH_RIGHT_LEG
         );
         modEventBus.addListener(this::registerAttributes);

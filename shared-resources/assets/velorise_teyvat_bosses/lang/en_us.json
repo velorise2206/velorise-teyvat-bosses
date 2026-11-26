@@ -57,5 +57,7 @@
   "message.velorise_teyvat_bosses.mech.need_parts": "Mech incomplete (%s/%s parts). Weld all 5 salvage parts before piloting.",
   "message.velorise_teyvat_bosses.mech.repaired": "Mech hull repaired! HP: %s/%s | Armor: %s%%",
   "message.velorise_teyvat_bosses.mech.recharging": "Rear reactor hatch open — inserting Redstone Energy Cell (+35% Energy)...",
-  "message.velorise_teyvat_bosses.mech.no_energy": "Reactor energy depleted! Insert a Redstone Block into the rear hatch to recharge."
+  "message.velorise_teyvat_bosses.mech.no_energy": "Reactor energy depleted! Insert a Redstone Block into the rear hatch to recharge.",
+  "item.velorise_teyvat_bosses.music_disc_astralion": "Music Disc",
+  "jukebox_song.velorise_teyvat_bosses.astralion_theme": "Velorise Ensemble - Sovereign of the Seven Prisms (Astralion)"
 }

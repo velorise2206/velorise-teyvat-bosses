@@ -13,6 +13,7 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> openEyedDisc;
     private static Supplier<Item> anemoDisc;
     private static Supplier<Item> ruinGuardDisc;
+    private static Supplier<Item> astralionDisc;
 
     private static Supplier<Item> mechCore;
     private static Supplier<Item> mechLeftArm;
@@ -27,6 +28,7 @@ public final class TeyvatBossesItems {
             Supplier<Item> openEyedDiscSupplier,
             Supplier<Item> anemoDiscSupplier,
             Supplier<Item> ruinGuardDiscSupplier,
+            Supplier<Item> astralionDiscSupplier,
             Supplier<Item> mechCoreSupplier,
             Supplier<Item> mechLeftArmSupplier,
             Supplier<Item> mechRightArmSupplier,
@@ -37,6 +39,7 @@ public final class TeyvatBossesItems {
         openEyedDisc = openEyedDiscSupplier;
         anemoDisc = anemoDiscSupplier;
         ruinGuardDisc = ruinGuardDiscSupplier;
+        astralionDisc = astralionDiscSupplier;
         mechCore = mechCoreSupplier;
         mechLeftArm = mechLeftArmSupplier;
         mechRightArm = mechRightArmSupplier;
@@ -48,6 +51,7 @@ public final class TeyvatBossesItems {
     public static Item openEyedDisc() { return openEyedDisc != null ? openEyedDisc.get() : null; }
     public static Item anemoDisc() { return anemoDisc != null ? anemoDisc.get() : null; }
     public static Item ruinGuardDisc() { return ruinGuardDisc != null ? ruinGuardDisc.get() : null; }
+    public static Item astralionDisc() { return astralionDisc != null ? astralionDisc.get() : null; }
 
     public static Item mechCore() { return mechCore != null ? mechCore.get() : null; }
     public static Item mechLeftArm() { return mechLeftArm != null ? mechLeftArm.get() : null; }

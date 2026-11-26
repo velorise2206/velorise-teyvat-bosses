@@ -222,6 +222,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_RUIN_GUARD_THEME = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("music.ruin_guard_theme"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_guard_theme")));
+    public static final SoundEvent SOUND_ASTRALION_THEME = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("music.astralion_theme"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.astralion_theme")));
     public static final SoundEvent SOUND_MECH_ENGINE_HUM = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_engine_hum"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_engine_hum")));
@@ -260,6 +263,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_ruin_guard"),
             new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("ruin_guard_theme")))));
+    public static final Item MUSIC_DISC_ASTRALION = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_astralion"),
+            new Item(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)
+                    .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("astralion_theme")))));
 
     public static final StructureType<FlatArenaStructure> FLAT_ARENA = Registry.register(
             BuiltInRegistries.STRUCTURE_TYPE, TeyvatBossesConstants.id("flat_arena"),
@@ -291,6 +298,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(MUSIC_DISC_THE_OPEN_EYED);
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS);
                         output.accept(MUSIC_DISC_RUIN_GUARD);
+                    output.accept(MUSIC_DISC_ASTRALION);
                     })
                     .build()
     );
@@ -337,6 +345,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> MUSIC_DISC_THE_OPEN_EYED,
                 () -> MUSIC_DISC_ANEMO_HYPOSTASIS,
                 () -> MUSIC_DISC_RUIN_GUARD,
+                () -> MUSIC_DISC_ASTRALION,
                 () -> RUIN_MECH_CORE,
                 () -> RUIN_MECH_LEFT_ARM,
                 () -> RUIN_MECH_RIGHT_ARM,

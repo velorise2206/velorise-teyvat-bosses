@@ -20,6 +20,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -147,6 +148,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     private int salvoShotsRemaining = 0;
     private int missileRegenTimer = 0;
     private int cycloneHitCounter = 0;
+    private double smoothCoreSide = 0.0D;
+    private double smoothCoreY = 0.0D;
+    private double smoothCoreFwd = 0.0D;
 
     public RuinMechEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -160,7 +164,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 .add(Attributes.ARMOR, 14.0D)
                 .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.STEP_HEIGHT, 1.6D);
+                .add(Attributes.STEP_HEIGHT, 2.0D);
     }
 
     @Override
@@ -250,6 +254,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)) {
+            return false;
+        }
         if (source.getEntity() != null && this.hasPassenger(source.getEntity())) {
             return false;
         }
@@ -290,25 +297,28 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     @Override
     protected void positionRider(Entity passenger, MoveFunction callback) {
         float rad = this.yBodyRot * Mth.DEG_TO_RAD;
-        double coreYOff = 0.0D;
-        double coreFwdOff = 0.0D;
-        double coreSideOff = 0.0D;
+        double targetY = 0.0D;
+        double targetFwd = 0.0D;
+        double targetSide = 0.0D;
         int anim = getAnimId();
         if (level().isClientSide() && anim != ANIM_IDLE && anim != ANIM_DORMANT) {
             float[] core = new float[6];
             com.velorise.teyvatbosses.client.model.RuinGuardAnimations.sampleCoreMotion(
                     getBaseClipName(), getAnimTick() / 20.0F, core);
-            // Convert Blockbench pixel offsets (1/16 block * MECH_SCALE 1.12) into real 1st-person cockpit core motion
             double pxToBlock = 1.12D / 16.0D;
-            coreSideOff = Mth.clamp(core[0] * pxToBlock, -0.35D, 0.35D);
-            coreYOff    = Mth.clamp(core[1] * pxToBlock, -1.05D, 0.55D);
+            targetSide = Mth.clamp(core[0] * pxToBlock, -0.35D, 0.35D);
+            targetY    = Mth.clamp(core[1] * pxToBlock, -1.05D, 0.55D);
             double pitchRad = Mth.clamp((core[3] - 7.0F) * Mth.DEG_TO_RAD, -0.55F, 0.85F);
-            coreFwdOff  = Mth.clamp((-core[2] * pxToBlock) + Math.sin(pitchRad) * 0.52D, -0.45D, 0.68D);
+            targetFwd  = Mth.clamp((-core[2] * pxToBlock) + Math.sin(pitchRad) * 0.52D, -0.45D, 0.68D);
         }
-        double fwdDist = 0.78D + coreFwdOff;
-        double fwdX = -Math.sin(rad) * fwdDist + Math.cos(rad) * coreSideOff;
-        double fwdZ =  Math.cos(rad) * fwdDist + Math.sin(rad) * coreSideOff;
-        callback.accept(passenger, getX() + fwdX, getY() + 2.85D + coreYOff, getZ() + fwdZ);
+        double blend = (anim == ANIM_IDLE || anim == ANIM_DORMANT) ? 0.22D : 0.42D;
+        smoothCoreSide = Mth.lerp(blend, smoothCoreSide, targetSide);
+        smoothCoreY    = Mth.lerp(blend, smoothCoreY, targetY);
+        smoothCoreFwd  = Mth.lerp(blend, smoothCoreFwd, targetFwd);
+        double fwdDist = 0.78D + smoothCoreFwd;
+        double fwdX = -Math.sin(rad) * fwdDist + Math.cos(rad) * smoothCoreSide;
+        double fwdZ =  Math.cos(rad) * fwdDist + Math.sin(rad) * smoothCoreSide;
+        callback.accept(passenger, getX() + fwdX, getY() + 2.85D + smoothCoreY, getZ() + fwdZ);
     }
 
     @Nullable
@@ -564,6 +574,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
         ServerLevel sl = (ServerLevel) level();
         serverAnimTick++;
+        // Auto-unstuck if giant mech chassis ever clips into solid terrain walls
+        if (tickCount % 5 == 0 && getAnimId() != ANIM_LEAP_SLAM && getAnimId() != ANIM_BOOST_LEAP && getAnimId() != ANIM_SUPER_LEAP && isInWall()) {
+            tryUnstuckFromTerrain(sl);
+        }
         if (actionCooldown > 0) {
             actionCooldown--;
             entityData.set(DATA_COOLDOWN, actionCooldown);
@@ -1076,18 +1090,46 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             int minY = Math.max(level().getMinBuildHeight() + 2, Mth.floor(getY()) - maxDrop);
             for (int y = startY; y >= minY; y--) {
                 BlockPos floorPos = new BlockPos(bx, y - 1, bz);
-                BlockPos feetPos = new BlockPos(bx, y, bz);
-                BlockPos bodyPos = new BlockPos(bx, y + 1, bz);
-                BlockPos headPos = new BlockPos(bx, y + 2, bz);
-                if (level().getBlockState(floorPos).isSolid()
-                        && !level().getBlockState(feetPos).isSolid()
-                        && !level().getBlockState(bodyPos).isSolid()
-                        && !level().getBlockState(headPos).isSolid()) {
-                    return new Vec3(tx, y, tz);
+                if (level().getBlockState(floorPos).blocksMotion() && hasMechClearance(bx, y, bz)) {
+                    return new Vec3(bx + 0.5D, y, bz + 0.5D);
                 }
             }
         }
-        return position().add(fwd.scale(5.0D));
+        return position();
+    }
+
+    private boolean hasMechClearance(int bx, int y, int bz) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                for (int dy = 0; dy <= 3; dy++) {
+                    if (level().getBlockState(new BlockPos(bx + dx, y + dy, bz + dz)).blocksMotion()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private void tryUnstuckFromTerrain(ServerLevel sl) {
+        BlockPos base = blockPosition();
+        for (int r = 1; r <= 2; r++) {
+            for (int dy = 0; dy <= 2; dy++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        if (Math.abs(dx) != r && Math.abs(dz) != r && dy == 0) continue;
+                        int cx = base.getX() + dx;
+                        int cy = base.getY() + dy;
+                        int cz = base.getZ() + dz;
+                        if (hasMechClearance(cx, cy, cz)) {
+                            setPos(cx + 0.5D, cy, cz + 0.5D);
+                            setDeltaMovement(Vec3.ZERO);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // PlayerRideableJumping: Space bar still works as convenient shortcut for Stomp (tap) / Leap Slam (hold)

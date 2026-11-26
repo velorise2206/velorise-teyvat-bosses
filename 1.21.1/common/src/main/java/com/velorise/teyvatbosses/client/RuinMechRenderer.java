@@ -338,7 +338,12 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
             if (cellVisible > 0.05F) {
                 poseStack.pushPose();
                 poseStack.translate(0.0D, 0.0D, cellSlideZ / 16.0D);
-                poseStack.scale(cellScale, -cellScale, cellScale);
+                // Cancel outer Mojang scale(-MECH_SCALE, -MECH_SCALE, MECH_SCALE) with (-s, -s, +s) so determinant is +1
+                // -> prevents inverted backface culling & distortion on all 6 faces of the real 3D Redstone Block!
+                float spinDeg = (animTicksF < 30.0F) ? (animTicksF - 17.0F) * 6.92F : 90.0F;
+                poseStack.mulPose(Axis.ZP.rotationDegrees(spinDeg));
+                float uniformScale = 0.48F;
+                poseStack.scale(-uniformScale, -uniformScale, uniformScale);
                 poseStack.translate(-0.5D, -0.5D, -0.5D);
                 mc.getBlockRenderer().renderSingleBlock(
                         Blocks.REDSTONE_BLOCK.defaultBlockState(),

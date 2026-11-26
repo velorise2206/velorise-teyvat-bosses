@@ -56,5 +56,7 @@
   "message.velorise_teyvat_bosses.mech.need_parts": "Robot chưa lắp đủ bộ phận (%s/%s mảnh). Hãy gắn đủ 5 mảnh trước khi điều khiển.",
   "message.velorise_teyvat_bosses.mech.repaired": "Đã sửa chữa khung giáp! Máu: %s/%s | Giáp: %s%%",
   "message.velorise_teyvat_bosses.mech.recharging": "Đang mở khoang lò phản ứng sau lưng — nạp Khối Đá Đỏ (+35% Năng Lượng)...",
-  "message.velorise_teyvat_bosses.mech.no_energy": "Hết năng lượng lò phản ứng! Chuột phải Khối Đá Đỏ vào robot để mở nắp lưng nạp lại."
+  "message.velorise_teyvat_bosses.mech.no_energy": "Hết năng lượng lò phản ứng! Chuột phải Khối Đá Đỏ vào robot để mở nắp lưng nạp lại.",
+  "item.velorise_teyvat_bosses.music_disc_astralion": "Đĩa Nhạc",
+  "jukebox_song.velorise_teyvat_bosses.astralion_theme": "Velorise Ensemble - Thất Sắc Đế Vương (Astralion)"
 }
