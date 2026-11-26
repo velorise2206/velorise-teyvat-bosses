@@ -476,7 +476,7 @@ public class CryoRegisvineEntity extends Monster {
             if (aTick >= ANIM_DURATIONS_TICKS[anim]) {
                 playAnim(ANIM_IDLE_COMBAT);
                 int phaseBonus = (getCorollaPhase() == 1) ? 6 : 0;
-                attackCooldown = Math.max(38, 44 - phaseBonus) + random.nextInt(22);
+                attackCooldown = Math.max(52, 58 - phaseBonus) + random.nextInt(24);
             }
         }
     }
@@ -523,7 +523,7 @@ public class CryoRegisvineEntity extends Monster {
             case ANIM_FACEPLANT_SINGLE -> {
                 if (t < 14) faceTarget(target, 10.0F);
                 if (t == 12 || t == 16) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.0D);
-                if (t == 21) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.2D, 25.0F, 6);
+                if (t == 21) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.2D, 32.0F, 6);
             }
             case ANIM_FACEPLANT_TRIPLE -> {
                 if (t < 11) {
@@ -537,39 +537,43 @@ public class CryoRegisvineEntity extends Monster {
                     tripleSlamYaw = getYRot();
                 }
                 if (t == 12) spawnSlamTelegraph(sl, tripleSlamYaw, 4.4D, 3.8D);
-                if (t == 17) impactSlamAtYaw(sl, tripleSlamYaw, 4.4D, 3.9D, 21.0F, 4);
+                if (t == 17) impactSlamAtYaw(sl, tripleSlamYaw, 4.4D, 3.9D, 27.0F, 4);
                 if (t == 32) spawnSlamTelegraph(sl, tripleSlamYaw, 4.6D, 4.0D);
-                if (t == 37) impactSlamAtYaw(sl, tripleSlamYaw, 4.6D, 4.1D, 22.5F, 5);
+                if (t == 37) impactSlamAtYaw(sl, tripleSlamYaw, 4.6D, 4.1D, 29.0F, 5);
                 if (t == 52) spawnSlamTelegraph(sl, tripleSlamYaw, 4.8D, 4.4D);
-                if (t == 57) impactSlamAtYaw(sl, tripleSlamYaw, 4.8D, 4.5D, 26.0F, 7);
+                if (t == 57) impactSlamAtYaw(sl, tripleSlamYaw, 4.8D, 4.5D, 34.0F, 7);
             }
             case ANIM_FLAIL_360 -> {
-                if (t == 14) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.2F, 0.72F);
+                if (t == 9) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.2F, 0.78F);
                 }
-                if (t == 19) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.55F, 0.62F);
+                if (t == 13 || t == 22 || t == 32) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.55F, 0.72F + (t - 13) * 0.008F);
                 }
-                // Continuous sweeping sector hitbox synced to live 360° whip angle
-                if (t >= 19 && t <= 45 && t % 2 == 0) {
-                    float prog = (t - 19) / 26.0F;
-                    float sweepYaw = attackStartYaw - prog * 360.0F;
-                    sweepSectorHitbox(sl, sweepYaw, 8.6D, 58.0F, 19.0F, 1.05D);
+                // Genshin-accurate rapid 3-revolution 1080° whip spin (ticks 13..41)
+                if (t >= 13 && t <= 41 && t % 2 == 0) {
+                    float prog = (t - 13) / 28.0F;
+                    float sweepYaw = attackStartYaw - prog * 1080.0F;
+                    sweepSectorHitbox(sl, sweepYaw, 8.8D, 62.0F, 22.5F, 1.05D);
                 }
             }
             case ANIM_HALF_FLAIL_COMBO -> {
                 if (t < 11 || (t > 24 && t < 31) || (t > 44 && t < 53)) faceTarget(target, 11.0F);
-                if (t == 19 || t == 37) arcSweepInFront(sl, 8.6D, 18.0F);
+                if (t == 19 || t == 37) arcSweepInFront(sl, 8.6D, 23.0F);
                 if (t == 53) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.2D);
-                if (t == 59) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.4D, 26.5F, 6);
+                if (t == 59) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.4D, 34.0F, 6);
             }
             case ANIM_SPIN_FROST_RING -> {
-                if (t == 21) {
-                    ringAoE(sl, 9.6D, 18.5F, 1.35D);
-                    spawnSpikeRing(sl, 6.8D, 8, 12.0F, 0.95F);
+                // Genshin-accurate rapid 3-revolution frost spin (ticks 12..39)
+                if (t == 16) {
+                    ringAoE(sl, 9.6D, 22.0F, 1.25D);
+                    spawnSpikeRing(sl, 6.8D, 8, 13.0F, 0.95F);
                 }
-                if (t == 35) {
-                    ringAoE(sl, 10.5D, 18.0F, 1.15D);
+                if (t == 26) {
+                    ringAoE(sl, 10.2D, 23.0F, 1.15D);
+                }
+                if (t == 36) {
+                    ringAoE(sl, 10.8D, 26.0F, 1.35D);
                 }
             }
             case ANIM_ICE_BEAMS_CROSS -> {
@@ -585,16 +589,16 @@ public class CryoRegisvineEntity extends Monster {
                     float progress = (t - 16) / 16.0F;
                     float angleA = getYRot() - 38.0F + progress * 76.0F;
                     float angleB = getYRot() + 38.0F - progress * 76.0F;
-                    sweepBeamRay(sl, angleA, 17.5D, 11.5F);
-                    sweepBeamRay(sl, angleB, 17.5D, 11.5F);
+                    sweepBeamRay(sl, angleA, 17.5D, 16.0F);
+                    sweepBeamRay(sl, angleB, 17.5D, 16.0F);
                 }
                 // Pass 2: Reverse cross sweep R -> L (ticks 38..54)
                 if (t >= 38 && t <= 54 && t % 4 == 0) {
                     float progress = (t - 38) / 16.0F;
                     float angleA = getYRot() + 38.0F - progress * 76.0F;
                     float angleB = getYRot() - 38.0F + progress * 76.0F;
-                    sweepBeamRay(sl, angleA, 17.5D, 12.0F);
-                    sweepBeamRay(sl, angleB, 17.5D, 12.0F);
+                    sweepBeamRay(sl, angleA, 17.5D, 17.0F);
+                    sweepBeamRay(sl, angleB, 17.5D, 17.0F);
                 }
             }
             case ANIM_ROTARY_SPRAY -> {
@@ -608,7 +612,7 @@ public class CryoRegisvineEntity extends Monster {
                     float a = Mth.clamp((t - 14.0F) / 70.0F, 0.0F, 1.0F);
                     float smooth = a * a * (3.0F - 2.0F * a);
                     float beamYaw = attackStartYaw - smooth * 360.0F;
-                    sweepBeamRay(sl, beamYaw, 18.5D, 13.5F);
+                    sweepBeamRay(sl, beamYaw, 18.5D, 19.0F);
                 }
             }
             case ANIM_HOMING_ICICLES -> {

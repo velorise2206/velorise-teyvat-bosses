@@ -43,8 +43,12 @@ public class SkySpearRenderer extends EntityRenderer<SkySpearEntity> {
                     ? (0.45F + 0.55F * Mth.clamp(age / (float) SkySpearEntity.IMPACT_TICK, 0.0F, 1.0F))
                     : Math.max(0.0F, 1.0F - (age - SkySpearEntity.IMPACT_TICK) / 8.0F);
             Matrix4f m = poseStack.last().pose();
-            drawGroundRing(lvc, m, r - 0.22F, r, 32, 235, 45, 55, (int) (215 * fade));
-            drawGroundRing(lvc, m, r * 0.55F - 0.14F, r * 0.55F, 24, rgb[0], rgb[1], rgb[2], (int) (185 * fade));
+            float prog = Mth.clamp(age / (float) SkySpearEntity.IMPACT_TICK, 0.0F, 1.0F);
+            float fillR = Math.max(0.15F, r * prog);
+            drawGroundRing(lvc, m, r - 0.28F, r, 36, 235, 28, 36, (int) (225 * fade));
+            drawGroundRing(lvc, m, 0.08F, Math.max(0.10F, r - 0.28F), 32, 200, 18, 24, (int) (42 * fade));
+            drawGroundRing(lvc, m, 0.08F, fillR, 32, 255, 42, 48, (int) (86 * fade));
+            drawGroundRing(lvc, m, Math.max(0.08F, fillR - 0.20F), fillR, 36, 255, 85, 78, (int) (210 * fade));
 
             // Iconic 4-point curved crimson star inside the circle (eye.mp4 01:27)
             poseStack.pushPose();

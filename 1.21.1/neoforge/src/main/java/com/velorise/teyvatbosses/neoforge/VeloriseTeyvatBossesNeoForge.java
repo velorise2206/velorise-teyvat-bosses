@@ -1,37 +1,50 @@
 package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.block.BossTrophyBlock;
+import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
-import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
 import com.velorise.teyvatbosses.entity.AnemoWindOrbEntity;
+import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
 import com.velorise.teyvatbosses.entity.CryoIceSpikeEntity;
 import com.velorise.teyvatbosses.entity.CryoIcicleProjectile;
 import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.ElementalStarEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
+import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
 import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
-import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.DeferredSpawnEggItem;
@@ -44,6 +57,10 @@ public class VeloriseTeyvatBossesNeoForge {
 
     public static final DeferredRegister<EntityType<?>> ENTITIES =
             DeferredRegister.create(Registries.ENTITY_TYPE, TeyvatBossesConstants.MOD_ID);
+    public static final DeferredRegister<Block> BLOCKS =
+            DeferredRegister.create(Registries.BLOCK, TeyvatBossesConstants.MOD_ID);
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
+            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(Registries.ITEM, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<SoundEvent> SOUNDS =
@@ -52,6 +69,15 @@ public class VeloriseTeyvatBossesNeoForge {
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<StructureType<?>> STRUCTURE_TYPES =
             DeferredRegister.create(Registries.STRUCTURE_TYPE, TeyvatBossesConstants.MOD_ID);
+
+    private static BlockBehaviour.Properties trophyProps() {
+        return BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
+                .strength(2.0F, 6.0F)
+                .sound(SoundType.METAL)
+                .noOcclusion()
+                .lightLevel(state -> 6);
+    }
 
     public static final DeferredHolder<StructureType<?>, StructureType<FlatArenaStructure>> FLAT_ARENA =
             STRUCTURE_TYPES.register("flat_arena", () -> () -> FlatArenaStructure.CODEC);
@@ -120,6 +146,53 @@ public class VeloriseTeyvatBossesNeoForge {
             ENTITIES.register("astralion", () -> EntityType.Builder.of(AstralionEntity::new, MobCategory.MONSTER)
                     .sized(2.6F, 5.4F).clientTrackingRange(16).build("astralion"));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<RuinMechEntity>> RUIN_MECH =
+            ENTITIES.register("ruin_mech", () -> EntityType.Builder.of(RuinMechEntity::new, MobCategory.MISC)
+                    .sized(2.4F, 4.0F).clientTrackingRange(14).build("ruin_mech"));
+
+    // 3D Miniature Boss Trophy Blocks
+    public static final DeferredHolder<Block, BossTrophyBlock> CRYO_REGISVINE_TROPHY =
+            BLOCKS.register("cryo_regisvine_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE, trophyProps()));
+    public static final DeferredHolder<Block, BossTrophyBlock> THE_OPEN_EYED_TROPHY =
+            BLOCKS.register("the_open_eyed_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_THE_OPEN_EYED, trophyProps()));
+    public static final DeferredHolder<Block, BossTrophyBlock> ANEMO_HYPOSTASIS_TROPHY =
+            BLOCKS.register("anemo_hypostasis_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS, trophyProps()));
+    public static final DeferredHolder<Block, BossTrophyBlock> RUIN_GUARD_TROPHY =
+            BLOCKS.register("ruin_guard_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_RUIN_GUARD, trophyProps()));
+    public static final DeferredHolder<Block, BossTrophyBlock> ASTRALION_TROPHY =
+            BLOCKS.register("astralion_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_ASTRALION, trophyProps()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<BossTrophyBlockEntity>> BOSS_TROPHY_BE =
+            BLOCK_ENTITIES.register("boss_trophy", () -> BlockEntityType.Builder.of(
+                    BossTrophyBlockEntity::new,
+                    CRYO_REGISVINE_TROPHY.get(), THE_OPEN_EYED_TROPHY.get(), ANEMO_HYPOSTASIS_TROPHY.get(),
+                    RUIN_GUARD_TROPHY.get(), ASTRALION_TROPHY.get()
+            ).build(null));
+
+    // Boss Trophy Block Items
+    public static final DeferredHolder<Item, Item> CRYO_REGISVINE_TROPHY_ITEM =
+            ITEMS.register("cryo_regisvine_trophy", () -> new BlockItem(CRYO_REGISVINE_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> THE_OPEN_EYED_TROPHY_ITEM =
+            ITEMS.register("the_open_eyed_trophy", () -> new BlockItem(THE_OPEN_EYED_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> ANEMO_HYPOSTASIS_TROPHY_ITEM =
+            ITEMS.register("anemo_hypostasis_trophy", () -> new BlockItem(ANEMO_HYPOSTASIS_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> RUIN_GUARD_TROPHY_ITEM =
+            ITEMS.register("ruin_guard_trophy", () -> new BlockItem(RUIN_GUARD_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> ASTRALION_TROPHY_ITEM =
+            ITEMS.register("astralion_trophy", () -> new BlockItem(ASTRALION_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+
+    // 5-Part Modular Ruin Mech Salvage Items
+    public static final DeferredHolder<Item, Item> RUIN_MECH_CORE =
+            ITEMS.register("ruin_mech_core", () -> new RuinMechPartItem(RuinMechEntity.PART_CORE, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> RUIN_MECH_LEFT_ARM =
+            ITEMS.register("ruin_mech_left_arm", () -> new RuinMechPartItem(RuinMechEntity.PART_LEFT_ARM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> RUIN_MECH_RIGHT_ARM =
+            ITEMS.register("ruin_mech_right_arm", () -> new RuinMechPartItem(RuinMechEntity.PART_RIGHT_ARM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> RUIN_MECH_LEFT_LEG =
+            ITEMS.register("ruin_mech_left_leg", () -> new RuinMechPartItem(RuinMechEntity.PART_LEFT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> RUIN_MECH_RIGHT_LEG =
+            ITEMS.register("ruin_mech_right_leg", () -> new RuinMechPartItem(RuinMechEntity.PART_RIGHT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_SPAWN_EGG =
             ITEMS.register("cryo_regisvine_spawn_egg", () -> new DeferredSpawnEggItem(
                     CRYO_REGISVINE, 0x1E4B7A, 0x9BE8FF, new Item.Properties()));
@@ -172,6 +245,16 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG.get());
                         output.accept(RUIN_GUARD_SPAWN_EGG.get());
                         output.accept(ASTRALION_SPAWN_EGG.get());
+                        output.accept(CRYO_REGISVINE_TROPHY_ITEM.get());
+                        output.accept(THE_OPEN_EYED_TROPHY_ITEM.get());
+                        output.accept(ANEMO_HYPOSTASIS_TROPHY_ITEM.get());
+                        output.accept(RUIN_GUARD_TROPHY_ITEM.get());
+                        output.accept(ASTRALION_TROPHY_ITEM.get());
+                        output.accept(RUIN_MECH_CORE.get());
+                        output.accept(RUIN_MECH_LEFT_ARM.get());
+                        output.accept(RUIN_MECH_RIGHT_ARM.get());
+                        output.accept(RUIN_MECH_LEFT_LEG.get());
+                        output.accept(RUIN_MECH_RIGHT_LEG.get());
                         output.accept(MUSIC_DISC_CRYO_REGISVINE.get());
                         output.accept(MUSIC_DISC_THE_OPEN_EYED.get());
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS.get());
@@ -182,6 +265,8 @@ public class VeloriseTeyvatBossesNeoForge {
     public VeloriseTeyvatBossesNeoForge(IEventBus modEventBus) {
         TeyvatBossesConstants.LOGGER.info("Initializing {} (NeoForge 1.21.1)", TeyvatBossesConstants.MOD_NAME);
         ENTITIES.register(modEventBus);
+        BLOCKS.register(modEventBus);
+        BLOCK_ENTITIES.register(modEventBus);
         ITEMS.register(modEventBus);
         SOUNDS.register(modEventBus);
         TABS.register(modEventBus);
@@ -191,11 +276,32 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,
                 ANEMO_HYPOSTASIS, ANEMO_WIND_ORB, ANEMO_TORNADO, ANEMO_MISSILE, WIND_CURRENT, TROUNCE_BLOSSOM,
-                RUIN_GUARD, RUIN_MISSILE, ASTRALION
+                RUIN_GUARD, RUIN_MISSILE, ASTRALION, RUIN_MECH
         );
 
-        TeyvatBossesItems.bind(MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD);
+        TeyvatBossesBlocks.bind(
+                CRYO_REGISVINE_TROPHY, THE_OPEN_EYED_TROPHY, ANEMO_HYPOSTASIS_TROPHY,
+                RUIN_GUARD_TROPHY, ASTRALION_TROPHY, BOSS_TROPHY_BE
+        );
+
+        TeyvatBossesItems.bind(
+                MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
+                RUIN_MECH_CORE, RUIN_MECH_LEFT_ARM, RUIN_MECH_RIGHT_ARM, RUIN_MECH_LEFT_LEG, RUIN_MECH_RIGHT_LEG
+        );
         modEventBus.addListener(this::registerAttributes);
+        modEventBus.addListener(this::registerPayloads);
+    }
+
+    private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playToServer(
+                RuinMechSkillPayload.TYPE,
+                RuinMechSkillPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player().getVehicle() instanceof RuinMechEntity mech) {
+                        mech.tryTriggerSkill(payload.skillId());
+                    }
+                })
+        );
     }
 
     private void registerAttributes(EntityAttributeCreationEvent event) {
@@ -205,5 +311,6 @@ public class VeloriseTeyvatBossesNeoForge {
         event.put(ANEMO_HYPOSTASIS.get(), AnemoHypostasisEntity.createAttributes().build());
         event.put(RUIN_GUARD.get(), RuinGuardEntity.createAttributes().build());
         event.put(ASTRALION.get(), AstralionEntity.createAttributes().build());
+        event.put(RUIN_MECH.get(), RuinMechEntity.createAttributes().build());
     }
 }

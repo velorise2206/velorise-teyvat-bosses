@@ -314,9 +314,16 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
             poseStack.pushPose();
             poseStack.translate(telePos.x - lerpX, telePos.y - lerpY + 0.10D, telePos.z - lerpZ);
             Matrix4f gm = poseStack.last().pose();
-            float pulse = 0.85F + 0.15F * Mth.sin(liveT * 0.65F);
-            drawHorizontalRing(vc, gm, teleR - 0.35F, teleR, 34, 255, 205, 85, (int) (205 * pulse));
-            drawHorizontalRing(vc, gm, 0.4F, teleR * pulse, 28, 255, 225, 115, 52);
+            float prog = switch (anim) {
+                case TheOpenEyedEntity.ANIM_SPEAR_SLAM -> Mth.clamp((t - 10.0F) / 11.0F, 0.0F, 1.0F);
+                case TheOpenEyedEntity.ANIM_LEAPING_SLAM -> Mth.clamp(t / 35.0F, 0.0F, 1.0F);
+                default -> 0.5F;
+            };
+            float fillR = Math.max(0.15F, teleR * prog);
+            drawHorizontalRing(vc, gm, teleR - 0.32F, teleR, 36, 235, 28, 36, 225);
+            drawHorizontalRing(vc, gm, 0.08F, Math.max(0.10F, teleR - 0.32F), 32, 200, 18, 24, 42);
+            drawHorizontalRing(vc, gm, 0.08F, fillR, 32, 255, 42, 48, 86);
+            drawHorizontalRing(vc, gm, Math.max(0.08F, fillR - 0.22F), fillR, 36, 255, 85, 78, 210);
             poseStack.popPose();
         }
 

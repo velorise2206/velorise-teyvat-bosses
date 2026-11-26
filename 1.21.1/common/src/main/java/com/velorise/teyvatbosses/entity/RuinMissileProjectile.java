@@ -152,7 +152,7 @@ public class RuinMissileProjectile extends Entity {
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, blast,
                 ent -> ent.isAlive() && !(ent instanceof RuinGuardEntity)
                         && !(ent instanceof Player p && (p.isCreative() || p.isSpectator())))) {
-            StavesElementBridge.dealElementalDamage(e, owner, "PHYSICAL", damage, 0.0F, false, 0.20F);
+            StavesElementBridge.dealElementalDamage(e, owner, "PYRO", damage, 0.5F, false, 0.20F);
             Vec3 push = e.position().subtract(position()).normalize().scale(0.55D);
             e.setDeltaMovement(e.getDeltaMovement().add(push.x, 0.32D, push.z));
             e.hurtMarked = true;

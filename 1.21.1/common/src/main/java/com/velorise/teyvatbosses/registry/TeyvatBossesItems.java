@@ -1,11 +1,12 @@
 package com.velorise.teyvatbosses.registry;
 
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 
 import java.util.function.Supplier;
 
 /**
- * Loader-agnostic holder for registered boss loot & music disc items.
+ * Loader-agnostic holder for registered boss loot, music discs, and Ruin Mech salvage parts.
  */
 public final class TeyvatBossesItems {
     private static Supplier<Item> cryoDisc;
@@ -13,22 +14,54 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> anemoDisc;
     private static Supplier<Item> ruinGuardDisc;
 
+    private static Supplier<Item> mechCore;
+    private static Supplier<Item> mechLeftArm;
+    private static Supplier<Item> mechRightArm;
+    private static Supplier<Item> mechLeftLeg;
+    private static Supplier<Item> mechRightLeg;
+
     private TeyvatBossesItems() {}
 
     public static void bind(
             Supplier<Item> cryoDiscSupplier,
             Supplier<Item> openEyedDiscSupplier,
             Supplier<Item> anemoDiscSupplier,
-            Supplier<Item> ruinGuardDiscSupplier
+            Supplier<Item> ruinGuardDiscSupplier,
+            Supplier<Item> mechCoreSupplier,
+            Supplier<Item> mechLeftArmSupplier,
+            Supplier<Item> mechRightArmSupplier,
+            Supplier<Item> mechLeftLegSupplier,
+            Supplier<Item> mechRightLegSupplier
     ) {
         cryoDisc = cryoDiscSupplier;
         openEyedDisc = openEyedDiscSupplier;
         anemoDisc = anemoDiscSupplier;
         ruinGuardDisc = ruinGuardDiscSupplier;
+        mechCore = mechCoreSupplier;
+        mechLeftArm = mechLeftArmSupplier;
+        mechRightArm = mechRightArmSupplier;
+        mechLeftLeg = mechLeftLegSupplier;
+        mechRightLeg = mechRightLegSupplier;
     }
 
     public static Item cryoDisc() { return cryoDisc != null ? cryoDisc.get() : null; }
     public static Item openEyedDisc() { return openEyedDisc != null ? openEyedDisc.get() : null; }
     public static Item anemoDisc() { return anemoDisc != null ? anemoDisc.get() : null; }
     public static Item ruinGuardDisc() { return ruinGuardDisc != null ? ruinGuardDisc.get() : null; }
+
+    public static Item mechCore() { return mechCore != null ? mechCore.get() : null; }
+    public static Item mechLeftArm() { return mechLeftArm != null ? mechLeftArm.get() : null; }
+    public static Item mechRightArm() { return mechRightArm != null ? mechRightArm.get() : null; }
+    public static Item mechLeftLeg() { return mechLeftLeg != null ? mechLeftLeg.get() : null; }
+    public static Item mechRightLeg() { return mechRightLeg != null ? mechRightLeg.get() : null; }
+
+    public static Item randomMechPart(RandomSource random) {
+        return switch (random.nextInt(5)) {
+            case 0 -> mechCore();
+            case 1 -> mechLeftArm();
+            case 2 -> mechRightArm();
+            case 3 -> mechLeftLeg();
+            default -> mechRightLeg();
+        };
+    }
 }

@@ -242,9 +242,16 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
             poseStack.pushPose();
             poseStack.translate(rx, ry, rz);
             Matrix4f m = poseStack.last().pose();
-            float pulse = 0.85F + 0.15F * Mth.sin(liveTick * 0.65F);
-            drawHorizontalRing(vc, m, 2.85F, 3.25F, 32, 95, 250, 218, (int) (195 * pulse));
-            drawHorizontalRing(vc, m, 0.4F, 2.85F * pulse, 24, 150, 255, 236, 65);
+            float tF = entity.getAnimTick() + partialTicks;
+            float prog = (tF < 36.0F) ? Mth.clamp((tF - 12.0F) / 18.0F, 0.0F, 1.0F)
+                    : (tF < 66.0F ? Mth.clamp((tF - 42.0F) / 18.0F, 0.0F, 1.0F)
+                    : Mth.clamp((tF - 72.0F) / 18.0F, 0.0F, 1.0F));
+            float outerR = 3.25F;
+            float fillR = Math.max(0.15F, outerR * prog);
+            drawHorizontalRing(vc, m, outerR - 0.30F, outerR, 36, 235, 28, 36, 225);
+            drawHorizontalRing(vc, m, 0.08F, outerR - 0.30F, 32, 200, 18, 24, 42);
+            drawHorizontalRing(vc, m, 0.08F, fillR, 32, 255, 42, 48, 86);
+            drawHorizontalRing(vc, m, Math.max(0.08F, fillR - 0.20F), fillR, 36, 255, 85, 78, 210);
             poseStack.popPose();
         }
 

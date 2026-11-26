@@ -2,16 +2,20 @@ package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
-import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
+import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.BossRespawnAnchorRenderer;
+import com.velorise.teyvatbosses.client.BossTrophyRenderer;
 import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
+import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
+import com.velorise.teyvatbosses.client.RuinMechRenderer;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
 import com.velorise.teyvatbosses.client.SkySpearRenderer;
 import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
@@ -63,5 +67,14 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_GUARD.get(), RuinGuardRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MISSILE.get(), RuinMissileRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ASTRALION.get(), AstralionRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MECH.get(), RuinMechRenderer::new);
+
+        event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void registerGuiLayers(RegisterGuiLayersEvent event) {
+        event.registerAboveAll(TeyvatBossesConstants.id("ruin_mech_hud"), (gui, delta) ->
+                RuinMechCockpitHud.render(gui, delta.getGameTimeDeltaPartialTick(false)));
     }
 }

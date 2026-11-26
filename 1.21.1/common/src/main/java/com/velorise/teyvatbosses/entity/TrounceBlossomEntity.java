@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import net.minecraft.ChatFormatting;
@@ -105,6 +106,9 @@ public class TrounceBlossomEntity extends Entity {
         sl.sendParticles(ParticleTypes.GLOW, getX(), getY() + 1.1D, getZ(), 30, 0.8D, 0.8D, 0.8D, 0.06D);
 
         int kind = getBossKind();
+        if (TeyvatBossesBlocks.trophyForBossKind(kind) != null) {
+            dropReward(sl, new ItemStack(TeyvatBossesBlocks.trophyForBossKind(kind)));
+        }
         if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
             if (TeyvatBossesItems.anemoDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.anemoDisc()));
             dropReward(sl, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
@@ -118,6 +122,7 @@ public class TrounceBlossomEntity extends Entity {
             dropReward(sl, new ItemStack(Items.EMERALD, 8 + random.nextInt(6)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_GUARD) {
             if (TeyvatBossesItems.ruinGuardDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
+            if (TeyvatBossesItems.randomMechPart(random) != null) dropReward(sl, new ItemStack(TeyvatBossesItems.randomMechPart(random)));
             dropReward(sl, new ItemStack(Items.IRON_BLOCK, 2 + random.nextInt(3)));
             dropReward(sl, new ItemStack(Items.REDSTONE_BLOCK, 2 + random.nextInt(2)));
             dropReward(sl, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));

@@ -418,7 +418,7 @@ public class AnemoHypostasisEntity extends Monster {
                 }
             }
             case STATE_VULNERABLE -> {
-                if (stateTick >= 105) {
+                if (stateTick >= 125) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.0F, 0.95F);
                     transitionTo(STATE_COMBAT, ANIM_IDLE);
                     attackCooldown = 28;
@@ -547,7 +547,7 @@ public class AnemoHypostasisEntity extends Monster {
             AABB blast = new AABB(telegraphPos.x - 3.2D, telegraphPos.y - 0.5D, telegraphPos.z - 3.2D,
                     telegraphPos.x + 3.2D, telegraphPos.y + 4.5D, telegraphPos.z + 3.2D);
             for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, blast, this::isValidCombatTarget)) {
-                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 13.0F, 1.0F, false, 0.30F);
+                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 22.0F, 1.0F, false, 0.30F);
                 p.setDeltaMovement(p.getDeltaMovement().x, 0.68D, p.getDeltaMovement().z);
                 p.hurtMarked = true;
             }
@@ -591,7 +591,7 @@ public class AnemoHypostasisEntity extends Monster {
             AABB crushBox = new AABB(getX() - 4.0D, getY() - 0.5D, getZ() - 4.0D,
                     getX() + 4.0D, getY() + 4.2D, getZ() + 4.0D);
             for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, crushBox, this::isValidCombatTarget)) {
-                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 18.0F, 1.5F, true, 0.35F);
+                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 30.0F, 1.5F, true, 0.35F);
                 Vec3 push = p.position().subtract(position()).normalize().scale(1.1D);
                 p.setDeltaMovement(push.x, 0.45D, push.z);
                 p.hurtMarked = true;
@@ -635,7 +635,7 @@ public class AnemoHypostasisEntity extends Monster {
             sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, getX(), getY() + 1.5D, getZ(), 4, 2.5D, 1.0D, 2.5D, 0.0D);
             AABB blast = new AABB(getX() - 8.5D, getY() - 1.0D, getZ() - 8.5D, getX() + 8.5D, getY() + 5.0D, getZ() + 8.5D);
             for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, blast, this::isValidCombatTarget)) {
-                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 14.5F, 1.0F, false, 0.30F);
+                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 24.5F, 1.0F, false, 0.30F);
                 Vec3 push = p.position().subtract(position()).normalize().scale(1.25D);
                 p.setDeltaMovement(push.x, 0.52D, push.z);
                 p.hurtMarked = true;

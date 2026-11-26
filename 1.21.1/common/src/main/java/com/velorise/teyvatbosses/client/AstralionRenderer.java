@@ -235,9 +235,18 @@ public class AstralionRenderer extends EntityRenderer<AstralionEntity> {
             double lz = Mth.lerp(partialTicks, entity.zo, entity.getZ());
             poseStack.pushPose();
             poseStack.translate(telePos.x - lx, telePos.y - ly + 0.12D, telePos.z - lz);
-            float pulse = 0.85F + 0.15F * Mth.sin(liveT * 0.65F);
-            drawHorizontalRing(vc, poseStack.last().pose(), teleR - 0.4F, teleR, 36, rgb[0], rgb[1], rgb[2], (int) (215 * pulse));
-            drawHorizontalRing(vc, poseStack.last().pose(), 0.4F, teleR * pulse, 28, 255, 240, 180, 56);
+            Matrix4f tm = poseStack.last().pose();
+            float prog = switch (anim) {
+                case AstralionEntity.ANIM_PRISMATIC_CLEAVE -> Mth.clamp((t - 7.0F) / 8.0F, 0.0F, 1.0F);
+                case AstralionEntity.ANIM_COMBO_TRINITY -> Mth.clamp((t - 38.0F) / 7.0F, 0.0F, 1.0F);
+                case AstralionEntity.ANIM_ULTIMATE_CATACLYSM -> Mth.clamp((t - 20.0F) / 38.0F, 0.0F, 1.0F);
+                default -> 0.5F;
+            };
+            float fillR = Math.max(0.15F, teleR * prog);
+            drawHorizontalRing(vc, tm, teleR - 0.34F, teleR, 36, 235, 28, 36, 225);
+            drawHorizontalRing(vc, tm, 0.08F, Math.max(0.10F, teleR - 0.34F), 32, 200, 18, 24, 42);
+            drawHorizontalRing(vc, tm, 0.08F, fillR, 32, 255, 42, 48, 86);
+            drawHorizontalRing(vc, tm, Math.max(0.08F, fillR - 0.24F), fillR, 36, 255, 85, 78, 210);
             poseStack.popPose();
         }
 

@@ -238,11 +238,6 @@ public final class RuinGuardAnimations {
                 new float[]{-6.0F, -16.0F, -6.0F, 12.0F, -6.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{14.0F, 17.0F, 14.0F, 17.0F, 14.0F}, new int[]{0, 0, 0, 0, 0});
         c.add("forearm_l", CH_ROT, new float[]{0.0F, 0.72F, 1.92F, 2.40F},
                 new float[]{-14.0F, -20.0F, -10.0F, -14.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 0, 0});
-        // Delayed pendulum wrist lag behind forearms for heavy mechanical weight
-        c.add("hand_r", CH_ROT, new float[]{0.0F, 0.84F, 1.32F, 2.04F, 2.40F},
-                new float[]{-6.0F, 6.0F, -6.0F, -14.0F, -6.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 0, 0, 0});
-        c.add("hand_l", CH_ROT, new float[]{0.0F, 0.84F, 1.32F, 2.04F, 2.40F},
-                new float[]{-6.0F, -14.0F, -6.0F, 6.0F, -6.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 0, 0, 0});
         CLIPS.put("walk_combat", c);
     }
 
@@ -328,7 +323,7 @@ public final class RuinGuardAnimations {
                 new int[]{0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
         c.add("torso", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 4.50F, 5.15F, 5.78F, 6.40F},
-                new float[]{7.0F, 14.0F, 14.0F, -6.0F, 20.0F, 10.0F, -8.0F, 34.0F, 28.0F, -18.0F, -4.0F, 44.0F, 38.0F, 40.0F, 22.0F, 7.0F},
+                new float[]{7.0F, 14.0F, 14.0F, -6.0F, 20.0F, 10.0F, -8.0F, 34.0F, 28.0F, 12.0F, 18.0F, 38.0F, 34.0F, 36.0F, 20.0F, 7.0F},
                 new float[]{0.0F, 0.0F, 0.0F, -10.0F, 14.0F, 6.0F, -10.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 8.0F, -10.0F, -4.0F, 12.0F, -16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0});
@@ -347,9 +342,9 @@ public final class RuinGuardAnimations {
         // RIGHT ARM: attacks on Hit 1 (zRot -84 horizontal sweep), then retracts as counterbalance during Hit 2
         c.add("upper_arm_r", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, -6.0F, -6.0F, -8.0F, 18.0F, 24.0F, 28.0F, 32.0F, -148.0F, -124.0F, -48.0F, -50.0F, -24.0F, -8.0F},
+                new float[]{-8.0F, -52.0F, -52.0F, -6.0F, -6.0F, -8.0F, 18.0F, 24.0F, 28.0F, 18.0F, -16.0F, -18.0F, -28.0F, -30.0F, -18.0F, -8.0F},
                 new float[]{0.0F, 34.0F, 34.0F, -10.0F, -12.0F, 16.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-15.0F, -8.0F, -8.0F, -80.0F, -84.0F, -84.0F, -26.0F, -24.0F, -32.0F, -26.0F, -20.0F, -18.0F, -22.0F, -22.0F, -18.0F, -15.0F},
+                new float[]{-15.0F, -8.0F, -8.0F, -80.0F, -84.0F, -84.0F, -26.0F, -24.0F, -32.0F, -28.0F, -34.0F, -36.0F, -42.0F, -38.0F, -22.0F, -15.0F},
                 new int[]{0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("upper_arm_r", CH_SCALE,
                 new float[]{0.0F, 1.05F, 1.45F, 1.95F, 6.40F},
@@ -366,9 +361,9 @@ public final class RuinGuardAnimations {
         // LEFT ARM: tucks on Hit 1, then extends wide (zRot +88, raised high-back) and whips diagonally downward across front on Hit 2!
         c.add("upper_arm_l", CH_ROT,
                 new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, 16.0F, 22.0F, -14.0F, -22.0F, -38.0F, -16.0F, 32.0F, -148.0F, -124.0F, -48.0F, -50.0F, -24.0F, -8.0F},
+                new float[]{-8.0F, -52.0F, -52.0F, 16.0F, 22.0F, -14.0F, -22.0F, -38.0F, -16.0F, 18.0F, -16.0F, -18.0F, -28.0F, -30.0F, -18.0F, -8.0F},
                 new float[]{0.0F, -34.0F, -34.0F, 0.0F, 0.0F, 12.0F, 18.0F, -24.0F, -8.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{15.0F, 8.0F, 8.0F, 24.0F, 28.0F, 82.0F, 88.0F, 52.0F, 32.0F, 26.0F, 20.0F, 18.0F, 22.0F, 22.0F, 18.0F, 15.0F},
+                new float[]{15.0F, 8.0F, 8.0F, 24.0F, 28.0F, 82.0F, 88.0F, 52.0F, 32.0F, 28.0F, 34.0F, 36.0F, 42.0F, 38.0F, 22.0F, 15.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("upper_arm_l", CH_SCALE,
                 new float[]{0.0F, 1.95F, 2.58F, 3.00F, 6.40F},
@@ -418,19 +413,6 @@ public final class RuinGuardAnimations {
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{-4.0F, -4.0F, -4.0F, -4.0F, 0.0F, 0.0F, -4.0F, -4.0F, -4.0F},
                 new int[]{0, 0, 0, 0, 0, 1, 1, 0, 0});
-        // Overlapping wrist/fist follow-through (lags +0.08s behind arm whip for organic weight)
-        c.add("hand_r", CH_ROT,
-                new float[]{0.0F, 0.38F, 1.32F, 1.52F, 2.00F, 3.50F, 4.38F, 5.20F, 6.40F},
-                new float[]{-6.0F, -24.0F, 12.0F, -18.0F, -10.0F, 8.0F, -16.0F, -12.0F, -6.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, -10.0F, 12.0F, 0.0F, 0.0F, 8.0F, 4.0F, 0.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0});
-        c.add("hand_l", CH_ROT,
-                new float[]{0.0F, 0.38F, 2.00F, 2.42F, 2.66F, 3.50F, 4.38F, 5.20F, 6.40F},
-                new float[]{-6.0F, -24.0F, -10.0F, 14.0F, -20.0F, 8.0F, -16.0F, -12.0F, -6.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 12.0F, -14.0F, 0.0F, -8.0F, -4.0F, 0.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0});
         CLIPS.put("melee_combo_3hit", c);
     }
 
@@ -996,14 +978,10 @@ public final class RuinGuardAnimations {
         while (i + 1 < n && tr.times[i + 1] < t) i++;
         float dt = Math.max(1e-5F, tr.times[i + 1] - tr.times[i]);
         float u = (t - tr.times[i]) / dt;
-        // True constant-velocity linear ONLY for continuous looping waist spin (cyclone_spin_active);
-        // all other snap segments use C2-continuous Quintic S-curve (zero sharp velocity kinks!)
-        boolean isConstantSpin = loop && "waist".equals(tr.bone) && tr.channel == CH_ROT;
         if (tr.interps[i] == INTERP_LINEAR || tr.interps[i + 1] == INTERP_LINEAR || n < 3) {
-            float e = isConstantSpin ? u : (u * u * u * (u * (u * 6.0F - 15.0F) + 10.0F));
-            out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * e;
-            out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * e;
-            out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * e;
+            out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * u;
+            out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * u;
+            out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * u;
         } else {
             out[0] = evalCatmullHermite(tr.xs, tr.times, i, u, dt, loop);
             out[1] = evalCatmullHermite(tr.ys, tr.times, i, u, dt, loop);

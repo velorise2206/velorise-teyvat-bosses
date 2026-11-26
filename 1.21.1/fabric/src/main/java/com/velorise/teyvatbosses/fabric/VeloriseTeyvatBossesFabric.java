@@ -1,27 +1,34 @@
 package com.velorise.teyvatbosses.fabric;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.block.BossTrophyBlock;
+import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
-import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
 import com.velorise.teyvatbosses.entity.AnemoWindOrbEntity;
+import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
 import com.velorise.teyvatbosses.entity.CryoIceSpikeEntity;
 import com.velorise.teyvatbosses.entity.CryoIcicleProjectile;
 import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.ElementalStarEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
+import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
 import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
-import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -33,13 +40,28 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+import net.minecraft.world.level.material.MapColor;
 
 public class VeloriseTeyvatBossesFabric implements ModInitializer {
+
+    private static BlockBehaviour.Properties trophyProps() {
+        return BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
+                .strength(2.0F, 6.0F)
+                .sound(SoundType.METAL)
+                .noOcclusion()
+                .lightLevel(state -> 6);
+    }
 
     public static final EntityType<CryoRegisvineEntity> CRYO_REGISVINE = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("cryo_regisvine"),
@@ -104,6 +126,68 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<AstralionEntity> ASTRALION = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("astralion"),
             EntityType.Builder.of(AstralionEntity::new, MobCategory.MONSTER).sized(2.6F, 5.4F).clientTrackingRange(16).build());
+
+    public static final EntityType<RuinMechEntity> RUIN_MECH = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_mech"),
+            EntityType.Builder.of(RuinMechEntity::new, MobCategory.MISC).sized(2.4F, 4.0F).clientTrackingRange(14).build());
+
+    // 3D Miniature Boss Trophy Blocks
+    public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("cryo_regisvine_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE, trophyProps()));
+    public static final BossTrophyBlock THE_OPEN_EYED_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("the_open_eyed_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_THE_OPEN_EYED, trophyProps()));
+    public static final BossTrophyBlock ANEMO_HYPOSTASIS_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("anemo_hypostasis_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS, trophyProps()));
+    public static final BossTrophyBlock RUIN_GUARD_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("ruin_guard_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_RUIN_GUARD, trophyProps()));
+    public static final BossTrophyBlock ASTRALION_TROPHY = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("astralion_trophy"),
+            new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_ASTRALION, trophyProps()));
+
+    public static final BlockEntityType<BossTrophyBlockEntity> BOSS_TROPHY_BE = Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, TeyvatBossesConstants.id("boss_trophy"),
+            BlockEntityType.Builder.of(
+                    BossTrophyBlockEntity::new,
+                    CRYO_REGISVINE_TROPHY, THE_OPEN_EYED_TROPHY, ANEMO_HYPOSTASIS_TROPHY, RUIN_GUARD_TROPHY, ASTRALION_TROPHY
+            ).build(null));
+
+    // Boss Trophy Block Items
+    public static final Item CRYO_REGISVINE_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_trophy"),
+            new BlockItem(CRYO_REGISVINE_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item THE_OPEN_EYED_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("the_open_eyed_trophy"),
+            new BlockItem(THE_OPEN_EYED_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item ANEMO_HYPOSTASIS_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_hypostasis_trophy"),
+            new BlockItem(ANEMO_HYPOSTASIS_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item RUIN_GUARD_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_guard_trophy"),
+            new BlockItem(RUIN_GUARD_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item ASTRALION_TROPHY_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("astralion_trophy"),
+            new BlockItem(ASTRALION_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+
+    // 5-Part Modular Ruin Mech Salvage Items
+    public static final Item RUIN_MECH_CORE = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_core"),
+            new RuinMechPartItem(RuinMechEntity.PART_CORE, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+    public static final Item RUIN_MECH_LEFT_ARM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_left_arm"),
+            new RuinMechPartItem(RuinMechEntity.PART_LEFT_ARM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item RUIN_MECH_RIGHT_ARM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_right_arm"),
+            new RuinMechPartItem(RuinMechEntity.PART_RIGHT_ARM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item RUIN_MECH_LEFT_LEG = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_left_leg"),
+            new RuinMechPartItem(RuinMechEntity.PART_LEFT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item RUIN_MECH_RIGHT_LEG = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_right_leg"),
+            new RuinMechPartItem(RuinMechEntity.PART_RIGHT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
     public static final Item CRYO_REGISVINE_SPAWN_EGG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_spawn_egg"),
@@ -171,6 +255,16 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG);
                         output.accept(RUIN_GUARD_SPAWN_EGG);
                         output.accept(ASTRALION_SPAWN_EGG);
+                        output.accept(CRYO_REGISVINE_TROPHY_ITEM);
+                        output.accept(THE_OPEN_EYED_TROPHY_ITEM);
+                        output.accept(ANEMO_HYPOSTASIS_TROPHY_ITEM);
+                        output.accept(RUIN_GUARD_TROPHY_ITEM);
+                        output.accept(ASTRALION_TROPHY_ITEM);
+                        output.accept(RUIN_MECH_CORE);
+                        output.accept(RUIN_MECH_LEFT_ARM);
+                        output.accept(RUIN_MECH_RIGHT_ARM);
+                        output.accept(RUIN_MECH_LEFT_LEG);
+                        output.accept(RUIN_MECH_RIGHT_LEG);
                         output.accept(MUSIC_DISC_CRYO_REGISVINE);
                         output.accept(MUSIC_DISC_THE_OPEN_EYED);
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS);
@@ -198,7 +292,17 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> TROUNCE_BLOSSOM,
                 () -> RUIN_GUARD,
                 () -> RUIN_MISSILE,
-                () -> ASTRALION
+                () -> ASTRALION,
+                () -> RUIN_MECH
+        );
+
+        TeyvatBossesBlocks.bind(
+                () -> CRYO_REGISVINE_TROPHY,
+                () -> THE_OPEN_EYED_TROPHY,
+                () -> ANEMO_HYPOSTASIS_TROPHY,
+                () -> RUIN_GUARD_TROPHY,
+                () -> ASTRALION_TROPHY,
+                () -> BOSS_TROPHY_BE
         );
 
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
@@ -206,7 +310,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> MUSIC_DISC_CRYO_REGISVINE,
                 () -> MUSIC_DISC_THE_OPEN_EYED,
                 () -> MUSIC_DISC_ANEMO_HYPOSTASIS,
-                () -> MUSIC_DISC_RUIN_GUARD
+                () -> MUSIC_DISC_RUIN_GUARD,
+                () -> RUIN_MECH_CORE,
+                () -> RUIN_MECH_LEFT_ARM,
+                () -> RUIN_MECH_RIGHT_ARM,
+                () -> RUIN_MECH_LEFT_LEG,
+                () -> RUIN_MECH_RIGHT_LEG
         );
         FabricDefaultAttributeRegistry.register(CRYO_REGISVINE, CryoRegisvineEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(THE_OPEN_EYED, TheOpenEyedEntity.createAttributes());
@@ -214,5 +323,14 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(ANEMO_HYPOSTASIS, AnemoHypostasisEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(RUIN_GUARD, RuinGuardEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(ASTRALION, AstralionEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(RUIN_MECH, RuinMechEntity.createAttributes());
+
+        PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RuinMechSkillPayload.TYPE, (payload, ctx) ->
+                ctx.server().execute(() -> {
+                    if (ctx.player().getVehicle() instanceof RuinMechEntity mech) {
+                        mech.tryTriggerSkill(payload.skillId());
+                    }
+                }));
     }
 }

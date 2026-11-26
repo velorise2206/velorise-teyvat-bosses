@@ -102,7 +102,7 @@ public class RuinGuardEntity extends Monster {
 
     private int stateTick = 0;
     private int noTargetTicks = 0;
-    private int attackCooldown = 26;
+    private int attackCooldown = 40;
     private int finisherCooldown = 0;
     private int lastAttack = -1;
     private int eyeHits = 0;
@@ -121,9 +121,6 @@ public class RuinGuardEntity extends Monster {
     public RuinGuardEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
         this.xpReward = 700;
-        // Prevent Velorise's Staves from rolling random elemental mutations on this physical boss
-        this.addTag("VeloriseInnateChecked");
-        this.addTag("VeloriseInnate:NONE");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -388,7 +385,7 @@ public class RuinGuardEntity extends Monster {
         pendingPhase2 = false;
         finisherCooldown = 0;
         lastAttack = -1;
-        attackCooldown = 26;
+        attackCooldown = 40;
         setTarget(null);
         setDeltaMovement(Vec3.ZERO);
         setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
@@ -489,7 +486,7 @@ public class RuinGuardEntity extends Monster {
                 if (stateTick == 40) sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.4F, 0.65F);
                 if (stateTick >= 52) {
                     transitionTo(STATE_COMBAT, ANIM_IDLE);
-                    attackCooldown = 18;
+                    attackCooldown = 40;
                 }
             }
             case STATE_STUNNED -> {
@@ -511,7 +508,7 @@ public class RuinGuardEntity extends Monster {
                     if (stateTick >= STUN_RECOVERY_TICKS) {
                         weakpointImmuneTicks = WEAKPOINT_IMMUNE_TICKS;
                         transitionTo(STATE_COMBAT, ANIM_IDLE);
-                        attackCooldown = 20;
+                        attackCooldown = 42;
                     }
                 }
             }
@@ -631,7 +628,7 @@ public class RuinGuardEntity extends Monster {
                         startLeapSlam(sl, target);
                     } else {
                         transitionTo(STATE_COMBAT, ANIM_IDLE);
-                        attackCooldown = 30;
+                        attackCooldown = 48;
                     }
                 }
             }
@@ -736,11 +733,11 @@ public class RuinGuardEntity extends Monster {
         int totalMissiles = 6;
         if (stateTick >= 20 && stateTick < 20 + totalMissiles * 3 && (stateTick - 20) % 3 == 0) {
             int idx = (stateTick - 20) / 3;
-            launchPodMissile(sl, target, idx, isPhase2() ? 9.0F : 8.0F);
+            launchPodMissile(sl, target, idx, isPhase2() ? 15.5F : 13.0F);
         }
         if (stateTick >= 64) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 36;
+            attackCooldown = 40;
         }
     }
 
@@ -816,7 +813,7 @@ public class RuinGuardEntity extends Monster {
             setPos(leapTarget.x, leapTarget.y, leapTarget.z);
             setOnGround(true);
             this.fallDistance = 0.0F;
-            dealRadialDamage(sl, 5.2D, 16.0F, 1.25D, 0.58D);
+            dealRadialDamage(sl, 5.4D, 27.0F, 1.35D, 0.62D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.56F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.50F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.15F, 0.46F);
@@ -834,13 +831,13 @@ public class RuinGuardEntity extends Monster {
         } else if (stateTick == 21 || stateTick == 42) {
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.15F, 0.60F);
         } else if (stateTick == 28) {
-            dealArcDamage(sl, 5.0D, 155.0F, 11.0F, 0.95D);
+            dealArcDamage(sl, 5.2D, 155.0F, 18.5F, 1.00D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.65F, 0.52F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.35F, 0.64F);
             Vec3 front = position().add(forward.scale(2.8D));
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.6D, front.z, 3, 1.2D, 0.2D, 1.2D, 0.0D);
         } else if (stateTick == 50) {
-            dealArcDamage(sl, 5.2D, 165.0F, 12.5F, 1.05D);
+            dealArcDamage(sl, 5.4D, 165.0F, 21.0F, 1.10D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.75F, 0.45F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.45F, 0.58F);
             Vec3 front = position().add(forward.scale(2.9D));
@@ -851,7 +848,7 @@ public class RuinGuardEntity extends Monster {
 
         if (stateTick >= 128) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 32;
+            attackCooldown = 46;
         }
     }
 
@@ -868,7 +865,7 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }
         if (stateTick == 23) {
-            dealArcDamage(sl, 5.2D, 105.0F, 14.5F, 1.35D);
+            dealArcDamage(sl, 5.4D, 105.0F, 24.0F, 1.40D);
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5F, 0.52F);
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.45F, 0.74F);
             Vec3 clapPos = position().add(forward.scale(2.4D));
@@ -877,7 +874,7 @@ public class RuinGuardEntity extends Monster {
         }
         if (stateTick >= 52) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 28;
+            attackCooldown = 42;
         }
     }
 
@@ -889,7 +886,7 @@ public class RuinGuardEntity extends Monster {
         if (stateTick == 13) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 5.0F);
         if (stateTick == 20) {
             clearTelegraph();
-            dealRadialDamage(sl, 5.0D, 13.5F, 1.15D, 0.55D);
+            dealRadialDamage(sl, 5.2D, 22.0F, 1.20D, 0.58D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.62F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.75F, 0.46F);
             spawnGroundDustRing(sl, 4.6D, 34);
@@ -901,7 +898,7 @@ public class RuinGuardEntity extends Monster {
                 transitionTo(STATE_COMBAT, ANIM_DOUBLE_CLAP);
             } else {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 26;
+                attackCooldown = 40;
             }
         }
     }
@@ -914,7 +911,7 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(Mth.lerp(0.16D, cur.x, desired.x), cur.y, Mth.lerp(0.16D, cur.z, desired.z));
         }
         if (stateTick % 8 == 0) {
-            dealRadialDamage(sl, 4.8D, 7.5F, 0.85D, 0.34D);
+            dealRadialDamage(sl, 5.0D, 12.5F, 0.90D, 0.36D);
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.4F, 0.68F);
             sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.9D, getZ(), 4, 2.4D, 0.3D, 2.4D, 0.0D);
         }
@@ -970,7 +967,7 @@ public class RuinGuardEntity extends Monster {
             setPos(leapTarget.x, leapTarget.y, leapTarget.z);
             setOnGround(true);
             this.fallDistance = 0.0F;
-            dealRadialDamage(sl, 6.2D, 17.5F, 1.45D, 0.68D);
+            dealRadialDamage(sl, 6.4D, 29.0F, 1.50D, 0.72D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.85F, 0.52F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.55F, 0.48F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.25F, 0.45F);
@@ -984,7 +981,7 @@ public class RuinGuardEntity extends Monster {
         }
         if (stateTick >= 78) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 36;
+            attackCooldown = 40;
         }
     }
 
@@ -993,7 +990,7 @@ public class RuinGuardEntity extends Monster {
         if (stateTick == 1) setTelegraph(new Vec3(getX(), sampleGroundY(sl, getX(), getZ(), getY()), getZ()), 8.0F);
         if (stateTick == 23) {
             clearTelegraph();
-            dealRadialDamage(sl, 8.0D, 12.5F, 1.65D, 0.60D);
+            dealRadialDamage(sl, 8.0D, 20.0F, 1.65D, 0.62D);
             sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.68F);
             sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.0D, getZ(), 55, 2.8D, 1.6D, 2.8D, 0.14D);
             spawnGroundDustRing(sl, 6.5D, 36);
@@ -1018,7 +1015,7 @@ public class RuinGuardEntity extends Monster {
         }
         if (stateTick == 25) {
             clearTelegraph();
-            dealRadialDamage(sl, 7.8D, 21.0F, 1.75D, 0.72D);
+            dealRadialDamage(sl, 8.0D, 34.0F, 1.80D, 0.75D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.0F, 0.48F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.6F, 0.50F);
             sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 0.5D, getZ(), 2, 1.2D, 0.3D, 1.2D, 0.0D);
@@ -1027,11 +1024,11 @@ public class RuinGuardEntity extends Monster {
         }
         if (stateTick == 27 || stateTick == 30 || stateTick == 33 || stateTick == 36) {
             int idx = (stateTick - 27) / 3;
-            launchPodMissile(sl, target, idx, 9.0F);
+            launchPodMissile(sl, target, idx, 14.5F);
         }
         if (stateTick >= 64) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 36;
+            attackCooldown = 40;
         }
     }
 

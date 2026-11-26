@@ -99,7 +99,7 @@ public class TheOpenEyedEntity extends Monster {
             80, 44, 42, 46, 52, 50, 42, 54, 44, 60, 50, 60, 40, 28, 52
     };
 
-    private static final float BASE_ATK = 34.0F;
+    private static final float BASE_ATK = 44.0F;
     private static final int OVERSEER_MONITOR_TICKS = 100; // 5.0 seconds
     private static final int DELIRIUM_CHARGE_TICKS  = 400; // 20.0 seconds
     private static final int STUN_DURATION_TICKS    = 120; // 6.0 seconds
@@ -598,7 +598,7 @@ public class TheOpenEyedEntity extends Monster {
                     playAnim(ANIM_SPEAR_SLAM);
                 } else {
                     playAnim(ANIM_IDLE);
-                    attackCooldown = 40 + random.nextInt(22);
+                    attackCooldown = 52 + random.nextInt(24);
                 }
             }
         }

@@ -207,74 +207,11 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     }
 
     private void applyProceduralSecondaryMotion(RuinGuardEntity entity, int animId, float liveTick, float currSec) {
-        ModelPart pelvis = model.getBone("pelvis");
-        ModelPart waist = model.getBone("waist");
-        ModelPart torso = model.getBone("torso");
-        ModelPart armR = model.getBone("upper_arm_r");
-        ModelPart armL = model.getBone("upper_arm_l");
-        ModelPart foreR = model.getBone("forearm_r");
-        ModelPart foreL = model.getBone("forearm_l");
-
-        // 1. Subtle continuous hydraulic engine hum & arm pendulum breath (prevents dead-frozen poses)
-        if (entity.getBossState() == RuinGuardEntity.STATE_COMBAT) {
-            float hum = Mth.sin(liveTick * 0.11F);
-            float micro = Mth.sin(liveTick * 0.23F);
-            if (torso != null) {
-                torso.xRot += hum * 0.018F;
-            }
-            if (foreR != null && foreL != null && animId != RuinGuardEntity.ANIM_CYCLONE_ACTIVE) {
-                foreR.xRot += micro * 0.025F;
-                foreL.xRot -= micro * 0.025F;
-            }
-        }
-
-        // 2. Turn-lag & centrifugal arm inertia when body rotates (makes turning feel heavy & organic)
-        if (entity.getBossState() == RuinGuardEntity.STATE_COMBAT
-                && animId != RuinGuardEntity.ANIM_CYCLONE_ACTIVE
-                && animId != RuinGuardEntity.ANIM_MELEE_3HIT
-                && animId != RuinGuardEntity.ANIM_MISSILE_BARRAGE) {
-            float yawVel = Mth.clamp(Mth.wrapDegrees(entity.yBodyRot - entity.yBodyRotO), -12.0F, 12.0F);
-            float yawRad = yawVel * Mth.DEG_TO_RAD;
-            if (waist != null) waist.yRot -= yawRad * 0.55F;
-            if (torso != null) torso.zRot += yawRad * 0.30F;
-            if (armR != null) armR.zRot -= Math.abs(yawRad) * 0.22F;
-            if (armL != null) armL.zRot += Math.abs(yawRad) * 0.22F;
-        }
-
-        // 3. Cyclone Spin gyroscopic precession wobble + heavy forearm centrifugal drag
-        if (animId == RuinGuardEntity.ANIM_CYCLONE_ACTIVE) {
-            if (torso != null) {
-                torso.zRot += Mth.sin(liveTick * 0.55F) * 0.065F;
-                torso.xRot += Mth.cos(liveTick * 0.55F) * 0.045F;
-            }
-            if (foreR != null) foreR.yRot -= 0.22F + Mth.sin(liveTick * 0.9F) * 0.06F;
-            if (foreL != null) foreL.yRot += 0.22F + Mth.cos(liveTick * 0.9F) * 0.06F;
-        }
-
-        // 4. Damped harmonic hydraulic impact recoil spring after heavy ground slams & stomps
-        float impactDt = -1.0F;
-        float impactAmp = 0.0F;
-        if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && currSec >= 4.30F && currSec <= 5.05F) {
-            impactDt = currSec - 4.30F; impactAmp = 1.0F;
-        } else if (animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.80F && currSec <= 2.55F) {
-            impactDt = currSec - 1.80F; impactAmp = 1.15F;
-        } else if (animId == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && currSec >= 1.00F && currSec <= 1.65F) {
-            impactDt = currSec - 1.00F; impactAmp = 0.75F;
-        } else if (animId == RuinGuardEntity.ANIM_DOUBLE_CLAP && currSec >= 1.15F && currSec <= 1.75F) {
-            impactDt = currSec - 1.15F; impactAmp = 0.70F;
-        }
-        if (impactDt >= 0.0F) {
-            float spring = (float) (Math.exp(-impactDt * 6.5D) * Math.sin(impactDt * 22.0D)) * impactAmp;
-            if (pelvis != null) pelvis.y += spring * 1.15F;
-            if (torso != null) torso.xRot += spring * 0.075F;
-            if (foreR != null) foreR.xRot += spring * 0.09F;
-            if (foreL != null) foreL.xRot += spring * 0.09F;
-        }
-
-        // 5. Stunned electrical short-circuit twitching after initial collapse
+        // Stunned electrical short-circuit twitching after initial collapse
         if (animId == RuinGuardEntity.ANIM_STUNNED && currSec > 1.25F) {
             float twitchGate = Math.max(0.0F, Mth.sin(liveTick * 0.42F) - 0.72F) * 3.5F;
             if (twitchGate > 0.01F) {
+                ModelPart torso = model.getBone("torso");
                 ModelPart eye = model.getBone("eye_core");
                 if (torso != null) {
                     torso.zRot += Mth.sin(liveTick * 2.9F) * 0.055F * twitchGate;
@@ -288,7 +225,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             }
         }
 
-        // 6. Phase 2 Overdrive: pulsing eye_core & back_reactor
+        // Phase 2 Overdrive: pulsing eye_core & back_reactor
         if (entity.isPhase2() && entity.getBossState() == RuinGuardEntity.STATE_COMBAT) {
             float pulse = 1.08F + 0.10F * Mth.sin(liveTick * 0.48F);
             ModelPart eye = model.getBone("eye_core");
@@ -349,11 +286,20 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             poseStack.pushPose();
             poseStack.translate(telePos.x - lerpX, telePos.y - lerpY + 0.12D, telePos.z - lerpZ);
             Matrix4f m = poseStack.last().pose();
-            float pulse = 0.85F + 0.15F * Mth.sin(liveTick * 0.7F);
-            int rCol = entity.getAnimId() == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER ? 255 : 255;
-            int gCol = entity.getAnimId() == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER ? 65 : 110;
-            drawHorizontalRing(vc, m, teleR - 0.35F, teleR, 36, rCol, gCol, 35, (int) (200 * pulse));
-            drawHorizontalRing(vc, m, 0.4F, teleR * pulse, 28, 255, 165, 55, 55);
+            float tF = entity.getAnimTick() + partialTicks;
+            float prog = switch (entity.getAnimId()) {
+                case RuinGuardEntity.ANIM_MELEE_3HIT -> Mth.clamp((tF - 59.0F) / 27.0F, 0.0F, 1.0F);
+                case RuinGuardEntity.ANIM_STOMP_SHOCKWAVE -> Mth.clamp((tF - 13.0F) / 7.0F, 0.0F, 1.0F);
+                case RuinGuardEntity.ANIM_LEAP_SLAM -> Mth.clamp(tF / 36.0F, 0.0F, 1.0F);
+                case RuinGuardEntity.ANIM_PHASE2_OVERDRIVE -> Mth.clamp((tF - 1.0F) / 22.0F, 0.0F, 1.0F);
+                case RuinGuardEntity.ANIM_OVERDRIVE_FINISHER -> Mth.clamp(tF / 25.0F, 0.0F, 1.0F);
+                default -> 0.5F;
+            };
+            float fillR = Math.max(0.15F, teleR * prog);
+            drawHorizontalRing(vc, m, teleR - 0.32F, teleR, 36, 235, 28, 36, 225);
+            drawHorizontalRing(vc, m, 0.08F, Math.max(0.10F, teleR - 0.32F), 32, 200, 18, 24, 42);
+            drawHorizontalRing(vc, m, 0.08F, fillR, 32, 255, 42, 48, 86);
+            drawHorizontalRing(vc, m, Math.max(0.08F, fillR - 0.22F), fillR, 36, 255, 85, 78, 210);
             poseStack.popPose();
         }
 

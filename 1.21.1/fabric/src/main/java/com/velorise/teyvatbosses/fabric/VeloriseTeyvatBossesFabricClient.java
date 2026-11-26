@@ -1,16 +1,25 @@
 package com.velorise.teyvatbosses.fabric;
 
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
-import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
+import com.velorise.teyvatbosses.client.AstralionRenderer;
 import com.velorise.teyvatbosses.client.BossRespawnAnchorRenderer;
+import com.velorise.teyvatbosses.client.BossTrophyRenderer;
 import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
+import com.velorise.teyvatbosses.client.RuinMechCameraController;
+import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
+import com.velorise.teyvatbosses.client.RuinMechInputController;
+import com.velorise.teyvatbosses.client.RuinMechRenderer;
+import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
 import com.velorise.teyvatbosses.client.SkySpearRenderer;
 import com.velorise.teyvatbosses.client.TheOpenEyedRenderer;
@@ -25,6 +34,7 @@ import com.velorise.teyvatbosses.client.model.TrounceBlossomModel;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 
 public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
     @Override
@@ -54,5 +64,15 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_GUARD, RuinGuardRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MISSILE, RuinMissileRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ASTRALION, AstralionRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MECH, RuinMechRenderer::new);
+
+        BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            RuinMechCameraController.clientTick();
+            RuinMechInputController.tickAndDispatch(skillId -> ClientPlayNetworking.send(new RuinMechSkillPayload(skillId)));
+        });
+        HudRenderCallback.EVENT.register((gui, deltaTracker) ->
+                RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false)));
     }
 }

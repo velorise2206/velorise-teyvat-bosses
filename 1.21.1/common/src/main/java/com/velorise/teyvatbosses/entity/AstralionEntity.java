@@ -104,7 +104,7 @@ public class AstralionEntity extends Monster {
     // 7 Elements
     public static final String[] ELEMENTS = { "PYRO", "HYDRO", "ELECTRO", "CRYO", "ANEMO", "GEO", "DENDRO" };
 
-    private static final float BASE_ATK = 38.0F;
+    private static final float BASE_ATK = 48.0F;
     private static final float MAX_SHIELD_GAUGE = 100.0F;
     private static final int SINGULARITY_CHARGE_TICKS = 150; // 7.5s window to break shield
     private static final int STUN_DURATION_TICKS = 120;      // 6.0s collapse vulnerability
@@ -503,7 +503,7 @@ public class AstralionEntity extends Monster {
         executeMonolithAttackTick(sl, target, anim, t);
         if (t >= ANIM_DURATIONS_TICKS[anim]) {
             playAnim(ANIM_IDLE);
-            attackCooldown = 34 + random.nextInt(18);
+            attackCooldown = 52 + random.nextInt(22);
         }
     }
 
