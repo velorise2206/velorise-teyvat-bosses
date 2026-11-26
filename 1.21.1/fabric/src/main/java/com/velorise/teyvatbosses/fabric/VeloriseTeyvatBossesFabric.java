@@ -30,6 +30,7 @@ import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
+import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
@@ -408,8 +409,11 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(AnemoJetpackPayload.TYPE, AnemoJetpackPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(RuinSubControlPayload.TYPE, RuinSubControlPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(GeoDrillerControlPayload.TYPE, GeoDrillerControlPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(RuinSubControlPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> RuinSubControlPayload.handleOnServer(payload, ctx.player())));
+        ServerPlayNetworking.registerGlobalReceiver(GeoDrillerControlPayload.TYPE, (payload, ctx) ->
+                ctx.server().execute(() -> GeoDrillerControlPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(AnemoJetpackPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> AnemoJetpackItem.setBoosting(ctx.player().getUUID(), payload.boosting())));
         ServerPlayNetworking.registerGlobalReceiver(RuinMechSkillPayload.TYPE, (payload, ctx) ->

@@ -30,6 +30,7 @@ import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
+import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
@@ -371,6 +372,13 @@ public class VeloriseTeyvatBossesNeoForge {
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playToServer(
+                GeoDrillerControlPayload.TYPE,
+                GeoDrillerControlPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player() instanceof ServerPlayer sp) GeoDrillerControlPayload.handleOnServer(payload, sp);
+                })
+        );
         event.registrar("1").playToServer(
                 RuinSubControlPayload.TYPE,
                 RuinSubControlPayload.STREAM_CODEC,

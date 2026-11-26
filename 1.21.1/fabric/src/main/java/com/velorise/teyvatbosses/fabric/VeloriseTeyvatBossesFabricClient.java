@@ -13,6 +13,7 @@ import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
+import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
@@ -99,10 +100,13 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             AnemoJetpackController.clientTick(boosting -> ClientPlayNetworking.send(new AnemoJetpackPayload(boosting)));
             RuinSubClientController.setPacketSender(ClientPlayNetworking::send);
             RuinSubClientController.tick(client);
+            GeoDrillerClientController.setPacketSender(ClientPlayNetworking::send);
+            GeoDrillerClientController.tick(client);
         });
         HudRenderCallback.EVENT.register((gui, deltaTracker) -> {
             RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false));
             RuinSubClientController.renderHud(gui);
+            GeoDrillerClientController.renderHud(gui);
         });
     }
 }

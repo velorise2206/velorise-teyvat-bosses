@@ -4,6 +4,7 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.AnemoJetpackController;
+import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.Minecraft;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
@@ -29,6 +30,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
         AnemoJetpackController.clientTick(boosting -> PacketDistributor.sendToServer(new AnemoJetpackPayload(boosting)));
         RuinSubClientController.setPacketSender(PacketDistributor::sendToServer);
         RuinSubClientController.tick(Minecraft.getInstance());
+        GeoDrillerClientController.setPacketSender(PacketDistributor::sendToServer);
+        GeoDrillerClientController.tick(Minecraft.getInstance());
     }
 
     @SubscribeEvent

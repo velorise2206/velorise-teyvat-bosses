@@ -23,9 +23,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 
 /**
- * Renders {@link GeoDrillerEntity} with procedural mechanical animations (spinning drill bit,
- * velocity-synced tread wheels, live WASD control levers, reactor rotation, and drilling vibration)
- * plus 1x Single or 2x Double Vanilla Chest mounted on the rear deck.
+ * Renders {@link GeoDrillerEntity} with smooth partial-tick interpolated procedural animations:
+ * spinning drill head, true-travel wheel &amp; tread rotation, dual independent drive/drill levers,
+ * engine spool-up shudder, and 1x/2x Vanilla Chest mounted on the rear deck.
  */
 public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/geo_driller.png");
@@ -49,38 +49,64 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         setVisible("drill_assembly", hasDrill);
         setVisible("engine_unit", hasEngine);
 
-        // Procedural mechanical animations driven directly by vehicle physics & inputs
+        // Smooth partialTick interpolation for 144fps buttery motion
         float age = entity.tickCount + partialTicks;
+        float smoothWheel = Mth.lerp(partialTicks, entity.prevWheelSpin, entity.wheelSpin);
+        float smoothDrill = Mth.lerp(partialTicks, entity.prevDrillSpin, entity.drillSpin);
+        float smoothDriveSpool = Mth.lerp(partialTicks, entity.prevDriveSpool, entity.driveSpool);
+        float smoothDrillSpool = Mth.lerp(partialTicks, entity.prevDrillSpool, entity.drillSpool);
+        float smoothLeverL = Mth.lerp(partialTicks, entity.prevLeverLAngle, entity.leverLAngle);
+        float smoothLeverR = Mth.lerp(partialTicks, entity.prevLeverRAngle, entity.leverRAngle);
+
+        // 1. Drill assembly pitch tilt (Level / Down / Up) + smooth high-speed spin
+        ModelPart drillAsm = model.getBone("drill_assembly");
+        if (drillAsm != null) {
+            float pitchTilt = switch (entity.getPitchMode()) {
+                case GeoDrillerEntity.PITCH_DOWN -> -0.22F;
+                case GeoDrillerEntity.PITCH_UP -> 0.22F;
+                default -> 0.0F;
+            };
+            drillAsm.xRot += pitchTilt;
+        }
         ModelPart drillHead = model.getBone("drill_head");
         if (drillHead != null) {
-            drillHead.zRot += entity.drillSpin + (entity.isDrilling() ? partialTicks * 0.62F : 0.0F);
+            drillHead.zRot += smoothDrill;
         }
+
+        // 2. Reactor core rotation (faster under load)
         ModelPart reactor = model.getBone("reactor_core");
         if (reactor != null && hasEngine) {
-            reactor.yRot += age * 0.08F;
+            reactor.yRot += age * (0.07F + 0.14F * Math.max(smoothDriveSpool, smoothDrillSpool));
         }
-        float wSpin = entity.wheelSpin;
+
+        // 3. All 6 track wheels + rolling tread micro-oscillation synced to smoothWheel
         for (int i = 0; i < 3; i++) {
             ModelPart wl = model.getBone("wheel_l_" + i);
             ModelPart wr = model.getBone("wheel_r_" + i);
-            if (wl != null) wl.xRot += wSpin;
-            if (wr != null) wr.xRot += wSpin;
+            if (wl != null) wl.xRot += smoothWheel;
+            if (wr != null) wr.xRot += smoothWheel;
         }
-        float thr = entity.getThrottleInput();
-        float steer = entity.getSteerInput();
+        ModelPart treadL = model.getBone("tread_l");
+        ModelPart treadR = model.getBone("tread_r");
+        float trackPulse = Mth.sin(smoothWheel * 3.0F) * 0.25F;
+        if (treadL != null) treadL.y += trackPulse;
+        if (treadR != null) treadR.y -= trackPulse;
+
+        // 4. Independent control levers: Left = Drive Forward/Reverse, Right = Drill Engage & Pitch
         ModelPart levL = model.getBone("lever_l");
         ModelPart levR = model.getBone("lever_r");
-        if (levL != null) levL.xRot += (thr + steer * 0.5F) * 0.35F;
-        if (levR != null) levR.xRot += (thr - steer * 0.5F) * 0.35F;
+        if (levL != null) levL.xRot += smoothLeverL;
+        if (levR != null) levR.xRot += smoothLeverR;
 
-        float vibY = entity.isDrilling() ? Mth.sin(age * 2.4F) * 0.025F : 0.0F;
+        // 5. Heavy engine spool-up rumble + drilling vibration
+        float rumble = Math.max(smoothDriveSpool * 0.65F, smoothDrillSpool);
+        float vibY = rumble > 0.05F ? Mth.sin(age * 2.8F) * 0.022F * rumble : 0.0F;
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
 
         poseStack.pushPose();
         poseStack.translate(0.0D, vibY, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
 
-        // 1. Render Driller body + emissive lights/reactor
         poseStack.pushPose();
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         poseStack.translate(0.0D, -1.501D, 0.0D);
@@ -88,7 +114,7 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(EMISSIVE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
         poseStack.popPose();
 
-        // 2. Render 1x Single or 2x Double Vanilla Chest right on rear deck (chest_mount @ y=13/16, z=15.5/16)
+        // 6. Render 1x Single or 2x Double Vanilla Chest on rear deck
         int chestCount = entity.getChestCount();
         if (chestCount > 0) {
             BlockRenderDispatcher brd = Minecraft.getInstance().getBlockRenderer();

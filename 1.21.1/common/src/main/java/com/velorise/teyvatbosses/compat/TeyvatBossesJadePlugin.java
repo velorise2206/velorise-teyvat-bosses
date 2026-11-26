@@ -136,6 +136,11 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
             String cargoStr = driller.getChestCount() == 0 ? "None (RMB w/ Chest)"
                     : (driller.getChestCount() == 1 ? "Single Chest (27 slots)" : "Double Chest (54 slots)");
             tooltip.add(Component.literal("Cargo: " + cargoStr).withStyle(ChatFormatting.GREEN));
+            String ench = "Bore: " + driller.getBoreLabel()
+                    + (driller.hasSilkTouch() ? " | Silk Touch" : (driller.getFortuneLevel() > 0 ? " | Fortune " + driller.getFortuneLevel() : ""))
+                    + (driller.getEfficiencyLevel() > 0 ? " | Eff " + driller.getEfficiencyLevel() : "")
+                    + (driller.getUnbreakingLevel() > 0 ? " | Unb " + driller.getUnbreakingLevel() : "");
+            tooltip.add(Component.literal(ench).withStyle(ChatFormatting.LIGHT_PURPLE));
         }
 
         @Override
