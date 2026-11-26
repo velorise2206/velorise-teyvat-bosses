@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.client.model;
 
 import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
@@ -9,8 +10,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 14 AAA Cataclysm-grade Catmull-Rom keyframe animations for {@link PrimoGeovishapModel},
+ * 14 AAA Cataclysm-grade keyframe animations for {@link PrimoGeovishapModel},
  * synced 1:1 with {@code models/primo_geovishap_boss.bbmodel} across all 18 articulated bones.
+ *
+ * <p>Upgraded with time-aware tangent-clamped cubic Hermite interpolation (prevents overshoot on
+ * non-uniform combat keyframes), C1-continuous periodic loop tangents for {@code idle}/{@code walk},
+ * and smoothstep cross-fade pose blending between clips.
  */
 public final class PrimoGeovishapAnimations {
     private static final float DEG = Mth.DEG_TO_RAD;
@@ -40,17 +45,157 @@ public final class PrimoGeovishapAnimations {
         return c != null ? c.length : 1.0F;
     }
 
+    /**
+     * Per-entity client animation blend state for silky-smooth cross-fade transitions between clips.
+     */
+    public static final class BlendState {
+        private static final int BONE_COUNT = PrimoGeovishapModel.ALL_BONES.length;
+        private final float[] prevX = new float[BONE_COUNT];
+        private final float[] prevY = new float[BONE_COUNT];
+        private final float[] prevZ = new float[BONE_COUNT];
+        private final float[] prevRx = new float[BONE_COUNT];
+        private final float[] prevRy = new float[BONE_COUNT];
+        private final float[] prevRz = new float[BONE_COUNT];
+
+        private String activeClip = null;
+        private float activeTime = 0.0F;
+        private float blendElapsed = 1.0F;
+        private float blendDuration = 0.24F;
+        private float lastRenderSec = -1.0F;
+        private boolean hasSnapshot = false;
+
+        public void reset() {
+            activeClip = null;
+            hasSnapshot = false;
+            lastRenderSec = -1.0F;
+        }
+    }
+
+    /** Applies a clip directly (used by static statues/trophies and fallback). */
     public static void apply(PrimoGeovishapModel<?> model, String clipName, float seconds) {
         model.resetPose();
+        applyClipDirect(model, clipName, seconds);
+    }
+
+    /**
+     * Applies a clip with smooth cubic ease-out cross-fade blending from the previous pose whenever
+     * {@code clipName} changes, plus subtle procedural head look-tracking during idle/walk.
+     */
+    public static void applyBlended(
+            PrimoGeovishapModel<?> model,
+            BlendState state,
+            String clipName,
+            float clipSeconds,
+            float continuousClientSeconds,
+            float headLookYawDeg,
+            float headLookPitchDeg
+    ) {
+        if (state == null) {
+            apply(model, clipName, clipSeconds);
+            return;
+        }
+
+        float dt = state.lastRenderSec >= 0.0F ? Mth.clamp(continuousClientSeconds - state.lastRenderSec, 0.0F, 0.15F) : 0.0F;
+        state.lastRenderSec = continuousClientSeconds;
+
+        if (state.activeClip == null) {
+            state.activeClip = clipName;
+            state.activeTime = clipSeconds;
+            state.blendElapsed = state.blendDuration;
+            state.hasSnapshot = false;
+        } else if (!state.activeClip.equals(clipName)) {
+            // Snapshot exact current blended pose from the previous clip before switching
+            model.resetPose();
+            applyClipDirect(model, state.activeClip, state.activeTime);
+            captureSnapshot(model, state);
+            state.activeClip = clipName;
+            state.activeTime = clipSeconds;
+            state.blendElapsed = 0.0F;
+            // Faster snappy blend for reactive counters / whirlwind, lush 0.26s blend for normal transitions
+            state.blendDuration = ("countered_stagger".equals(clipName) || "attack_whirlwind".equals(clipName))
+                    ? 0.14F
+                    : 0.26F;
+        } else {
+            state.activeTime = clipSeconds;
+            if (state.blendElapsed < state.blendDuration) {
+                state.blendElapsed = Math.min(state.blendDuration, state.blendElapsed + dt);
+            }
+        }
+
+        model.resetPose();
+        applyClipDirect(model, clipName, clipSeconds);
+
+        // Apply smoothstep cross-fade blend from previous pose snapshot
+        if (state.hasSnapshot && state.blendElapsed < state.blendDuration) {
+            float raw = Mth.clamp(state.blendElapsed / state.blendDuration, 0.0F, 1.0F);
+            // Smoothstep ease-in-out for organic weight
+            float alpha = raw * raw * (3.0F - 2.0F * raw);
+            blendFromSnapshot(model, state, alpha);
+        }
+
+        // Subtle procedural head & neck look-tracking during idle / walk so the boss feels alive
+        if ("idle".equals(clipName) || "walk".equals(clipName)) {
+            float yawRad = Mth.clamp(headLookYawDeg, -42.0F, 42.0F) * DEG;
+            float pitchRad = Mth.clamp(headLookPitchDeg, -18.0F, 18.0F) * DEG;
+            ModelPart neck = model.getBone("neck");
+            ModelPart head = model.getBone("head");
+            if (neck != null) {
+                neck.yRot += yawRad * 0.35F;
+                neck.xRot += pitchRad * 0.30F;
+            }
+            if (head != null) {
+                head.yRot += yawRad * 0.55F;
+                head.xRot += pitchRad * 0.50F;
+            }
+        }
+    }
+
+    private static void captureSnapshot(PrimoGeovishapModel<?> model, BlendState state) {
+        String[] names = PrimoGeovishapModel.ALL_BONES;
+        for (int i = 0; i < names.length; i++) {
+            ModelPart p = model.getBone(names[i]);
+            if (p == null) continue;
+            state.prevX[i] = p.x;
+            state.prevY[i] = p.y;
+            state.prevZ[i] = p.z;
+            state.prevRx[i] = p.xRot;
+            state.prevRy[i] = p.yRot;
+            state.prevRz[i] = p.zRot;
+        }
+        state.hasSnapshot = true;
+    }
+
+    private static void blendFromSnapshot(PrimoGeovishapModel<?> model, BlendState state, float alpha) {
+        String[] names = PrimoGeovishapModel.ALL_BONES;
+        for (int i = 0; i < names.length; i++) {
+            ModelPart p = model.getBone(names[i]);
+            if (p == null) continue;
+            p.x = Mth.lerp(alpha, state.prevX[i], p.x);
+            p.y = Mth.lerp(alpha, state.prevY[i], p.y);
+            p.z = Mth.lerp(alpha, state.prevZ[i], p.z);
+            p.xRot = lerpAngleRad(alpha, state.prevRx[i], p.xRot);
+            p.yRot = lerpAngleRad(alpha, state.prevRy[i], p.yRot);
+            p.zRot = lerpAngleRad(alpha, state.prevRz[i], p.zRot);
+        }
+    }
+
+    private static float lerpAngleRad(float alpha, float from, float to) {
+        float diff = to - from;
+        while (diff > Mth.PI) diff -= Mth.TWO_PI;
+        while (diff < -Mth.PI) diff += Mth.TWO_PI;
+        return from + diff * alpha;
+    }
+
+    private static void applyClipDirect(PrimoGeovishapModel<?> model, String clipName, float seconds) {
         Clip c = CLIPS.get(clipName);
         if (c == null) return;
         float t = c.loop ? ((seconds % c.length) + c.length) % c.length : Mth.clamp(seconds, 0.0F, c.length);
         for (Track tr : c.tracks) {
             ModelPart part = model.getBone(tr.bone);
             if (part == null) continue;
-            float vx = sampleCatmullRom(tr.t, tr.x, t);
-            float vy = sampleCatmullRom(tr.t, tr.y, t);
-            float vz = sampleCatmullRom(tr.t, tr.z, t);
+            float vx = sampleSmoothHermite(tr.t, tr.x, t, c.loop);
+            float vy = sampleSmoothHermite(tr.t, tr.y, t, c.loop);
+            float vz = sampleSmoothHermite(tr.t, tr.z, t, c.loop);
             if (tr.isPos) {
                 // Blockbench +Y is up; Minecraft ModelPart +Y is down
                 part.x += vx;
@@ -65,25 +210,85 @@ public final class PrimoGeovishapAnimations {
         }
     }
 
-    private static float sampleCatmullRom(float[] times, float[] vals, float t) {
+    /**
+     * Time-aware, overshoot-safe cubic Hermite interpolation (Fritsch-Carlson / Akima-damped tangents)
+     * with cyclic tangent wrap-around for looping clips so loop seams have zero velocity hitch.
+     */
+    private static float sampleSmoothHermite(float[] times, float[] vals, float t, boolean loop) {
         int n = times.length;
         if (n == 0) return 0.0F;
         if (n == 1 || t <= times[0]) return vals[0];
         if (t >= times[n - 1]) return vals[n - 1];
+
         int i = 0;
         while (i < n - 2 && t > times[i + 1]) i++;
         float dt = times[i + 1] - times[i];
-        float u = dt > 1.0E-5F ? (t - times[i]) / dt : 0.0F;
-        float p0 = vals[Math.max(0, i - 1)];
+        if (dt <= 1.0E-5F) return vals[i];
+        float u = (t - times[i]) / dt;
+
         float p1 = vals[i];
         float p2 = vals[i + 1];
-        float p3 = vals[Math.min(n - 1, i + 2)];
+        float secant = (p2 - p1) / dt;
+
+        float m1 = computeTangent(times, vals, i, loop);
+        float m2 = computeTangent(times, vals, i + 1, loop);
+
+        // Fritsch-Carlson monotonicity clamp prevents wild overshoot on uneven combat keyframes
+        if (Math.abs(secant) < 1.0E-5F) {
+            m1 = 0.0F;
+            m2 = 0.0F;
+        } else {
+            float a = m1 / secant;
+            float b = m2 / secant;
+            if (a < 0.0F) m1 = 0.0F;
+            if (b < 0.0F) m2 = 0.0F;
+            float r2 = a * a + b * b;
+            if (r2 > 9.0F) {
+                float tau = 3.0F / Mth.sqrt(r2);
+                m1 = tau * a * secant;
+                m2 = tau * b * secant;
+            }
+        }
+
         float u2 = u * u;
         float u3 = u2 * u;
-        return 0.5F * ((2.0F * p1)
-                + (-p0 + p2) * u
-                + (2.0F * p0 - 5.0F * p1 + 4.0F * p2 - p3) * u2
-                + (-p0 + 3.0F * p1 - 3.0F * p2 + p3) * u3);
+        float h00 = 2.0F * u3 - 3.0F * u2 + 1.0F;
+        float h10 = u3 - 2.0F * u2 + u;
+        float h01 = -2.0F * u3 + 3.0F * u2;
+        float h11 = u3 - u2;
+        return h00 * p1 + h10 * (m1 * dt) + h01 * p2 + h11 * (m2 * dt);
+    }
+
+    private static float computeTangent(float[] times, float[] vals, int idx, boolean loop) {
+        int n = times.length;
+        if (idx == 0) {
+            if (loop && n >= 3) {
+                // Periodic C1 seam: average outgoing slope and last incoming slope
+                float dtPrev = times[n - 1] - times[n - 2];
+                float dtNext = times[1] - times[0];
+                float sPrev = dtPrev > 1.0E-5F ? (vals[n - 1] - vals[n - 2]) / dtPrev : 0.0F;
+                float sNext = dtNext > 1.0E-5F ? (vals[1] - vals[0]) / dtNext : 0.0F;
+                return 0.5F * (sPrev + sNext);
+            }
+            float dt = times[1] - times[0];
+            return dt > 1.0E-5F ? (vals[1] - vals[0]) / dt : 0.0F;
+        }
+        if (idx == n - 1) {
+            if (loop && n >= 3) {
+                float dtPrev = times[n - 1] - times[n - 2];
+                float dtNext = times[1] - times[0];
+                float sPrev = dtPrev > 1.0E-5F ? (vals[n - 1] - vals[n - 2]) / dtPrev : 0.0F;
+                float sNext = dtNext > 1.0E-5F ? (vals[1] - vals[0]) / dtNext : 0.0F;
+                return 0.5F * (sPrev + sNext);
+            }
+            float dt = times[n - 1] - times[n - 2];
+            return dt > 1.0E-5F ? (vals[n - 1] - vals[n - 2]) / dt : 0.0F;
+        }
+        float dtPrev = times[idx] - times[idx - 1];
+        float dtNext = times[idx + 1] - times[idx];
+        float sPrev = dtPrev > 1.0E-5F ? (vals[idx] - vals[idx - 1]) / dtPrev : 0.0F;
+        float sNext = dtNext > 1.0E-5F ? (vals[idx + 1] - vals[idx]) / dtNext : 0.0F;
+        return 0.5F * (sPrev + sNext);
     }
 
     private static final class Track {

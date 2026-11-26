@@ -45,9 +45,6 @@ public abstract class CameraMixin {
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             float[] off = RuinSubClientController.computeCameraOffsets(partialTick);
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
-        } else if (detached && GeoDrillerClientController.isThirdPersonLocked()) {
-            float lockedYaw = GeoDrillerClientController.getLockedThirdPersonYaw(partialTick);
-            this.setRotation(thirdPersonReverse ? lockedYaw + 180.0F : lockedYaw, thirdPersonReverse ? -14.0F : 14.0F);
         }
     }
 }

@@ -151,7 +151,7 @@ public class VeloriseTeyvatBossesNeoForge {
                     .sized(0.8F, 0.8F).clientTrackingRange(12).build("anemo_companion"));
     public static final DeferredHolder<EntityType<?>, EntityType<PrimoGeovishapEntity>> PRIMO_GEOVISHAP =
             ENTITIES.register("primo_geovishap", () -> EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER)
-                    .sized(3.6F, 3.4F).clientTrackingRange(16).build("primo_geovishap"));
+                    .sized(5.2F, 4.8F).clientTrackingRange(16).build("primo_geovishap"));
     public static final DeferredHolder<EntityType<?>, EntityType<GeoDrillerEntity>> GEO_DRILLER =
             ENTITIES.register("geo_driller", () -> EntityType.Builder.of(GeoDrillerEntity::new, MobCategory.MISC)
                     .sized(2.4F, 2.1F).clientTrackingRange(14).build("geo_driller"));

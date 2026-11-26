@@ -131,7 +131,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.8F, 0.8F).clientTrackingRange(12).build("anemo_companion"));
     public static final EntityType<PrimoGeovishapEntity> PRIMO_GEOVISHAP = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("primo_geovishap"),
-            EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER).sized(3.6F, 3.4F).clientTrackingRange(16).build("primo_geovishap"));
+            EntityType.Builder.of(PrimoGeovishapEntity::new, MobCategory.MONSTER).sized(5.2F, 4.8F).clientTrackingRange(16).build("primo_geovishap"));
     public static final EntityType<GeoDrillerEntity> GEO_DRILLER = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("geo_driller"),
             EntityType.Builder.of(GeoDrillerEntity::new, MobCategory.MISC).sized(2.4F, 2.1F).clientTrackingRange(14).build("geo_driller"));

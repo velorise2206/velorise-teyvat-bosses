@@ -17,50 +17,81 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
- * Renders {@link PrimoGeovishapEntity} using the AAA 881-cube articulated model,
- * 1:1 Catmull-Rom animations, elemental-tinted emissive crystals, and ground telegraph rings.
+ * Renders {@link PrimoGeovishapEntity} using the optimized 338-cube articulated model at canonical
+ * Genshin Impact boss scale (~5.1 blocks tall on all fours, ~15.0 blocks long), smooth cross-faded
+ * Hermite animations, elemental-tinted emissive crystals, and pulsing ground telegraph rings.
  */
 public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity> {
+    /** Canonical Genshin Impact scale relative to 1.8-block player & 4.0-block Ruin Guard. */
+    public static final float BOSS_SCALE = 1.60F;
+
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss_emissive.png");
 
     private final PrimoGeovishapModel<PrimoGeovishapEntity> model;
+    private final Map<PrimoGeovishapEntity, PrimoGeovishapAnimations.BlendState> blendStates = new WeakHashMap<>();
 
     public PrimoGeovishapRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
         this.model = new PrimoGeovishapModel<>(ctx.bakeLayer(PrimoGeovishapModel.LAYER_LOCATION));
-        this.shadowRadius = 2.4F;
+        this.shadowRadius = 3.6F;
     }
 
     @Override
     public void render(PrimoGeovishapEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buf, int packedLight) {
-        float sec = (entity.getAnimTick() + partialTicks) / 20.0F;
+        float clipSec = (entity.getAnimTick() + partialTicks) / 20.0F;
+        float clientSec = (entity.tickCount + partialTicks) / 20.0F;
         String clip = PrimoGeovishapEntity.clipNameForAnim(entity.getAnimId());
-        PrimoGeovishapAnimations.apply(model, clip, sec);
 
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float headYaw = Mth.rotLerp(partialTicks, entity.yHeadRotO, entity.yHeadRot);
+        float headLookYaw = Mth.wrapDegrees(headYaw - bodyYaw);
+        float headLookPitch = Mth.lerp(partialTicks, entity.xRotO, entity.getXRot());
+
+        PrimoGeovishapAnimations.BlendState blend = blendStates.computeIfAbsent(
+                entity, k -> new PrimoGeovishapAnimations.BlendState());
+        PrimoGeovishapAnimations.applyBlended(model, blend, clip, clipSec, clientSec, headLookYaw, headLookPitch);
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
-        poseStack.scale(-1.05F, -1.05F, 1.05F);
+        poseStack.scale(-BOSS_SCALE, -BOSS_SCALE, BOSS_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        int overlay = entity.hurtTime > 0 ? OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(true)) : OverlayTexture.NO_OVERLAY;
+        int overlay = entity.hurtTime > 0
+                ? OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(true))
+                : OverlayTexture.NO_OVERLAY;
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), packedLight, overlay, 0xFFFFFFFF);
 
         int[] rgb = entity.getInfusionRgb();
-        int emColor = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+        // Subtle breathing luminescence on emissive crystals, brighter during Primordial Shower / Elemental Breath
+        float glowPulse = (entity.getAnimId() == PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER
+                || entity.getAnimId() == PrimoGeovishapEntity.ANIM_ELEMENTAL_BREATH)
+                ? 1.0F
+                : 0.84F + 0.16F * Mth.sin(clientSec * 2.6F);
+        int er = Mth.clamp((int) (rgb[0] * glowPulse), 0, 255);
+        int eg = Mth.clamp((int) (rgb[1] * glowPulse), 0, 255);
+        int eb = Mth.clamp((int) (rgb[2] * glowPulse), 0, 255);
+        int emColor = 0xFF000000 | (er << 16) | (eg << 8) | eb;
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(EMISSIVE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, emColor);
         poseStack.popPose();
 
-        // Telegraph ring during Primordial Shower / Burrow emergence
+        // Dual-ring pulsing telegraph during Primordial Shower / Burrow emergence
         float teleRadius = entity.getTelegraphRadius();
         if (teleRadius > 0.5F) {
             VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
             poseStack.pushPose();
             Matrix4f mat = poseStack.last().pose();
-            drawRing(lvc, mat, teleRadius - 0.35F, teleRadius, 40, rgb[0], rgb[1], rgb[2], 185);
+            drawRing(lvc, mat, teleRadius - 0.45F, teleRadius, 48, rgb[0], rgb[1], rgb[2], 195);
+            float pulseFrac = (clientSec * 1.4F) % 1.0F;
+            float innerR = Math.max(0.6F, teleRadius * pulseFrac);
+            int innerA = (int) (140 * (1.0F - pulseFrac));
+            if (innerA > 15) {
+                drawRing(lvc, mat, Math.max(0.2F, innerR - 0.30F), innerR, 40, rgb[0], rgb[1], rgb[2], innerA);
+            }
             poseStack.popPose();
         }
 

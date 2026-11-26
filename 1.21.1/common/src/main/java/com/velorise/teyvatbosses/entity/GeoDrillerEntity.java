@@ -232,14 +232,11 @@ public class GeoDrillerEntity extends Mob {
     }
 
     private void clampPassengerBody(Entity passenger) {
+        // Lock seated torso posture to the driller hull without clamping 3rd-person camera orbit
         passenger.setYBodyRot(this.getYRot());
-        float delta = Mth.wrapDegrees(passenger.getYRot() - this.getYRot());
-        float clamped = Mth.clamp(delta, -90.0F, 90.0F);
-        if (Math.abs(delta - clamped) > 0.01F) {
-            passenger.yRotO += clamped - delta;
-            passenger.setYRot(this.getYRot() + clamped);
+        if (passenger instanceof net.minecraft.world.entity.LivingEntity le) {
+            le.yBodyRotO = this.yRotO;
         }
-        passenger.setYHeadRot(passenger.getYRot());
     }
 
     public void handleControlAction(int action, Player player) {

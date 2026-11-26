@@ -46,8 +46,8 @@ public final class GeoDrillerClientController {
     }
 
     public static boolean isThirdPersonLocked() {
-        Minecraft mc = Minecraft.getInstance();
-        return getPilotedDriller() != null && mc.options.getCameraType() != CameraType.FIRST_PERSON;
+        // 3rd-person camera is never hard-locked; only the driver's seated posture is locked
+        return false;
     }
 
     public static float getLockedThirdPersonYaw(float partialTick) {
@@ -83,13 +83,17 @@ public final class GeoDrillerClientController {
             float nextYaw = mc.player.getYRot() + yawDelta;
             float rel = Mth.clamp(Mth.wrapDegrees(nextYaw - drillerYaw), -90.0F, 90.0F);
             mc.player.setYRot(drillerYaw + rel);
+            mc.player.yRotO += yawDelta;
             mc.player.setXRot(Mth.clamp(mc.player.getXRot(), -45.0F, 55.0F));
         } else {
-            // 3rd-person: hard-lock look directly forward with the driller
-            mc.player.setYRot(drillerYaw);
-            mc.player.yRotO = driller.yRotO;
-            mc.player.setXRot(14.0F);
-            mc.player.xRotO = 14.0F;
+            // 3rd-person: free 360-deg camera orbit; carry vehicle turn smoothly without hard-locking yaw or pitch
+            if (Math.abs(yawDelta) > 1.0E-4F) {
+                mc.player.setYRot(mc.player.getYRot() + yawDelta);
+                mc.player.yRotO += yawDelta;
+            }
+            // Keep driver's visual head/body aligned to the cockpit posture while camera orbits freely
+            mc.player.setYHeadRot(drillerYaw);
+            mc.player.yHeadRotO = driller.yRotO;
         }
         mc.player.setYBodyRot(drillerYaw);
         mc.player.yBodyRotO = driller.yBodyRotO;

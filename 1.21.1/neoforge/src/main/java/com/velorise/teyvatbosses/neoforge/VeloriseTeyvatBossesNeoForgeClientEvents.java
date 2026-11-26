@@ -52,11 +52,6 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);
-        } else if (GeoDrillerClientController.isThirdPersonLocked()) {
-            float lockedYaw = GeoDrillerClientController.getLockedThirdPersonYaw((float) event.getPartialTick());
-            boolean reverse = Minecraft.getInstance().options.getCameraType() == net.minecraft.client.CameraType.THIRD_PERSON_FRONT;
-            event.setYaw(reverse ? lockedYaw + 180.0F : lockedYaw);
-            event.setPitch(reverse ? -14.0F : 14.0F);
         }
     }
 

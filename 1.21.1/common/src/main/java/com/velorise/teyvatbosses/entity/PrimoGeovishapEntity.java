@@ -38,15 +38,20 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
- * AAA Geo World Boss: <b>Primo Geovishap</b> — Sovereign of the Ancient Veins.
+ * AAA Geo World Boss: <b>Primo Geovishap</b> — Long-Slumbering Earthshaker Dragon.
  *
- * <p>Features full 14-clip Cataclysm-grade skeletal animation synchronization, Genshin-faithful
- * attack/rest cadence (2.4–3.6s recovery windows between attacks, no per-hit damage cap),
- * elemental infusion (Pyro / Hydro / Electro / Cryo), and signature <b>Primordial Shower</b>
- * shield-counter stagger reflection.
+ * <p>Canonical Genshin Impact combat AI, scale (~5.1 blocks tall on all fours, ~15.0 blocks long),
+ * per-skill cooldowns, angle-aware anti-flank Whirlwind (ignores rest interval when players run behind),
+ * Near-Death (&le;20% HP) Primeval Spring phase shift, delayed Elemental-Infused Stones with all 4
+ * canonical elemental detonation patterns (Pyro lava pool, Hydro multi-eruption, Cryo 3-wave ring,
+ * Electro X-cross), predictive target leading, Left Claw 2-hit shockwave, and signature
+ * <b>Primordial Shower</b> shield-counter reflection (15% Max HP elemental / 10% vanilla shield,
+ * 5.0s stagger with +40% vulnerability).
  */
 public class PrimoGeovishapEntity extends Monster {
 
@@ -98,33 +103,69 @@ public class PrimoGeovishapEntity extends Monster {
             BossEvent.BossBarOverlay.NOTCHED_10
     );
 
+    // Canonical Genshin per-skill cooldowns (in ticks, 20 ticks = 1s)
     private int stateTick = 0;
-    private int attackCooldown = 48; // 2.4s initial breathing room after awakening
-    private int showerCooldown = 260;
-    private int burrowCooldown = 200;
+    private int attackCooldown = 44;         // Global action interval (~2.2–3.2s)
+    private int showerCooldown = 400;        // Initial 20s CD (canonical Genshin)
+    private int springCooldown = 0;          // Near-death (<=20% HP) Primeval Spring CD (20-40s)
+    private int whirlwindCooldown = 0;       // Anti-flank Whirlwind CD (5s)
+    private int burrowCooldown = 160;        // Burrow Close (20s) / Far (5s)
+    private int breathCooldown = 180;        // Elemental Breath CD (15-24s)
+    private int comboCooldown = 140;         // Combo Slash CD (15-22s)
+    private int scatteredCooldown = 100;     // Scattered Rocks CD (10-16s)
+
     private int lastAttackAnim = -1;
     private int noTargetTicks = 0;
     private boolean showerCountered = false;
     private boolean spawnedBlossom = false;
     private Vec3 homePos = null;
+    private Vec3 burrowStart = Vec3.ZERO;
     private Vec3 burrowDest = Vec3.ZERO;
+    private int destroyBlocksTick = 0;
+
+    /** Server-side delayed Elemental-Infused Stones & Pyro lava pools (canonical Genshin hazards). */
+    private final List<InfusedStoneHazard> activeStones = new ArrayList<>();
+    private final List<LavaPoolHazard> activeLavaPools = new ArrayList<>();
+
+    private static final class InfusedStoneHazard {
+        final Vec3 pos;
+        int fuseTicks;
+        final int infusion;
+
+        InfusedStoneHazard(Vec3 pos, int fuseTicks, int infusion) {
+            this.pos = pos;
+            this.fuseTicks = fuseTicks;
+            this.infusion = infusion;
+        }
+    }
+
+    private static final class LavaPoolHazard {
+        final Vec3 pos;
+        int lifeTicks;
+
+        LavaPoolHazard(Vec3 pos, int lifeTicks) {
+            this.pos = pos;
+            this.lifeTicks = lifeTicks;
+        }
+    }
 
     public PrimoGeovishapEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
-        this.xpReward = 220;
+        this.xpReward = 240;
         this.setPersistenceRequired();
         this.bossEvent.setVisible(false);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 640.0D)
+                .add(Attributes.MAX_HEALTH, 680.0D)
                 .add(Attributes.ARMOR, 10.0D)
                 .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
                 .add(Attributes.ATTACK_DAMAGE, 20.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.24D)
+                .add(Attributes.MOVEMENT_SPEED, 0.25D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.FOLLOW_RANGE, 40.0D);
+                .add(Attributes.STEP_HEIGHT, 1.5D)
+                .add(Attributes.FOLLOW_RANGE, 44.0D);
     }
 
     @Override
@@ -142,6 +183,10 @@ public class PrimoGeovishapEntity extends Monster {
     public int getAnimTick() { return entityData.get(DATA_ANIM_TICK); }
     public int getInfusion() { return entityData.get(DATA_INFUSION); }
     public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
+
+    public boolean isNearDeathPhase() {
+        return getHealth() <= getMaxHealth() * 0.20F;
+    }
 
     public String getInfusionElementName() {
         return switch (getInfusion()) {
@@ -182,7 +227,7 @@ public class PrimoGeovishapEntity extends Monster {
 
     @Override
     protected void registerGoals() {
-        // Fully deterministic boss state machine — no vanilla Wander/Melee goals
+        // Fully deterministic canonical boss state machine — no vanilla Wander/Melee goals
     }
 
     @Override
@@ -218,7 +263,7 @@ public class PrimoGeovishapEntity extends Monster {
     private boolean isValidCombatTarget(LivingEntity le) {
         if (le == null || !le.isAlive() || le == this || le instanceof PrimoGeovishapEntity) return false;
         if (le instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
-        return le.distanceToSqr(this) <= 40.0D * 40.0D;
+        return le.distanceToSqr(this) <= 44.0D * 44.0D;
     }
 
     private LivingEntity resolveAttacker(DamageSource source) {
@@ -239,7 +284,7 @@ public class PrimoGeovishapEntity extends Monster {
         int st = getBossState();
         if (st == STATE_DEATH) return false;
         // Invulnerable while deep underground during burrow
-        if (st == STATE_COMBAT && getAnimId() == ANIM_BURROW && stateTick >= 26 && stateTick <= 56) {
+        if (st == STATE_COMBAT && getAnimId() == ANIM_BURROW && stateTick >= 24 && stateTick <= 56) {
             return false;
         }
         if (!level().isClientSide()) {
@@ -254,13 +299,15 @@ public class PrimoGeovishapEntity extends Monster {
         }
         if (st == STATE_DORMANT && level() instanceof ServerLevel sl) {
             awaken(sl);
-            amount *= 0.5F;
-        }
-        // Take 25% bonus damage while staggered after Primordial Shower reflection!
-        if (st == STATE_STAGGER) {
-            amount *= 1.25F;
+            amount *= 0.25F; // High opening RES while dormant
+        } else if (st == STATE_AWAKEN) {
+            // Canonical Genshin Beginning-of-Fight high RES (~210-250%) during wake-up roar
+            amount *= 0.30F;
+        } else if (st == STATE_STAGGER) {
+            // Canonical -50% all-RES countered stagger vulnerability window!
+            amount *= 1.40F;
         } else if (st == STATE_COMBAT && getAnimId() == ANIM_PRIMORDIAL_SHOWER) {
-            // Slight Geo armor poise during ultimate charge
+            // Geo poise during ultimate charge
             amount *= 0.80F;
         }
         if (!level().isClientSide() && st == STATE_COMBAT && destroyBlocksTick <= 0 && (this.horizontalCollision || this.isInWall())) {
@@ -273,9 +320,11 @@ public class PrimoGeovishapEntity extends Monster {
     public void die(DamageSource source) {
         if (getBossState() != STATE_DEATH) {
             this.setHealth(1.0F);
+            activeStones.clear();
+            activeLavaPools.clear();
             transitionTo(STATE_DEATH, ANIM_DEATH);
             if (level() instanceof ServerLevel sl) {
-                sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.8F, 0.55F);
+                sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.0F, 0.52F);
             }
             return;
         }
@@ -289,9 +338,9 @@ public class PrimoGeovishapEntity extends Monster {
 
     private void awaken(ServerLevel sl) {
         transitionTo(STATE_AWAKEN, ANIM_SPAWN_AWAKEN);
-        sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.8F, 0.58F);
+        sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2.0F, 0.55F);
         sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()),
-                getX(), getY() + 0.5D, getZ(), 36, 1.8D, 0.6D, 1.8D, 0.12D);
+                getX(), getY() + 0.8D, getZ(), 48, 2.6D, 0.8D, 2.6D, 0.14D);
     }
 
     @Override
@@ -300,13 +349,13 @@ public class PrimoGeovishapEntity extends Monster {
         if (level().isClientSide()) {
             BossMusicManager.update(this, BOSS_MUSIC_ID,
                     getBossState() == STATE_AWAKEN || getBossState() == STATE_COMBAT || getBossState() == STATE_STAGGER);
-            if (tickCount % 6 == 0 && getBossState() != STATE_DEATH) {
+            if (tickCount % 5 == 0 && getBossState() != STATE_DEATH) {
                 ParticleOptions p = infusionParticle();
                 level().addParticle(p,
-                        getX() + (random.nextDouble() - 0.5D) * 2.4D,
-                        getY() + 1.4D + random.nextDouble() * 1.4D,
-                        getZ() + (random.nextDouble() - 0.5D) * 2.4D,
-                        0.0D, 0.03D, 0.0D);
+                        getX() + (random.nextDouble() - 0.5D) * 4.2D,
+                        getY() + 2.0D + random.nextDouble() * 2.2D,
+                        getZ() + (random.nextDouble() - 0.5D) * 4.2D,
+                        0.0D, 0.04D, 0.0D);
             }
             return;
         }
@@ -321,16 +370,16 @@ public class PrimoGeovishapEntity extends Monster {
 
         stateTick++;
         entityData.set(DATA_ANIM_TICK, stateTick);
-        if (showerCooldown > 0) showerCooldown--;
-        if (burrowCooldown > 0) burrowCooldown--;
+        tickCooldowns();
+        tickElementalHazards(sl);
 
         int st = getBossState();
         if (st == STATE_DEATH) {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             bossEvent.setVisible(false);
             if (stateTick == 26 || stateTick == 48) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.2F, 0.52F);
-                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.5D, getZ(), 24, 2.0D, 0.3D, 2.0D, 0.06D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.50F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.8D, getZ(), 32, 3.0D, 0.4D, 3.0D, 0.07D);
             }
             if (stateTick >= 72) {
                 if (!spawnedBlossom) {
@@ -346,7 +395,7 @@ public class PrimoGeovishapEntity extends Monster {
         if (st == STATE_DORMANT) {
             bossEvent.setVisible(false);
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-            if (target != null && target.distanceToSqr(this) <= 16.0D * 16.0D) {
+            if (target != null && target.distanceToSqr(this) <= 18.0D * 18.0D) {
                 setTarget(target);
                 awaken(sl);
             }
@@ -358,15 +407,15 @@ public class PrimoGeovishapEntity extends Monster {
 
         if (st == STATE_AWAKEN) {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-            if (target != null) faceTarget(target, 5.0F);
+            if (target != null) faceTargetSmooth(target, 4.5F);
             if (stateTick == 36) {
-                sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.9F, 0.62F);
-                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 1.5D, getZ(), 32, 2.0D, 1.2D, 2.0D, 0.08D);
+                sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.0F, 0.58F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 2.2D, getZ(), 42, 3.0D, 1.5D, 3.0D, 0.09D);
             } else if (stateTick == 59) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.58F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.5F, 0.55F);
             }
             if (stateTick >= 68) {
-                attackCooldown = 20; // Responsive 1.0s breather before first attack
+                attackCooldown = 20;
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
             }
             return;
@@ -375,11 +424,12 @@ public class PrimoGeovishapEntity extends Monster {
         if (st == STATE_STAGGER) {
             setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
             if (stateTick == 17) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.3F, 0.55F);
-                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.4D, getZ(), 24, 2.0D, 0.3D, 2.0D, 0.07D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.52F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.6D, getZ(), 32, 3.0D, 0.4D, 3.0D, 0.08D);
             }
-            if (stateTick >= 72) {
-                attackCooldown = 50; // 2.5s rest after recovering from stagger
+            // Canonical 5.0-second (100-tick) stagger window after Primordial Shower reflection
+            if (stateTick >= 100) {
+                attackCooldown = 40;
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
             }
             return;
@@ -392,6 +442,8 @@ public class PrimoGeovishapEntity extends Monster {
             }
             if (++noTargetTicks > 200) {
                 setHealth(getMaxHealth());
+                activeStones.clear();
+                activeLavaPools.clear();
                 transitionTo(STATE_DORMANT, ANIM_IDLE);
             }
             return;
@@ -402,13 +454,116 @@ public class PrimoGeovishapEntity extends Monster {
         tickCombat(sl, target);
     }
 
-
-    private int destroyBlocksTick = 0;
+    private void tickCooldowns() {
+        if (showerCooldown > 0) showerCooldown--;
+        if (springCooldown > 0) springCooldown--;
+        if (whirlwindCooldown > 0) whirlwindCooldown--;
+        if (burrowCooldown > 0) burrowCooldown--;
+        if (breathCooldown > 0) breathCooldown--;
+        if (comboCooldown > 0) comboCooldown--;
+        if (scatteredCooldown > 0) scatteredCooldown--;
+    }
 
     /**
-     * Anti-trap block breaking (Wither/Cataclysm style): after a 1-second (20-tick) delay
-     * when pinned against walls or attacked while obstructed, shatters obstructing blocks
-     * intersecting the boss's hitbox (respecting mobGriefing, preserving chests/BlockEntities,
+     * Ticks delayed Elemental-Infused Stones and Pyro lava pools with canonical Genshin Impact patterns:
+     * Pyro = explosion + lava DoT pool; Hydro = 7 rapid geyser eruptions;
+     * Cryo = 3 outward-propagating ice-spike rings; Electro = X-pattern lightning detonation.
+     */
+    private void tickElementalHazards(ServerLevel sl) {
+        Iterator<InfusedStoneHazard> it = activeStones.iterator();
+        while (it.hasNext()) {
+            InfusedStoneHazard stone = it.next();
+            stone.fuseTicks--;
+            if (stone.fuseTicks > 0) {
+                if (stone.fuseTicks % 4 == 0) {
+                    sl.sendParticles(infusionParticleFor(stone.infusion),
+                            stone.pos.x, stone.pos.y + 0.55D, stone.pos.z, 3, 0.35D, 0.45D, 0.35D, 0.02D);
+                    sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AMETHYST_BLOCK.defaultBlockState()),
+                            stone.pos.x, stone.pos.y + 0.3D, stone.pos.z, 2, 0.25D, 0.2D, 0.25D, 0.01D);
+                }
+            } else {
+                detonateInfusedStone(sl, stone);
+                it.remove();
+            }
+        }
+
+        Iterator<LavaPoolHazard> lit = activeLavaPools.iterator();
+        while (lit.hasNext()) {
+            LavaPoolHazard pool = lit.next();
+            pool.lifeTicks--;
+            if (pool.lifeTicks <= 0) {
+                lit.remove();
+                continue;
+            }
+            if (pool.lifeTicks % 5 == 0) {
+                sl.sendParticles(ParticleTypes.FLAME, pool.pos.x, pool.pos.y + 0.15D, pool.pos.z, 6, 1.4D, 0.1D, 1.4D, 0.02D);
+                sl.sendParticles(ParticleTypes.LAVA, pool.pos.x, pool.pos.y + 0.2D, pool.pos.z, 2, 1.0D, 0.1D, 1.0D, 0.01D);
+            }
+            if (pool.lifeTicks % 10 == 0) {
+                dealPointRadialDamage(sl, pool.pos, 2.4D, 4.5F, 0.15D, 0.10D, true);
+            }
+        }
+    }
+
+    private void spawnInfusedStone(ServerLevel sl, double x, double z, int fuseTicks) {
+        double y = sampleSafeGroundY(sl, x, z, getY());
+        activeStones.add(new InfusedStoneHazard(new Vec3(x, y, z), fuseTicks, getInfusion()));
+        sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.defaultBlockState()),
+                x, y + 0.4D, z, 8, 0.4D, 0.3D, 0.4D, 0.08D);
+    }
+
+    private void detonateInfusedStone(ServerLevel sl, InfusedStoneHazard stone) {
+        Vec3 p = stone.pos;
+        ParticleOptions part = infusionParticleFor(stone.infusion);
+        switch (stone.infusion) {
+            case INFUSION_PYRO -> {
+                sl.playSound(null, p.x, p.y, p.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 0.9F, 0.85F);
+                sl.sendParticles(ParticleTypes.EXPLOSION, p.x, p.y + 0.4D, p.z, 2, 0.6D, 0.3D, 0.6D, 0.0D);
+                sl.sendParticles(ParticleTypes.FLAME, p.x, p.y + 0.5D, p.z, 18, 1.3D, 0.6D, 1.3D, 0.08D);
+                dealPointRadialDamage(sl, p, 3.0D, 11.0F, 0.7D, 0.35D, true);
+                activeLavaPools.add(new LavaPoolHazard(p, 70)); // 3.5s lava pool DoT
+            }
+            case INFUSION_HYDRO -> {
+                sl.playSound(null, p.x, p.y, p.z, SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.HOSTILE, 1.2F, 0.8F);
+                // 7 geyser eruptions around the stone
+                for (int i = 0; i < 7; i++) {
+                    double ang = (Math.PI * 2.0D * i) / 7.0D;
+                    double rad = (i == 0) ? 0.0D : 2.2D;
+                    Vec3 gPos = p.add(Math.cos(ang) * rad, 0.0D, Math.sin(ang) * rad);
+                    sl.sendParticles(ParticleTypes.SPLASH, gPos.x, gPos.y + 0.8D, gPos.z, 10, 0.3D, 0.9D, 0.3D, 0.12D);
+                    sl.sendParticles(ParticleTypes.BUBBLE_POP, gPos.x, gPos.y + 1.0D, gPos.z, 4, 0.3D, 0.5D, 0.3D, 0.05D);
+                }
+                dealPointRadialDamage(sl, p, 3.6D, 10.5F, 0.65D, 0.45D, true);
+            }
+            case INFUSION_CRYO -> {
+                sl.playSound(null, p.x, p.y, p.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.2F, 0.75F);
+                // 3 outward ice-spike rings
+                for (double r : new double[]{1.4D, 2.6D, 3.8D}) {
+                    for (int i = 0; i < 12; i++) {
+                        double a = (Math.PI * 2.0D * i) / 12.0D;
+                        sl.sendParticles(ParticleTypes.SNOWFLAKE, p.x + Math.cos(a) * r, p.y + 0.5D, p.z + Math.sin(a) * r,
+                                2, 0.1D, 0.4D, 0.1D, 0.03D);
+                    }
+                }
+                dealPointRadialDamage(sl, p, 4.0D, 11.5F, 0.60D, 0.32D, true);
+            }
+            default -> { // ELECTRO: X-pattern detonation
+                sl.playSound(null, p.x, p.y, p.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.HOSTILE, 0.9F, 1.35F);
+                for (int arm = 0; arm < 4; arm++) {
+                    double ang = Math.PI * 0.25D + arm * (Math.PI * 0.5D);
+                    for (double d = 0.6D; d <= 3.6D; d += 0.75D) {
+                        sl.sendParticles(part, p.x + Math.cos(ang) * d, p.y + 0.5D, p.z + Math.sin(ang) * d,
+                                3, 0.15D, 0.35D, 0.15D, 0.04D);
+                    }
+                }
+                dealPointRadialDamage(sl, p, 3.8D, 10.5F, 0.75D, 0.30D, true);
+            }
+        }
+    }
+
+    /**
+     * Anti-trap block breaking (Wither/Cataclysm style): after a 1-second delay when pinned against walls,
+     * shatters obstructing blocks intersecting the boss's hitbox (respecting mobGriefing, preserving chests,
      * Obsidian, Bedrock, and the floor underneath).
      */
     private void tickAntiTrapBlockBreak(ServerLevel sl) {
@@ -420,7 +575,7 @@ public class PrimoGeovishapEntity extends Monster {
         if (destroyBlocksTick != 0) return;
         if (!sl.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)) return;
 
-        AABB box = getBoundingBox().inflate(0.28D, 0.05D, 0.28D);
+        AABB box = getBoundingBox().inflate(0.32D, 0.05D, 0.32D);
         int minX = Mth.floor(box.minX);
         int minY = Mth.floor(getY());
         int minZ = Mth.floor(box.minZ);
@@ -437,7 +592,7 @@ public class PrimoGeovishapEntity extends Monster {
                     BlockState state = sl.getBlockState(pos);
                     if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
                     float hardness = state.getDestroySpeed(sl, pos);
-                    if (hardness < 0.0F || hardness >= 50.0F) continue; // Preserve Bedrock, Obsidian, Ancient Debris
+                    if (hardness < 0.0F || hardness >= 50.0F) continue;
                     if (sl.destroyBlock(pos, true, this)) {
                         brokeAny = true;
                     }
@@ -449,29 +604,49 @@ public class PrimoGeovishapEntity extends Monster {
         }
     }
 
+    private float getRelativeAngleDeg(LivingEntity target) {
+        double dx = target.getX() - getX();
+        double dz = target.getZ() - getZ();
+        float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+        return Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
+    }
+
     private void tickCombat(ServerLevel sl, LivingEntity target) {
         if (getAnimId() != ANIM_BURROW) tickAntiTrapBlockBreak(sl);
         int anim = getAnimId();
         double dist = distanceTo(target);
 
         if (anim == ANIM_IDLE || anim == ANIM_WALK) {
-            faceTarget(target, 6.5F);
+            float relAngle = getRelativeAngleDeg(target);
+            // Smooth head look-tracking toward target even before body finishes turning
+            lookAtTargetHead(target);
+
+            // Canonical Genshin Anti-Flank AI: Whirlwind ignores Action Interval if player runs behind!
+            if (whirlwindCooldown <= 0 && dist <= 10.5D && relAngle >= 115.0F) {
+                whirlwindCooldown = 100; // 5s CD
+                lastAttackAnim = ANIM_WHIRLWIND;
+                transitionTo(STATE_COMBAT, ANIM_WHIRLWIND);
+                return;
+            }
+
+            // Smooth turn rate; slower when idle for heavy draconic weight, nimble when pursuing
+            faceTargetSmooth(target, dist > 7.5D ? 6.5F : 5.0F);
             if (attackCooldown > 0) attackCooldown--;
 
-            // Clean rest & repositioning phase between attacks
-            if (dist > 5.8D) {
+            // Clean rest & pursuit cadence (scaled for 1.60x canonical body size)
+            if (dist > 7.6D) {
                 if (anim != ANIM_WALK) {
                     entityData.set(DATA_ANIM, ANIM_WALK);
                     entityData.set(DATA_ANIM_TICK, 0);
                     stateTick = 0;
                 }
                 Vec3 dir = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
-                double speed = 0.21D;
-                setDeltaMovement(Mth.lerp(0.28D, getDeltaMovement().x, dir.x * speed),
+                double speed = dist > 15.0D ? 0.27D : 0.23D;
+                setDeltaMovement(Mth.lerp(0.24D, getDeltaMovement().x, dir.x * speed),
                         getDeltaMovement().y,
-                        Mth.lerp(0.28D, getDeltaMovement().z, dir.z * speed));
+                        Mth.lerp(0.24D, getDeltaMovement().z, dir.z * speed));
                 if (stateTick % 18 == 9) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.1F, 0.65F);
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.35F, 0.58F);
                 }
             } else {
                 if (anim != ANIM_IDLE) {
@@ -483,7 +658,7 @@ public class PrimoGeovishapEntity extends Monster {
             }
 
             if (attackCooldown <= 0) {
-                chooseNextAttack(sl, target, dist);
+                chooseNextAttack(sl, target, dist, relAngle);
             }
             return;
         }
@@ -499,194 +674,278 @@ public class PrimoGeovishapEntity extends Monster {
             case ANIM_ELEMENTAL_BREATH -> tickElementalBreath(sl, target);
             case ANIM_PRIMORDIAL_SHOWER -> tickPrimordialShower(sl, target);
             case ANIM_PRIMEVAL_SPRING -> tickPrimevalSpring(sl, target);
-            default -> finishAttack(48);
+            default -> finishAttack(46);
         }
     }
 
-    private void chooseNextAttack(ServerLevel sl, LivingEntity target, double dist) {
-        int chosen;
-        // Signature Primordial Shower when ready & HP < 85%
-        if (showerCooldown <= 0 && getHealth() <= getMaxHealth() * 0.85F) {
-            chosen = ANIM_PRIMORDIAL_SHOWER;
-            showerCooldown = 360;
-        } else if (dist > 11.5D) {
-            if (burrowCooldown <= 0 && random.nextFloat() < 0.45F) {
-                chosen = ANIM_BURROW;
-                burrowCooldown = 260;
-            } else {
-                chosen = random.nextBoolean() ? ANIM_SCATTERED_ROCKS : ANIM_ELEMENTAL_BREATH;
-            }
-        } else if (dist > 6.5D) {
-            int[] midPool = {ANIM_ELEMENTAL_BREATH, ANIM_SCATTERED_ROCKS, ANIM_PRIMEVAL_SPRING, ANIM_COMBO_SLASH};
-            chosen = pickNonRepeating(midPool);
-        } else {
-            int[] meleePool = {ANIM_LEFT_CLAW, ANIM_RIGHT_CLAW, ANIM_COMBO_SLASH, ANIM_WHIRLWIND, ANIM_PRIMEVAL_SPRING};
-            chosen = pickNonRepeating(meleePool);
+    /**
+     * Canonical Genshin Impact Priority + Range + Angle + Cooldown selector.
+     */
+    private void chooseNextAttack(ServerLevel sl, LivingEntity target, double dist, float relAngle) {
+        int chosen = -1;
+        boolean nearDeath = isNearDeathPhase();
+
+        // Priority 1 (Near Death <=20% HP): Primeval Spring replaces Primordial Shower
+        if (nearDeath && springCooldown <= 0 && dist <= 20.0D && relAngle <= 65.0F) {
+            chosen = ANIM_PRIMEVAL_SPRING;
+            springCooldown = 400 + random.nextInt(200); // 20-30s
         }
+        // Priority 1 (Normal >20% HP): Primordial Shower only when front-facing (0-60 deg) & <=14m
+        else if (!nearDeath && showerCooldown <= 0 && getHealth() <= getMaxHealth() * 0.90F
+                && dist <= 14.0D && relAngle <= 65.0F) {
+            chosen = ANIM_PRIMORDIAL_SHOWER;
+            showerCooldown = 400; // Canonical 20s CD
+        }
+        // Far range (>20m): Fast Burrow (Far) with short 5s CD to punish kiters
+        else if (dist > 20.0D && burrowCooldown <= 0) {
+            chosen = ANIM_BURROW;
+            burrowCooldown = 120; // Fast 6s CD for far kiting
+        }
+        // Mid-Far range (12.5-20m): Burrow (Close) or Scattered Rocks
+        else if (dist > 12.5D) {
+            if (burrowCooldown <= 0 && random.nextFloat() < 0.55F) {
+                chosen = ANIM_BURROW;
+                burrowCooldown = 360; // 18s CD
+            } else if (scatteredCooldown <= 0) {
+                chosen = ANIM_SCATTERED_ROCKS;
+                scatteredCooldown = 220 + random.nextInt(120);
+            } else {
+                chosen = ANIM_BURROW;
+                burrowCooldown = 300;
+            }
+        }
+        // Anti-flank behind or side-rear (75-180 deg) within 10.5m
+        else if (whirlwindCooldown <= 0 && dist <= 10.5D && relAngle >= 75.0F) {
+            chosen = ANIM_WHIRLWIND;
+            whirlwindCooldown = 160;
+        }
+        // Mid-Close combat (0-12.5m): smart weighted pool respecting per-skill cooldowns
+        else {
+            List<Integer> candidates = new ArrayList<>();
+            if (dist <= 9.0D) {
+                candidates.add(ANIM_RIGHT_CLAW);
+                candidates.add(ANIM_LEFT_CLAW);
+            }
+            if (comboCooldown <= 0 && dist <= 12.5D) {
+                candidates.add(ANIM_COMBO_SLASH);
+                if (nearDeath) candidates.add(ANIM_COMBO_SLASH); // Extra aggression near death
+            }
+            if (breathCooldown <= 0 && dist <= 11.5D && relAngle <= 95.0F) {
+                candidates.add(ANIM_ELEMENTAL_BREATH);
+            }
+            if (scatteredCooldown <= 0 && dist >= 7.5D) {
+                candidates.add(ANIM_SCATTERED_ROCKS);
+            }
+            if (candidates.isEmpty()) {
+                candidates.add(ANIM_RIGHT_CLAW);
+                candidates.add(ANIM_LEFT_CLAW);
+            }
+            chosen = pickNonRepeating(candidates);
+            if (chosen == ANIM_COMBO_SLASH) comboCooldown = 260 + random.nextInt(120);
+            else if (chosen == ANIM_ELEMENTAL_BREATH) breathCooldown = 300 + random.nextInt(160);
+            else if (chosen == ANIM_SCATTERED_ROCKS) scatteredCooldown = 220 + random.nextInt(100);
+        }
+
         lastAttackAnim = chosen;
         transitionTo(STATE_COMBAT, chosen);
 
         if (chosen == ANIM_PRIMORDIAL_SHOWER) {
-            entityData.set(DATA_TELEGRAPH_RADIUS, 11.5F);
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.3F, 0.72F);
-            for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(32.0D))) {
+            entityData.set(DATA_TELEGRAPH_RADIUS, 15.0F);
+            sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.5F, 0.70F);
+            for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(36.0D))) {
                 p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.shower_warn")
                         .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
             }
         } else if (chosen == ANIM_BURROW) {
-            burrowDest = target.position();
+            burrowStart = position();
+            // Predictive target leading so Burrow intercepts moving players
+            Vec3 lead = target.position().add(target.getDeltaMovement().multiply(10.0D, 0.0D, 10.0D));
+            burrowDest = lead;
         }
     }
 
-    private int pickNonRepeating(int[] pool) {
-        int c = pool[random.nextInt(pool.length)];
-        if (c == lastAttackAnim && pool.length > 1) {
-            c = pool[(random.nextInt(pool.length - 1) + 1) % pool.length];
+    private int pickNonRepeating(List<Integer> pool) {
+        if (pool.size() == 1) return pool.get(0);
+        int c = pool.get(random.nextInt(pool.size()));
+        if (c == lastAttackAnim) {
+            for (int alt : pool) {
+                if (alt != lastAttackAnim) return alt;
+            }
         }
         return c;
     }
 
-    /** Finishes an attack and enforces a clean Genshin-style rest/breathing window (2.4s–3.6s). */
+    /** Finishes an attack and enforces a clean Genshin-style action interval (2.2s–3.2s, faster near death). */
     private void finishAttack(int baseRestTicks) {
-        attackCooldown = baseRestTicks + random.nextInt(24);
+        int scaled = isNearDeathPhase() ? Math.max(28, (int) (baseRestTicks * 0.78F)) : baseRestTicks;
+        attackCooldown = scaled + random.nextInt(20);
         transitionTo(STATE_COMBAT, ANIM_IDLE);
     }
 
     private void tickSingleClaw(ServerLevel sl, LivingEntity target, boolean left) {
         setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-        if (stateTick < 14) faceTarget(target, 7.5F);
+        if (stateTick < 14) faceTargetSmooth(target, 7.5F);
         if (stateTick == 15) {
-            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.55F);
-            dealConeDamage(sl, 6.2D, 75.0D, 19.0F, 1.25D, false);
-            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(3.0D);
-            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX() + fwd.x, getY() + 1.4D, getZ() + fwd.z, 3, 0.8D, 0.3D, 0.8D, 0.0D);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.8F, 0.52F);
+            // Canonical Left Claw hits on impact (35%) and again on pull-out (35%); Right Claw deals 40% once
+            dealConeDamage(sl, 8.2D, 80.0D, left ? 16.0F : 19.5F, 1.30D, false);
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(4.4D);
+            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX() + fwd.x, getY() + 1.8D, getZ() + fwd.z, 4, 1.1D, 0.4D, 1.1D, 0.0D);
+        } else if (left && stateTick == 28) {
+            // Canonical Genshin Left Claw pull-out ground rupture!
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(4.6D);
+            Vec3 rupturePos = position().add(fwd);
+            sl.playSound(null, rupturePos.x, getY(), rupturePos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.6F, 0.55F);
+            sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
+                    rupturePos.x, getY() + 0.5D, rupturePos.z, 22, 1.4D, 0.5D, 1.4D, 0.14D);
+            dealPointRadialDamage(sl, rupturePos, 4.6D, 15.0F, 0.95D, 0.48D, false);
         }
-        if (stateTick >= 44) finishAttack(48); // 2.4s–3.6s rest
+        if (stateTick >= 44) finishAttack(44);
     }
 
     private void tickComboSlash(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
         if (stateTick < 13 || (stateTick >= 18 && stateTick < 28) || (stateTick >= 34 && stateTick < 46)) {
-            faceTarget(target, 7.0F);
+            faceTargetSmooth(target, 7.5F);
+        }
+        // Subtle forward step lunge during strikes
+        if (stateTick == 13 || stateTick == 28 || stateTick == 46) {
+            Vec3 lunge = Vec3.directionFromRotation(0.0F, getYRot()).scale(0.45D);
+            setDeltaMovement(lunge.x, getDeltaMovement().y, lunge.z);
         }
         if (stateTick == 14) {
-            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.5F, 0.62F);
-            dealConeDamage(sl, 6.0D, 75.0D, 16.0F, 0.95D, false);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.60F);
+            dealConeDamage(sl, 8.2D, 80.0D, 16.5F, 1.05D, false);
         } else if (stateTick == 29) {
-            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.5F, 0.56F);
-            dealConeDamage(sl, 6.2D, 75.0D, 17.0F, 1.05D, false);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.54F);
+            dealConeDamage(sl, 8.5D, 80.0D, 19.0F, 1.15D, false);
         } else if (stateTick == 48) {
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.8F, 0.52F);
-            dealRadialDamage(sl, 7.2D, 27.0F, 1.50D, 0.65D, false);
-            spawnGroundRing(sl, 6.0D, 40, ParticleTypes.POOF);
-            sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.5D, getZ(), 5, 2.2D, 0.3D, 2.2D, 0.0D);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.0F, 0.50F);
+            dealRadialDamage(sl, 9.6D, 27.5F, 1.60D, 0.70D, false);
+            spawnGroundRing(sl, 8.2D, 48, ParticleTypes.POOF);
+            sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.6D, getZ(), 6, 3.0D, 0.4D, 3.0D, 0.0D);
         }
-        if (stateTick >= 72) finishAttack(56); // 2.8s–4.0s rest after heavy 3-hit combo
+        if (stateTick >= 72) finishAttack(52);
     }
 
     private void tickWhirlwind(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
-        if (stateTick < 11) faceTarget(target, 6.0F);
+        if (stateTick < 11) faceTargetSmooth(target, 6.0F);
         if (stateTick == 20 || stateTick == 32) {
-            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.7F, 0.48F);
-            dealRadialDamage(sl, 6.8D, 18.0F, 1.45D, 0.48D, false);
-            spawnGroundRing(sl, 6.2D, 32, ParticleTypes.CLOUD);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.9F, 0.46F);
+            dealRadialDamage(sl, 9.5D, 19.5F, 1.55D, 0.52D, false);
+            spawnGroundRing(sl, 8.6D, 40, ParticleTypes.CLOUD);
         }
-        if (stateTick >= 60) finishAttack(52);
+        if (stateTick >= 60) finishAttack(48);
     }
 
     private void tickBurrow(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(Vec3.ZERO);
-        if (stateTick < 16) faceTarget(target, 6.0F);
+        if (stateTick < 16) faceTargetSmooth(target, 6.5F);
         if (stateTick == 22) {
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.8F, 0.55F);
-            spawnGroundRing(sl, 3.6D, 24, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
+            burrowStart = position();
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 2.0F, 0.52F);
+            spawnGroundRing(sl, 4.8D, 30, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
+        } else if (stateTick >= 26 && stateTick <= 42 && stateTick % 5 == 0) {
+            // Canonical Genshin Burrow: dig along ground toward predicted target, dropping Elemental-Infused Stones & dealing contact DMG
+            double frac = (stateTick - 24) / 20.0D;
+            Vec3 trailPos = burrowStart.lerp(target.position(), Mth.clamp(frac, 0.15D, 0.85D));
+            spawnInfusedStone(sl, trailPos.x + (random.nextDouble() - 0.5D) * 2.5D,
+                    trailPos.z + (random.nextDouble() - 0.5D) * 2.5D, 34);
+            dealPointRadialDamage(sl, trailPos, 3.6D, 11.0F, 0.9D, 0.4D, false);
         } else if (stateTick == 44) {
-            // Relocate smoothly underground toward target using collision-safe ground sample
-            Vec3 dest = target.position();
-            double gy = sampleSafeGroundY(sl, dest.x, dest.z, dest.y);
-            burrowDest = new Vec3(dest.x, gy, dest.z);
+            // Predictive intercept on target with collision-safe ground sample
+            Vec3 predicted = target.position().add(target.getDeltaMovement().multiply(8.0D, 0.0D, 8.0D));
+            double gy = sampleSafeGroundY(sl, predicted.x, predicted.z, target.getY());
+            burrowDest = new Vec3(predicted.x, gy, predicted.z);
             this.move(MoverType.SELF, burrowDest.subtract(position()));
-            entityData.set(DATA_TELEGRAPH_RADIUS, 6.8F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.6F, 0.45F);
+            entityData.set(DATA_TELEGRAPH_RADIUS, 9.2F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.8F, 0.45F);
         } else if (stateTick >= 45 && stateTick < 62 && stateTick % 4 == 0) {
             sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DIRT.defaultBlockState()),
-                    getX(), getY() + 0.3D, getZ(), 14, 1.8D, 0.2D, 1.8D, 0.08D);
+                    getX(), getY() + 0.4D, getZ(), 18, 2.6D, 0.3D, 2.6D, 0.09D);
         } else if (stateTick == 64) {
             entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.9F, 0.55F);
-            dealRadialDamage(sl, 7.0D, 25.0F, 1.55D, 0.72D, true);
-            spawnGroundRing(sl, 6.2D, 44, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()));
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.1F, 0.52F);
+            dealRadialDamage(sl, 9.4D, 26.5F, 1.65D, 0.78D, true);
+            spawnGroundRing(sl, 8.4D, 52, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()));
         }
-        if (stateTick >= 88) finishAttack(56);
+        if (stateTick >= 88) finishAttack(52);
     }
 
     private void tickScatteredRocks(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-        if (stateTick < 22 || (stateTick >= 28 && stateTick < 41)) faceTarget(target, 6.5F);
+        if (stateTick < 22 || (stateTick >= 28 && stateTick < 41)) faceTargetSmooth(target, 6.5F);
         if (stateTick == 24 || stateTick == 43) {
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.5F, 0.62F);
-            Vec3 dir = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6F, 0.60F);
+            Vec3 leadPos = target.position().add(target.getDeltaMovement().multiply(6.0D, 0.0D, 6.0D));
+            Vec3 dir = new Vec3(leadPos.x - getX(), 0.0D, leadPos.z - getZ());
             if (dir.lengthSqr() > 0.01D) {
                 dir = dir.normalize();
-                for (int step = 3; step <= 13; step += 2) {
+                for (int step = 5; step <= 17; step += 4) {
                     Vec3 p = position().add(dir.scale(step));
                     sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.defaultBlockState()),
-                            p.x, getY() + 0.6D, p.z, 12, 0.8D, 0.6D, 0.8D, 0.1D);
-                    sl.sendParticles(infusionParticle(), p.x, getY() + 1.0D, p.z, 8, 0.6D, 0.5D, 0.6D, 0.05D);
+                            p.x, getY() + 0.7D, p.z, 12, 0.9D, 0.6D, 0.9D, 0.1D);
+                    // Spawn canonical delayed Elemental-Infused Stones along the barrage!
+                    spawnInfusedStone(sl,
+                            p.x + (random.nextDouble() - 0.5D) * 3.0D,
+                            p.z + (random.nextDouble() - 0.5D) * 3.0D,
+                            36 + random.nextInt(14));
                 }
             }
-            dealConeDamage(sl, 14.0D, 36.0D, 18.0F, 1.15D, true);
+            dealConeDamage(sl, 18.0D, 36.0D, 16.5F, 1.15D, true);
         }
-        if (stateTick >= 64) finishAttack(52);
+        if (stateTick >= 64) finishAttack(48);
     }
 
     private void tickElementalBreath(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-        if (stateTick < 21) faceTarget(target, 6.0F);
+        if (stateTick < 21) faceTargetSmooth(target, 6.5F);
         if (stateTick == 23) {
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.7F, 0.72F);
+            sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.9F, 0.70F);
         }
         if (stateTick >= 23 && stateTick <= 62) {
             float progress = (stateTick - 23) / 39.0F;
-            float sweepYaw = getYRot() + Mth.lerp(progress, 34.0F, -34.0F);
+            float sweepYaw = getYRot() + Mth.lerp(progress, 38.0F, -38.0F);
             Vec3 aim = Vec3.directionFromRotation(0.0F, sweepYaw);
-            for (int d = 3; d <= 13; d += 2) {
-                Vec3 pt = position().add(aim.scale(d)).add(0.0D, 1.5D, 0.0D);
-                sl.sendParticles(infusionParticle(), pt.x, pt.y, pt.z, 5, 0.6D, 0.5D, 0.6D, 0.04D);
+            for (int d = 4; d <= 16; d += 2) {
+                Vec3 pt = position().add(aim.scale(d)).add(0.0D, 2.2D, 0.0D);
+                sl.sendParticles(infusionParticle(), pt.x, pt.y, pt.z, 6, 0.75D, 0.6D, 0.75D, 0.05D);
             }
             if ((stateTick - 23) % 6 == 0) {
-                dealBeamSweepDamage(sl, aim, 13.5D, 2.4D, 11.0F);
+                dealBeamSweepDamage(sl, aim, 16.5D, 2.8D, 11.5F);
             }
         }
-        if (stateTick >= 84) finishAttack(56);
+        if (stateTick >= 84) finishAttack(52);
     }
 
     private void tickPrimordialShower(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-        if (stateTick < 38) faceTarget(target, 5.0F);
+        if (stateTick < 38) faceTargetSmooth(target, 5.0F);
         if (stateTick < 46 && stateTick % 4 == 0) {
-            spawnGroundRing(sl, 11.5F * (stateTick / 46.0F), 28, infusionParticle());
+            spawnGroundRing(sl, 15.0D * (stateTick / 46.0D), 36, infusionParticle());
         }
         if (stateTick == 47) {
             entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
-            sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.2F, 0.45F);
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.0F, 0.52F);
-            spawnGroundRing(sl, 11.5D, 64, infusionParticle());
-            spawnGroundRing(sl, 8.5D, 48, ParticleTypes.EXPLOSION);
+            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.4F, 0.44F);
+            sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.2F, 0.50F);
+            spawnGroundRing(sl, 15.0D, 76, infusionParticle());
+            spawnGroundRing(sl, 11.0D, 56, ParticleTypes.EXPLOSION);
 
-            // Check if any hit player counters Primordial Shower with a Shield!
-            AABB box = getBoundingBox().inflate(11.5D, 5.0D, 11.5D);
+            // Canonical Primordial Shower Shield Reflection mechanic
+            AABB box = getBoundingBox().inflate(15.0D, 6.0D, 15.0D);
             for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
-                if (e == this || !e.isAlive() || e.distanceToSqr(this) > 11.5D * 11.5D) continue;
-                boolean shielded = (e instanceof Player p && p.isBlocking()) || StavesElementBridge.hasElementalShield(e);
-                if (shielded && !showerCountered) {
+                if (e == this || !e.isAlive() || e.distanceToSqr(this) > 15.0D * 15.0D) continue;
+                boolean hasElemShield = StavesElementBridge.hasElementalShield(e);
+                boolean hasVanillaShield = (e instanceof Player p && p.isBlocking());
+                if ((hasElemShield || hasVanillaShield) && !showerCountered) {
                     showerCountered = true;
-                    float reflectDmg = getMaxHealth() * 0.12F;
+                    // Canonical Genshin: 15% Max HP with elemental/Geo shield, 10% with standard shield
+                    float reflectDmg = getMaxHealth() * (hasElemShield ? 0.15F : 0.10F);
                     super.hurt(sl.damageSources().thorns(e), reflectDmg);
-                    sl.playSound(null, e.getX(), e.getY() + 1.0D, e.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 2.0F, 0.85F);
-                    sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.8F, 0.55F);
-                    sl.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.0D, getZ(), 2, 0.5D, 0.5D, 0.5D, 0.0D);
+                    sl.playSound(null, e.getX(), e.getY() + 1.2D, e.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 2.2F, 0.85F);
+                    sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 2.0F, 0.52F);
+                    sl.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.8D, getZ(), 3, 0.7D, 0.7D, 0.7D, 0.0D);
                     if (e instanceof Player p) {
                         p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.countered")
                                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
@@ -694,33 +953,51 @@ public class PrimoGeovishapEntity extends Monster {
                     transitionTo(STATE_STAGGER, ANIM_COUNTERED_STAGGER);
                     return;
                 }
-                applyElementalOrPhysicalHit(sl, e, 32.0F, true);
+                applyElementalOrPhysicalHit(sl, e, 34.0F, true);
                 Vec3 push = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
-                if (push.lengthSqr() > 1.0E-4D) push = push.normalize().scale(1.65D);
-                e.setDeltaMovement(push.x, 0.65D, push.z);
+                if (push.lengthSqr() > 1.0E-4D) push = push.normalize().scale(1.80D);
+                e.setDeltaMovement(push.x, 0.72D, push.z);
                 e.hurtMarked = true;
             }
         }
-        if (stateTick >= 92) finishAttack(64); // Generous 3.2s–4.4s recovery after ultimate
+        if (stateTick >= 92) finishAttack(60);
     }
 
+    /**
+     * Canonical Genshin Near-Death (<=20% HP) Primeval Spring:
+     * slams the ground and erupts a dense ring of delayed Elemental-Infused Stones around the arena!
+     */
     private void tickPrimevalSpring(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
-        if (stateTick < 20) faceTarget(target, 6.5F);
+        if (stateTick < 20) faceTargetSmooth(target, 6.5F);
         if (stateTick == 24) {
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.54F);
-            dealRadialDamage(sl, 8.2D, 24.0F, 1.35D, 0.68D, false);
-            spawnGroundRing(sl, 7.6D, 48, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.9F, 0.52F);
+            dealRadialDamage(sl, 10.2D, 22.0F, 1.40D, 0.68D, false);
+            spawnGroundRing(sl, 9.2D, 52, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
+
+            // Spawn a barrage of 8 Elemental-Infused Stones around the boss + 2 near the target
+            for (int i = 0; i < 8; i++) {
+                double ang = (Math.PI * 2.0D * i) / 8.0D + random.nextDouble() * 0.35D;
+                double dist = 6.5D + random.nextDouble() * 7.5D;
+                spawnInfusedStone(sl, getX() + Math.cos(ang) * dist, getZ() + Math.sin(ang) * dist, 38 + i * 3);
+            }
+            spawnInfusedStone(sl, target.getX() + 1.5D, target.getZ(), 42);
+            spawnInfusedStone(sl, target.getX() - 1.5D, target.getZ(), 48);
         }
-        if (stateTick >= 68) finishAttack(54);
+        if (stateTick >= 68) finishAttack(48);
     }
 
     private void dealRadialDamage(ServerLevel sl, double radius, float dmg, double kb, double lift, boolean elemental) {
-        AABB box = getBoundingBox().inflate(radius, 3.5D, radius);
+        dealPointRadialDamage(sl, position(), radius, dmg, kb, lift, elemental);
+    }
+
+    private void dealPointRadialDamage(ServerLevel sl, Vec3 center, double radius, float dmg, double kb, double lift, boolean elemental) {
+        AABB box = new AABB(center.x - radius, center.y - 2.0D, center.z - radius,
+                center.x + radius, center.y + 4.5D, center.z + radius);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
-            if (e == this || !e.isAlive() || e.distanceToSqr(this) > radius * radius) continue;
+            if (e == this || !e.isAlive() || e.position().distanceToSqr(center) > radius * radius) continue;
             applyElementalOrPhysicalHit(sl, e, dmg, elemental);
-            Vec3 push = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
+            Vec3 push = e.position().subtract(center).multiply(1.0D, 0.0D, 1.0D);
             if (push.lengthSqr() > 1.0E-4D) push = push.normalize().scale(kb);
             e.setDeltaMovement(push.x, lift, push.z);
             e.hurtMarked = true;
@@ -730,7 +1007,7 @@ public class PrimoGeovishapEntity extends Monster {
     private void dealConeDamage(ServerLevel sl, double range, double halfAngleDeg, float dmg, double kb, boolean elemental) {
         Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
         double minDot = Math.cos(Math.toRadians(halfAngleDeg));
-        AABB box = getBoundingBox().inflate(range, 3.5D, range);
+        AABB box = getBoundingBox().inflate(range, 4.0D, range);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
             if (e == this || !e.isAlive()) continue;
             Vec3 to = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
@@ -738,18 +1015,18 @@ public class PrimoGeovishapEntity extends Monster {
             if (d > range || d < 0.01D) continue;
             if (to.scale(1.0D / d).dot(fwd) < minDot) continue;
             applyElementalOrPhysicalHit(sl, e, dmg, elemental);
-            e.setDeltaMovement(to.scale(kb / d).x, 0.42D, to.scale(kb / d).z);
+            e.setDeltaMovement(to.scale(kb / d).x, 0.44D, to.scale(kb / d).z);
             e.hurtMarked = true;
         }
     }
 
     private void dealBeamSweepDamage(ServerLevel sl, Vec3 aimDir, double range, double halfWidth, float dmg) {
-        AABB box = getBoundingBox().inflate(range, 3.5D, range);
+        AABB box = getBoundingBox().inflate(range, 4.0D, range);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
             if (e == this || !e.isAlive()) continue;
             Vec3 rel = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
             double along = rel.dot(aimDir);
-            if (along < 1.0D || along > range) continue;
+            if (along < 1.5D || along > range) continue;
             double perpSq = rel.lengthSqr() - along * along;
             if (perpSq <= halfWidth * halfWidth) {
                 applyElementalOrPhysicalHit(sl, e, dmg, true);
@@ -766,7 +1043,11 @@ public class PrimoGeovishapEntity extends Monster {
     }
 
     private ParticleOptions infusionParticle() {
-        return switch (getInfusion()) {
+        return infusionParticleFor(getInfusion());
+    }
+
+    private static ParticleOptions infusionParticleFor(int infusion) {
+        return switch (infusion) {
             case INFUSION_HYDRO -> ParticleTypes.SPLASH;
             case INFUSION_ELECTRO -> ParticleTypes.ELECTRIC_SPARK;
             case INFUSION_CRYO -> ParticleTypes.SNOWFLAKE;
@@ -777,8 +1058,8 @@ public class PrimoGeovishapEntity extends Monster {
     private void spawnGroundRing(ServerLevel sl, double radius, int count, ParticleOptions particle) {
         for (int i = 0; i < count; i++) {
             double a = (Math.PI * 2.0D * i) / count;
-            sl.sendParticles(particle, getX() + Math.cos(a) * radius, getY() + 0.35D, getZ() + Math.sin(a) * radius,
-                    1, 0.1D, 0.15D, 0.1D, 0.03D);
+            sl.sendParticles(particle, getX() + Math.cos(a) * radius, getY() + 0.4D, getZ() + Math.sin(a) * radius,
+                    1, 0.12D, 0.16D, 0.12D, 0.03D);
         }
     }
 
@@ -802,19 +1083,32 @@ public class PrimoGeovishapEntity extends Monster {
         return refY;
     }
 
-    private void faceTarget(LivingEntity target, float maxTurnDeg) {
+    private void lookAtTargetHead(LivingEntity target) {
+        double dx = target.getX() - getX();
+        double dy = (target.getEyeY() - (getY() + 3.2D));
+        double dz = target.getZ() - getZ();
+        double horiz = Math.sqrt(dx * dx + dz * dz);
+        float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+        float desiredPitch = (float) (-(Mth.atan2(dy, Math.max(0.1D, horiz)) * Mth.RAD_TO_DEG));
+        float yawDelta = Mth.wrapDegrees(desiredYaw - yHeadRot);
+        yHeadRot += Mth.clamp(yawDelta, -10.0F, 10.0F);
+        setXRot(Mth.lerp(0.25F, getXRot(), Mth.clamp(desiredPitch, -20.0F, 20.0F)));
+    }
+
+    private void faceTargetSmooth(LivingEntity target, float maxTurnDeg) {
         double dx = target.getX() - getX();
         double dz = target.getZ() - getZ();
         float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
         float delta = Mth.wrapDegrees(desiredYaw - getYRot());
-        float next = getYRot() + Mth.clamp(delta, -maxTurnDeg, maxTurnDeg);
+        // Smooth proportional turn so small adjustments glide effortlessly without micro-jitter
+        float step = Mth.clamp(delta * 0.35F, -maxTurnDeg, maxTurnDeg);
+        float next = getYRot() + step;
         setYRot(next);
         yBodyRot = next;
-        yHeadRot = next;
     }
 
     private LivingEntity findCombatTarget(ServerLevel sl) {
-        List<Player> players = sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(36.0D),
+        List<Player> players = sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(40.0D),
                 p -> p.isAlive() && !p.isCreative() && !p.isSpectator());
         Player closestPlayer = null;
         double best = Double.MAX_VALUE;
@@ -839,7 +1133,7 @@ public class PrimoGeovishapEntity extends Monster {
             return lastAttacker;
         }
 
-        List<Mob> aggroMobs = sl.getEntitiesOfClass(Mob.class, getBoundingBox().inflate(32.0D),
+        List<Mob> aggroMobs = sl.getEntitiesOfClass(Mob.class, getBoundingBox().inflate(36.0D),
                 m -> isValidCombatTarget(m) && m.getTarget() == this);
         if (!aggroMobs.isEmpty()) {
             Mob closestMob = aggroMobs.get(0);
@@ -863,6 +1157,7 @@ public class PrimoGeovishapEntity extends Monster {
         tag.putInt("Infusion", getInfusion());
         tag.putInt("AttackCooldown", attackCooldown);
         tag.putInt("ShowerCooldown", showerCooldown);
+        tag.putInt("SpringCooldown", springCooldown);
     }
 
     @Override
@@ -874,5 +1169,6 @@ public class PrimoGeovishapEntity extends Monster {
         }
         attackCooldown = tag.getInt("AttackCooldown");
         showerCooldown = tag.getInt("ShowerCooldown");
+        if (tag.contains("SpringCooldown")) springCooldown = tag.getInt("SpringCooldown");
     }
 }
