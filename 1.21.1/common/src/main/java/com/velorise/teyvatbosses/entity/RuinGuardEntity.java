@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -27,6 +28,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -73,7 +75,7 @@ public class RuinGuardEntity extends Monster {
     private static final int STUN_COLLAPSE_TICKS     = 122;
     private static final int STUN_RECOVERY_TICKS     = 28;
     private static final int WEAKPOINT_IMMUNE_TICKS  = 80;
-    private static final double ARENA_LEASH_RADIUS   = 24.0D;
+    private static final double ARENA_SOFT_LEASH_RADIUS = 56.0D;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_STATE =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
@@ -135,7 +137,7 @@ public class RuinGuardEntity extends Monster {
                 .add(Attributes.MOVEMENT_SPEED, 0.23D)
                 .add(Attributes.ATTACK_DAMAGE, 14.0D)
                 .add(Attributes.FOLLOW_RANGE, 42.0D)
-                .add(Attributes.STEP_HEIGHT, 1.25D);
+                .add(Attributes.STEP_HEIGHT, 1.75D);
     }
 
     @Override
@@ -163,6 +165,11 @@ public class RuinGuardEntity extends Monster {
 
     @Override
     protected void registerGoals() {}
+
+    @Override
+    protected PathNavigation createNavigation(Level level) {
+        return new BossGroundNavigation(this, level);
+    }
 
     public int getBossState() { return entityData.get(DATA_BOSS_STATE); }
     public int getAnimId() { return entityData.get(DATA_ANIM_ID); }
@@ -555,20 +562,13 @@ public class RuinGuardEntity extends Monster {
             case STATE_COMBAT -> tickCombat(sl, combatTarget);
         }
 
-        // Enforce arena leash so the Ruin Guard stays inside its combat zone
-        if (st == STATE_COMBAT && getAnimId() != ANIM_LEAP_SLAM) {
-            clampToArenaLeash();
-        }
-    }
-
-    private void clampToArenaLeash() {
-        double dx = getX() - arenaCenter.x;
-        double dz = getZ() - arenaCenter.z;
-        double distSq = dx * dx + dz * dz;
-        if (distSq > ARENA_LEASH_RADIUS * ARENA_LEASH_RADIUS) {
-            double dist = Math.sqrt(distSq);
-            double scale = ARENA_LEASH_RADIUS / dist;
-            setPos(arenaCenter.x + dx * scale, getY(), arenaCenter.z + dz * scale);
+        // Soft leash (Cataclysm style): allow free combat chase & leaps; only reset if dragged >56 blocks from spawn
+        if (st == STATE_COMBAT && getAnimId() != ANIM_LEAP_SLAM && arenaInit) {
+            double dx = getX() - arenaCenter.x;
+            double dz = getZ() - arenaCenter.z;
+            if (dx * dx + dz * dz > ARENA_SOFT_LEASH_RADIUS * ARENA_SOFT_LEASH_RADIUS) {
+                resetToDormant();
+            }
         }
     }
 
@@ -593,7 +593,7 @@ public class RuinGuardEntity extends Monster {
      */
     private void tickAntiTrapBlockBreak(ServerLevel sl) {
         if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
-            destroyBlocksTick = 20;
+            destroyBlocksTick = 8;
         }
         if (destroyBlocksTick <= 0) return;
         destroyBlocksTick--;
@@ -640,33 +640,35 @@ public class RuinGuardEntity extends Monster {
             float desiredYaw = (float) (Math.atan2(dzT, dxT) * (180.0D / Math.PI)) - 90.0F;
             float yawDiff = Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
 
-            faceTarget(target, isPhase2() ? 4.4F : 3.8F);
-            boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 3.4D) : (dist > 4.4D);
+            faceTarget(target, isPhase2() ? 7.5F : 6.2F);
+            boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 3.2D) : (dist > 4.2D);
             boolean needsPivotStep = (anim == ANIM_WALK) ? (yawDiff > 7.5F) : (yawDiff > 16.0F);
             Vec3 cur = getDeltaMovement();
 
             if (shouldWalk || needsPivotStep) {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
                 if (shouldWalk) {
-                    Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
-                    // Exact 2.40s (48-tick, 24 ticks/step) Genshin zero-slide velocity matched to 1.04 blocks/step leg sweep:
-                    // Footplant stomp occurs at tick 12 (phase 0.50); anchors firmly on stomp (0.46..0.66) for zero foot sliding
-                    // True zero-slide stance push-off: ONLY advance forward when the planted leg pulls backward (0.54..0.96).
-                    // During leg swing-forward & footplant stomp (0.00..0.54), anchor chassis firmly so planted foot NEVER slides!
-                    double stepPhase = (stateTick % 24) / 24.0D;
-                    double phaseMul = isPhase2() ? 1.08D : 1.0D;
-                    if (stepPhase >= 0.54D && stepPhase <= 0.96D) {
-                        double pushFrac = (stepPhase - 0.54D) / 0.42D;
-                        double speed = 0.115D * Math.pow(Math.sin(pushFrac * Math.PI), 1.2D) * phaseMul;
-                        setDeltaMovement(
-                                Mth.lerp(0.55D, cur.x, dir.x * speed),
-                                cur.y,
-                                Mth.lerp(0.55D, cur.z, dir.z * speed)
-                        );
-                    } else {
-                        setDeltaMovement(cur.x * 0.18D, cur.y, cur.z * 0.18D);
+                    // Cataclysm-style A* pathfinding steering around pits, craters & ledges + brisk heavy mech pursuit
+                    if (stateTick % 6 == 0 || getNavigation().isDone()) {
+                        getNavigation().moveTo(target, isPhase2() ? 1.30D : 1.15D);
                     }
+                    Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
+                            ? bnav.getSteerDirection(target.position())
+                            : new Vec3(dxT, 0.0D, dzT).normalize();
+                    double stepPhase = (stateTick % 24) / 24.0D;
+                    double cadence = 0.65D + 0.35D * Math.sin(stepPhase * Math.PI * 2.0D);
+                    double speed = (isPhase2() ? 0.25D : 0.21D) * cadence;
+                    double jumpY = cur.y;
+                    if (this.horizontalCollision && this.onGround()) {
+                        jumpY = 0.46D; // Step/hop cleanly out of 2-block craters & ledges
+                    }
+                    setDeltaMovement(
+                            Mth.lerp(0.42D, cur.x, dir.x * speed),
+                            jumpY,
+                            Mth.lerp(0.42D, cur.z, dir.z * speed)
+                    );
                 } else {
+                    getNavigation().stop();
                     setDeltaMovement(cur.x * 0.32D, cur.y, cur.z * 0.32D);
                 }
                 if (stateTick % 24 == 1) {
@@ -737,24 +739,52 @@ public class RuinGuardEntity extends Monster {
         }
     }
 
+    /**
+     * Range-gated Cataclysm-style attack selector: never whiffs 5.2m melee attacks at 6–9m!
+     * <ul>
+     *   <li>Close Melee (&le; 5.2m &amp; |dy| &le; 2.8m): 3-Hit Combo, Double Clap, Stomp Shockwave, Cyclone.</li>
+     *   <li>Mid Gap-Closer (5.2–13.5m): Leap Slam directly onto target, Cyclone chase, or Missile Barrage.</li>
+     *   <li>Long Range (&gt; 13.5m): Leap Slam gap-close or Homing Missile Barrage.</li>
+     * </ul>
+     */
     private void chooseNextAttack(ServerLevel sl, LivingEntity target, double dist) {
-        if (isPhase2() && finisherCooldown <= 0 && dist <= 12.0D && random.nextFloat() < 0.35F) {
+        getNavigation().stop();
+        double dy = Math.abs(target.getY() - getY());
+        if (isPhase2() && finisherCooldown <= 0 && dist <= 7.6D && dy <= 3.0D && random.nextFloat() < 0.40F) {
             lastAttack = ANIM_OVERDRIVE_FINISHER;
             startOverdriveFinisher(sl, target);
             return;
         }
 
         int chosen;
-        if (dist >= 9.0D) {
-            chosen = (random.nextFloat() < 0.55F) ? ANIM_MISSILE_BARRAGE
-                    : (random.nextFloat() < 0.55F ? ANIM_LEAP_SLAM : ANIM_CYCLONE_WINDUP);
+        if (dist <= 5.2D && dy <= 2.8D) {
+            int[] closePool = {ANIM_MELEE_3HIT, ANIM_DOUBLE_CLAP, ANIM_STOMP_SHOCKWAVE, ANIM_CYCLONE_WINDUP};
+            chosen = closePool[random.nextInt(closePool.length)];
+            if (chosen == lastAttack) {
+                chosen = (lastAttack == ANIM_MELEE_3HIT) ? ANIM_STOMP_SHOCKWAVE : ANIM_MELEE_3HIT;
+            }
+        } else if (dist <= 13.5D) {
+            // Gap-closers ONLY — never whiff stationary melee into thin air!
+            float r = random.nextFloat();
+            if (dy > 3.0D) {
+                chosen = (r < 0.55F) ? ANIM_LEAP_SLAM : ANIM_MISSILE_BARRAGE;
+            } else if (r < 0.50F) {
+                chosen = ANIM_LEAP_SLAM;
+            } else if (r < 0.82F) {
+                chosen = ANIM_CYCLONE_WINDUP;
+            } else {
+                chosen = ANIM_MISSILE_BARRAGE;
+            }
+            if (chosen == lastAttack) {
+                chosen = (lastAttack == ANIM_LEAP_SLAM) ? ANIM_CYCLONE_WINDUP : ANIM_LEAP_SLAM;
+            }
         } else {
-            int[] meleePool = {ANIM_MELEE_3HIT, ANIM_DOUBLE_CLAP, ANIM_STOMP_SHOCKWAVE, ANIM_CYCLONE_WINDUP, ANIM_LEAP_SLAM};
-            chosen = meleePool[random.nextInt(meleePool.length)];
+            chosen = (random.nextFloat() < 0.55F) ? ANIM_MISSILE_BARRAGE : ANIM_LEAP_SLAM;
+            if (chosen == lastAttack) {
+                chosen = (lastAttack == ANIM_MISSILE_BARRAGE) ? ANIM_LEAP_SLAM : ANIM_MISSILE_BARRAGE;
+            }
         }
-        if (chosen == lastAttack) {
-            chosen = (dist >= 8.0D) ? ANIM_MISSILE_BARRAGE : ANIM_MELEE_3HIT;
-        }
+
         lastAttack = chosen;
         if (chosen == ANIM_LEAP_SLAM) {
             startLeapSlam(sl, target);
@@ -765,7 +795,7 @@ public class RuinGuardEntity extends Monster {
 
     private void startLeapSlam(ServerLevel sl, LivingEntity target) {
         leapStart = position();
-        Vec3 clamped = clampTargetToArena(new Vec3(target.getX(), target.getY(), target.getZ()));
+        Vec3 clamped = clampLeapDestination(target);
         double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
         leapTarget = new Vec3(clamped.x, groundY, clamped.z);
         transitionTo(STATE_COMBAT, ANIM_LEAP_SLAM);
@@ -831,7 +861,7 @@ public class RuinGuardEntity extends Monster {
      */
     private void finishLeapLanding(double tx, double ty, double tz) {
         Vec3 toTarget = new Vec3(tx - getX(), ty - getY(), tz - getZ());
-        if (toTarget.horizontalDistanceSqr() > 2.25D) {
+        if (toTarget.horizontalDistanceSqr() > 16.0D) {
             this.move(MoverType.SELF, new Vec3(0.0D, Math.min(-0.5D, ty - getY()), 0.0D));
         } else {
             this.move(MoverType.SELF, toTarget);
@@ -840,16 +870,20 @@ public class RuinGuardEntity extends Monster {
         this.fallDistance = 0.0F;
     }
 
-    private Vec3 clampTargetToArena(Vec3 pos) {
-        double dx = pos.x - arenaCenter.x;
-        double dz = pos.z - arenaCenter.z;
-        double dSq = dx * dx + dz * dz;
-        double maxR = ARENA_LEASH_RADIUS - 2.0D;
-        if (dSq > maxR * maxR) {
-            double s = maxR / Math.sqrt(dSq);
-            return new Vec3(arenaCenter.x + dx * s, pos.y, arenaCenter.z + dz * s);
+    /**
+     * Computes a realistic leap destination directly onto the target (with light velocity leading,
+     * capped to 16 blocks max leap distance — no invisible 22m arena wall blocking jumps!).
+     */
+    private Vec3 clampLeapDestination(LivingEntity target) {
+        Vec3 lead = target.position().add(target.getDeltaMovement().multiply(4.0D, 0.0D, 4.0D));
+        Vec3 delta = new Vec3(lead.x - getX(), 0.0D, lead.z - getZ());
+        double dist = delta.length();
+        double maxLeap = 16.0D;
+        if (dist > maxLeap && dist > 0.01D) {
+            Vec3 capped = position().add(delta.scale(maxLeap / dist));
+            return new Vec3(capped.x, lead.y, capped.z);
         }
-        return pos;
+        return lead;
     }
 
     private void tickMissileBarrage(ServerLevel sl, LivingEntity target) {
@@ -917,9 +951,8 @@ public class RuinGuardEntity extends Monster {
                 Vec3 rawDest = (dist > maxHopDist && dist > 0.01D)
                         ? position().add(toT.scale(maxHopDist / dist))
                         : new Vec3(target.getX(), target.getY(), target.getZ());
-                Vec3 clamped = clampTargetToArena(rawDest);
-                double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
-                leapTarget = new Vec3(clamped.x, groundY, clamped.z);
+                double groundY = sampleGroundY(sl, rawDest.x, rawDest.z, target.getY());
+                leapTarget = new Vec3(rawDest.x, groundY, rawDest.z);
                 setTelegraph(leapTarget, 5.2F);
             }
             leapStart = position();
@@ -1034,11 +1067,18 @@ public class RuinGuardEntity extends Monster {
     }
 
     private void tickCycloneActive(ServerLevel sl, LivingEntity target) {
+        if (stateTick % 6 == 0 || getNavigation().isDone()) {
+            getNavigation().moveTo(target, isPhase2() ? 1.45D : 1.30D);
+        }
         Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
         if (toTarget.lengthSqr() > 0.25D) {
-            Vec3 desired = toTarget.normalize().scale(isPhase2() ? 0.28D : 0.25D);
+            Vec3 steer = (getNavigation() instanceof BossGroundNavigation bnav)
+                    ? bnav.getSteerDirection(target.position())
+                    : toTarget.normalize();
+            Vec3 desired = steer.scale(isPhase2() ? 0.30D : 0.26D);
             Vec3 cur = getDeltaMovement();
-            setDeltaMovement(Mth.lerp(0.16D, cur.x, desired.x), cur.y, Mth.lerp(0.16D, cur.z, desired.z));
+            double jumpY = (this.horizontalCollision && this.onGround()) ? 0.46D : cur.y;
+            setDeltaMovement(Mth.lerp(0.24D, cur.x, desired.x), jumpY, Mth.lerp(0.24D, cur.z, desired.z));
         }
         if (stateTick % 8 == 0) {
             dealRadialDamage(sl, 5.0D, 12.5F, 0.90D, 0.36D);
@@ -1073,9 +1113,9 @@ public class RuinGuardEntity extends Monster {
                 if (whir != null) sl.playSound(null, getX(), getY() + 1.6D, getZ(), whir, SoundSource.HOSTILE, 0.80F, 0.85F);
             }
             if (stateTick < 13) {
-                Vec3 clamped = clampTargetToArena(new Vec3(target.getX(), target.getY(), target.getZ()));
-                double groundY = sampleGroundY(sl, clamped.x, clamped.z, target.getY());
-                leapTarget = new Vec3(clamped.x, groundY, clamped.z);
+                Vec3 dest = clampLeapDestination(target);
+                double groundY = sampleGroundY(sl, dest.x, dest.z, target.getY());
+                leapTarget = new Vec3(dest.x, groundY, dest.z);
                 setTelegraph(leapTarget, 6.0F);
             }
             leapStart = position();
@@ -1089,7 +1129,8 @@ public class RuinGuardEntity extends Monster {
             float f = (stateTick - 17) / 18.0F;
             float smoothF = f * f * (3.0F - 2.0F * f);
             double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
-            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 5.0D;
+            double arcH = 5.6D + Math.max(0.0D, leapTarget.y - leapStart.y) * 0.55D;
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * arcH;
             double nx = Mth.lerp(smoothF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(smoothF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;

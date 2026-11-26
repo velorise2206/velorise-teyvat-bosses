@@ -81,6 +81,8 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 ? OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(true))
                 : OverlayTexture.NO_OVERLAY;
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), packedLight, overlay, 0xFFFFFFFF);
+        // Full-bright fierce golden-amber eyes in all 4 elemental forms (day & night!)
+        model.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
 
         boolean chargingUltimate = (animId == PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER
                 || animId == PrimoGeovishapEntity.ANIM_ELEMENTAL_BREATH
@@ -137,54 +139,67 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         // 6. Golden Geo Ground Shockwaves on heavy slams (Combo Hit 3, Burrow emerge, Primeval Spring)
         renderImpactShockwave(poseStack, lvc, animId, animTick, partialTicks, rgb);
 
-        // 7. 3D Elemental-Infused Stone Spires + Rotating 6-Point Star Ground Runes
-        renderSyncedInfusedStones(entity, poseStack, lvc, partialTicks, clientSec, rgb);
+        // 7. Infused Stones are now real independent 3D PrimoInfusedStoneEntity instances
 
         super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
     }
 
     private static void renderGoldenSlashVfx(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, float bodyYaw) {
-        if (animId == PrimoGeovishapEntity.ANIM_RIGHT_CLAW && animTick >= 11 && animTick <= 20) {
-            float p = Mth.clamp((animTick - 11 + partialTicks) / 9.0F, 0.0F, 1.0F);
-            drawSlashArc(poseStack, lvc, bodyYaw, 1.8F, 5.8F, -85.0F, 65.0F, p, 12.0F);
-        } else if (animId == PrimoGeovishapEntity.ANIM_LEFT_CLAW && animTick >= 11 && animTick <= 20) {
-            float p = Mth.clamp((animTick - 11 + partialTicks) / 9.0F, 0.0F, 1.0F);
-            drawSlashArc(poseStack, lvc, bodyYaw, 1.8F, 5.8F, 85.0F, -65.0F, p, -12.0F);
+        if (animId == PrimoGeovishapEntity.ANIM_RIGHT_CLAW && animTick >= 10 && animTick <= 21) {
+            float p = Mth.clamp((animTick - 10 + partialTicks) / 11.0F, 0.0F, 1.0F);
+            drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.6F, -92.0F, 72.0F, p, 24.0F);
+        } else if (animId == PrimoGeovishapEntity.ANIM_LEFT_CLAW && animTick >= 10 && animTick <= 21) {
+            float p = Mth.clamp((animTick - 10 + partialTicks) / 11.0F, 0.0F, 1.0F);
+            drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.6F, 92.0F, -72.0F, p, -24.0F);
         } else if (animId == PrimoGeovishapEntity.ANIM_COMBO_SLASH) {
-            if (animTick >= 11 && animTick <= 19) {
-                float p = Mth.clamp((animTick - 11 + partialTicks) / 8.0F, 0.0F, 1.0F);
-                drawSlashArc(poseStack, lvc, bodyYaw, 1.8F, 6.2F, -90.0F, 70.0F, p, 10.0F);
-            } else if (animTick >= 26 && animTick <= 34) {
-                float p = Mth.clamp((animTick - 26 + partialTicks) / 8.0F, 0.0F, 1.0F);
-                drawSlashArc(poseStack, lvc, bodyYaw, 1.8F, 6.4F, 90.0F, -70.0F, p, -10.0F);
+            if (animTick >= 10 && animTick <= 20) {
+                float p = Mth.clamp((animTick - 10 + partialTicks) / 10.0F, 0.0F, 1.0F);
+                drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.9F, -96.0F, 76.0F, p, 22.0F);
+            } else if (animTick >= 25 && animTick <= 35) {
+                float p = Mth.clamp((animTick - 25 + partialTicks) / 10.0F, 0.0F, 1.0F);
+                drawSlashArc(poseStack, lvc, bodyYaw, 2.05F, 7.1F, 96.0F, -76.0F, p, -22.0F);
             }
         } else if (animId == PrimoGeovishapEntity.ANIM_WHIRLWIND && animTick >= 11 && animTick <= 27) {
             float p = Mth.clamp((animTick - 11 + partialTicks) / 16.0F, 0.0F, 1.0F);
-            float fade = 1.0F - p * 0.75F;
+            float fade = 1.0F - p * 0.72F;
             poseStack.pushPose();
-            poseStack.translate(0.0D, 1.1D, 0.0D);
+            poseStack.translate(0.0D, 1.35D, 0.0D);
             poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw - p * 380.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(10.0F));
             Matrix4f mat = poseStack.last().pose();
-            drawArcRibbon(lvc, mat, 3.6F, 7.6F, 0.0F, 250.0F, 32, 255, 195, 75, (int) (185 * fade));
-            drawArcRibbon(lvc, mat, 6.4F, 7.8F, 10.0F, 250.0F, 32, 255, 245, 200, (int) (220 * fade));
+            drawArcRibbon(lvc, mat, 3.4F, 7.8F, 0.0F, 265.0F, 34, 255, 175, 45, (int) (195 * fade));
+            drawArcRibbon(lvc, mat, 6.2F, 8.0F, 12.0F, 265.0F, 34, 255, 245, 195, (int) (235 * fade));
+            drawVerticalArcBevel(lvc, mat, 7.4F, 0.55F, 12.0F, 265.0F, 28, 255, 220, 120, (int) (170 * fade));
             poseStack.popPose();
         }
     }
 
+    /**
+     * 3D Tilted, Double-Sided, Multi-Layer Golden Geo Crescent Slash (matches Genshin's bold golden-amber arcs
+     * and stays clearly visible at player eye level instead of collapsing to a flat 1px horizontal line).
+     */
     private static void drawSlashArc(PoseStack poseStack, VertexConsumer lvc, float bodyYaw, float yHeight, float radius,
                                      float startDeg, float endDeg, float progress, float tiltDeg) {
-        float fade = (progress < 0.25F) ? (progress / 0.25F) : (1.0F - (progress - 0.25F) / 0.75F);
-        int alpha = Mth.clamp((int) (215 * fade), 0, 255);
+        float fade = (progress < 0.22F) ? (progress / 0.22F) : (1.0F - (progress - 0.22F) / 0.78F);
+        int alpha = Mth.clamp((int) (230 * fade), 0, 255);
         if (alpha <= 10) return;
         float curEnd = Mth.lerp(progress, startDeg, endDeg);
-        float curStart = Mth.lerp(Math.max(0.0F, progress - 0.42F), startDeg, endDeg);
+        float curStart = Mth.lerp(Math.max(0.0F, progress - 0.52F), startDeg, endDeg);
         poseStack.pushPose();
         poseStack.translate(0.0D, yHeight, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        // Pitch forward 20 deg + diagonal roll so the crescent face is always boldly visible from player eye-level!
+        poseStack.mulPose(Axis.XP.rotationDegrees(20.0F));
         poseStack.mulPose(Axis.ZP.rotationDegrees(tiltDeg));
         Matrix4f mat = poseStack.last().pose();
-        drawArcRibbon(lvc, mat, radius * 0.52F, radius, curStart, curEnd, 22, 255, 185, 55, alpha);
-        drawArcRibbon(lvc, mat, radius * 0.84F, radius * 1.03F, curStart, curEnd, 22, 255, 248, 210, Math.min(255, alpha + 25));
+        // Layer 1: Wide deep-amber Geo aura trail
+        drawArcRibbon(lvc, mat, radius * 0.42F, radius * 1.02F, curStart, curEnd, 24, 255, 155, 25, (int) (alpha * 0.85F));
+        // Layer 2: Mid vivid golden Geo crescent body
+        drawArcRibbon(lvc, mat, radius * 0.64F, radius * 1.05F, curStart, curEnd, 24, 255, 210, 70, alpha);
+        // Layer 3: Blazing cream-white leading razor edge
+        drawArcRibbon(lvc, mat, radius * 0.88F, radius * 1.08F, curStart, curEnd, 24, 255, 252, 220, Math.min(255, alpha + 25));
+        // Layer 4: Vertical 3D bevel wall along outer edge for true volumetric slash thickness
+        drawVerticalArcBevel(lvc, mat, radius * 0.98F, 0.52F, curStart, curEnd, 20, 255, 225, 115, (int) (alpha * 0.75F));
         poseStack.popPose();
     }
 
@@ -195,15 +210,53 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             float f1 = (i + 1) / (float) segs;
             float a0 = Mth.lerp(f0, deg0, deg1) * Mth.DEG_TO_RAD;
             float a1 = Mth.lerp(f1, deg0, deg1) * Mth.DEG_TO_RAD;
-            // Taper alpha smoothly at leading/trailing tips
             int al0 = (int) (a * Mth.sin(f0 * Mth.PI));
             int al1 = (int) (a * Mth.sin(f1 * Mth.PI));
             float x0 = Mth.sin(a0), z0 = -Mth.cos(a0);
             float x1 = Mth.sin(a1), z1 = -Mth.cos(a1);
+            // Front face
             vc.addVertex(mat, x0 * rIn, 0.0F, z0 * rIn).setColor(r, g, b, 0);
             vc.addVertex(mat, x0 * rOut, 0.0F, z0 * rOut).setColor(r, g, b, al0);
             vc.addVertex(mat, x1 * rOut, 0.0F, z1 * rOut).setColor(r, g, b, al1);
             vc.addVertex(mat, x1 * rIn, 0.0F, z1 * rIn).setColor(r, g, b, 0);
+            // Back face (double-sided so slash never vanishes from below/above!)
+            vc.addVertex(mat, x1 * rIn, 0.0F, z1 * rIn).setColor(r, g, b, 0);
+            vc.addVertex(mat, x1 * rOut, 0.0F, z1 * rOut).setColor(r, g, b, al1);
+            vc.addVertex(mat, x0 * rOut, 0.0F, z0 * rOut).setColor(r, g, b, al0);
+            vc.addVertex(mat, x0 * rIn, 0.0F, z0 * rIn).setColor(r, g, b, 0);
+        }
+    }
+
+    private static void drawVerticalArcBevel(VertexConsumer vc, Matrix4f mat, float radius, float halfHeight,
+                                             float deg0, float deg1, int segs, int r, int g, int b, int a) {
+        if (a <= 5) return;
+        for (int i = 0; i < segs; i++) {
+            float f0 = i / (float) segs;
+            float f1 = (i + 1) / (float) segs;
+            float a0 = Mth.lerp(f0, deg0, deg1) * Mth.DEG_TO_RAD;
+            float a1 = Mth.lerp(f1, deg0, deg1) * Mth.DEG_TO_RAD;
+            int al0 = (int) (a * Mth.sin(f0 * Mth.PI));
+            int al1 = (int) (a * Mth.sin(f1 * Mth.PI));
+            float x0 = Mth.sin(a0) * radius, z0 = -Mth.cos(a0) * radius;
+            float x1 = Mth.sin(a1) * radius, z1 = -Mth.cos(a1) * radius;
+            // Outer face
+            vc.addVertex(mat, x0, -halfHeight, z0).setColor(r, g, b, 0);
+            vc.addVertex(mat, x0, 0.0F, z0).setColor(r, g, b, al0);
+            vc.addVertex(mat, x1, 0.0F, z1).setColor(r, g, b, al1);
+            vc.addVertex(mat, x1, -halfHeight, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, x0, 0.0F, z0).setColor(r, g, b, al0);
+            vc.addVertex(mat, x0, halfHeight, z0).setColor(r, g, b, 0);
+            vc.addVertex(mat, x1, halfHeight, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, x1, 0.0F, z1).setColor(r, g, b, al1);
+            // Inner face (double-sided)
+            vc.addVertex(mat, x1, -halfHeight, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, x1, 0.0F, z1).setColor(r, g, b, al1);
+            vc.addVertex(mat, x0, 0.0F, z0).setColor(r, g, b, al0);
+            vc.addVertex(mat, x0, -halfHeight, z0).setColor(r, g, b, 0);
+            vc.addVertex(mat, x1, 0.0F, z1).setColor(r, g, b, al1);
+            vc.addVertex(mat, x1, halfHeight, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, x0, halfHeight, z0).setColor(r, g, b, 0);
+            vc.addVertex(mat, x0, 0.0F, z0).setColor(r, g, b, al0);
         }
     }
 
@@ -256,22 +309,122 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         poseStack.popPose();
     }
 
+    /**
+     * Genshin-faithful Elemental Breath torrent (1.mp4 00:40-00:46 &amp; 2.mp4 00:00-00:02):
+     * <ul>
+     *   <li>8-segment undulating volumetric elemental stream (3 layered depth shells with traveling fluid ripples).</li>
+     *   <li>3 twisting helical vortex energy ribbons spiraling rapidly from open jaws to ground-impact mist.</li>
+     *   <li>Soft radial mouth-throat swirl + billowing ground-contact splash flare (zero blocky octahedron!).</li>
+     * </ul>
+     */
     private static void renderElementalBreathVfx(PoseStack poseStack, VertexConsumer lvc, int animTick,
                                                  float partialTicks, float clientSec, float bodyYaw, int[] rgb) {
         float progress = Mth.clamp((animTick - 22 + partialTicks) / 40.0F, 0.0F, 1.0F);
-        float sweepYaw = bodyYaw + Mth.lerp(progress, 44.0F, -48.0F);
+        // 1:1 synchronized with build_attack_elemental_breath (-46 -> +46) & server tickElementalBreath!
+        float sweepYaw = bodyYaw + Mth.lerp(progress, 46.0F, -46.0F);
         float fade = (progress < 0.08F) ? (progress / 0.08F) : (progress > 0.90F ? (1.0F - progress) / 0.10F : 1.0F);
         poseStack.pushPose();
-        poseStack.translate(0.0D, 2.35D, 0.0D);
+        poseStack.translate(0.0D, 2.30D, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - sweepYaw));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-6.0F));
         Matrix4f mat = poseStack.last().pose();
-        // Mouth glow orb
-        drawGlowingOctahedron(lvc, mat, 0.0F, 0.0F, -2.8F, 0.95F + Mth.sin(clientSec * 25.0F) * 0.12F, 255, 255, 255, (int) (220 * fade));
-        // Outer elemental plasma cone
-        drawBeamCone(lvc, mat, 2.8F, 16.5F, 0.48F, 2.35F, 18, rgb[0], rgb[1], rgb[2], (int) (175 * fade));
-        // Inner white-hot high-pressure beam core
-        drawBeamCone(lvc, mat, 2.8F, 16.0F, 0.24F, 1.05F, 14, 255, 255, 255, (int) (225 * fade));
+
+        int lr = Math.min(255, rgb[0] + 65);
+        int lg = Math.min(255, rgb[1] + 65);
+        int lb = Math.min(255, rgb[2] + 65);
+
+        // 1. Soft radial throat/mouth energy swirl (translucent feathered rings inside jaws — no hard polygon!)
+        float mouthPulse = 0.88F + 0.12F * Mth.sin(clientSec * 26.0F);
+        drawBeamRing(lvc, mat, 2.45F, 0.08F, 0.85F * mouthPulse, 18, rgb[0], rgb[1], rgb[2], (int) (135 * fade));
+        drawBeamRing(lvc, mat, 2.55F, 0.05F, 0.48F * mouthPulse, 16, 255, 255, 255, (int) (175 * fade));
+
+        // 2. 8-segment undulating multi-layer volumetric torrent (outer mist + saturated mid + pulsing white core)
+        drawUndulatingBreathStream(lvc, mat, 2.45F, 16.9F, 0.56F, 2.85F, 8, 18, clientSec, 0.14F, rgb[0], rgb[1], rgb[2], (int) (95 * fade));
+        drawUndulatingBreathStream(lvc, mat, 2.48F, 16.4F, 0.34F, 1.72F, 8, 16, clientSec * 1.15F, 0.11F, lr, lg, lb, (int) (155 * fade));
+        drawUndulatingBreathStream(lvc, mat, 2.55F, 15.2F, 0.16F, 0.68F, 8, 12, clientSec * 1.35F, 0.08F, 255, 255, 255, (int) (210 * fade));
+
+        // 3. 3 twisting helical vortex ribbons wrapping the torrent at high velocity
+        drawHelicalBreathRibbons(lvc, mat, 2.60F, 16.2F, 0.46F, 2.40F, 18, clientSec, rgb[0], rgb[1], rgb[2], (int) (165 * fade));
+
+        // 4. Scrolling pressure rings + billowing splash flare near ground impact
+        for (int k = 0; k < 4; k++) {
+            float flow = ((clientSec * 2.6F) + k * 0.25F) % 1.0F;
+            float zPos = Mth.lerp(flow, 3.0F, 15.8F);
+            float rRing = Mth.lerp(flow, 0.52F, 2.55F);
+            int rAlpha = (int) (130 * fade * Mth.sin(flow * Mth.PI));
+            drawBeamRing(lvc, mat, zPos, rRing * 0.70F, rRing, 16, lr, lg, lb, rAlpha);
+        }
+        drawBeamRing(lvc, mat, 14.2F, 0.60F, 2.95F * mouthPulse, 20, rgb[0], rgb[1], rgb[2], (int) (95 * fade));
         poseStack.popPose();
+    }
+
+    private static void drawUndulatingBreathStream(VertexConsumer vc, Matrix4f mat, float zStart, float zEnd,
+                                                   float rStart, float rEnd, int lenSegs, int radSegs,
+                                                   float timeSec, float rippleAmp, int r, int g, int b, int maxAlpha) {
+        if (maxAlpha <= 5) return;
+        for (int s = 0; s < lenSegs; s++) {
+            float u0 = s / (float) lenSegs;
+            float u1 = (s + 1) / (float) lenSegs;
+            float z0 = -Mth.lerp(u0, zStart, zEnd);
+            float z1 = -Mth.lerp(u1, zStart, zEnd);
+            float wave0 = 1.0F + rippleAmp * Mth.sin(u0 * 11.0F - timeSec * 22.0F);
+            float wave1 = 1.0F + rippleAmp * Mth.sin(u1 * 11.0F - timeSec * 22.0F);
+            float r0 = Mth.lerp(u0 * u0 * 0.35F + u0 * 0.65F, rStart, rEnd) * wave0;
+            float r1 = Mth.lerp(u1 * u1 * 0.35F + u1 * 0.65F, rStart, rEnd) * wave1;
+            // Smooth alpha ramp-in at mouth & soft mist fade-out at far tip
+            float env0 = (u0 < 0.12F ? (u0 / 0.12F) : 1.0F) * (1.0F - u0 * u0);
+            float env1 = (u1 < 0.12F ? (u1 / 0.12F) : 1.0F) * (1.0F - u1 * u1);
+            int a0 = Mth.clamp((int) (maxAlpha * env0), 0, 255);
+            int a1 = Mth.clamp((int) (maxAlpha * env1), 0, 255);
+            for (int i = 0; i < radSegs; i++) {
+                float ang0 = (float) (Math.PI * 2.0D * i / radSegs);
+                float ang1 = (float) (Math.PI * 2.0D * (i + 1) / radSegs);
+                float c0 = Mth.cos(ang0), s0 = Mth.sin(ang0);
+                float c1 = Mth.cos(ang1), s1 = Mth.sin(ang1);
+                vc.addVertex(mat, c0 * r0, s0 * r0, z0).setColor(r, g, b, a0);
+                vc.addVertex(mat, c1 * r0, s1 * r0, z0).setColor(r, g, b, a0);
+                vc.addVertex(mat, c1 * r1, s1 * r1, z1).setColor(r, g, b, a1);
+                vc.addVertex(mat, c0 * r1, s0 * r1, z1).setColor(r, g, b, a1);
+            }
+        }
+    }
+
+    private static void drawHelicalBreathRibbons(VertexConsumer vc, Matrix4f mat, float zStart, float zEnd,
+                                                 float rStart, float rEnd, int segs, float timeSec,
+                                                 int r, int g, int b, int maxAlpha) {
+        if (maxAlpha <= 5) return;
+        for (int strand = 0; strand < 3; strand++) {
+            float phase = strand * (Mth.TWO_PI / 3.0F);
+            for (int i = 0; i < segs; i++) {
+                float u0 = i / (float) segs;
+                float u1 = (i + 1) / (float) segs;
+                float z0 = -Mth.lerp(u0, zStart, zEnd);
+                float z1 = -Mth.lerp(u1, zStart, zEnd);
+                float rad0 = Mth.lerp(u0, rStart, rEnd);
+                float rad1 = Mth.lerp(u1, rStart, rEnd);
+                float ang0 = phase + u0 * 9.5F - timeSec * 16.0F;
+                float ang1 = phase + u1 * 9.5F - timeSec * 16.0F;
+                float w0 = 0.24F + u0 * 0.45F;
+                float w1 = 0.24F + u1 * 0.45F;
+                int a0 = Mth.clamp((int) (maxAlpha * Mth.sin(u0 * Mth.PI)), 0, 255);
+                int a1 = Mth.clamp((int) (maxAlpha * Mth.sin(u1 * Mth.PI)), 0, 255);
+
+                float x0a = Mth.cos(ang0) * rad0, y0a = Mth.sin(ang0) * rad0;
+                float x0b = Mth.cos(ang0 + w0) * rad0, y0b = Mth.sin(ang0 + w0) * rad0;
+                float x1a = Mth.cos(ang1) * rad1, y1a = Mth.sin(ang1) * rad1;
+                float x1b = Mth.cos(ang1 + w1) * rad1, y1b = Mth.sin(ang1 + w1) * rad1;
+
+                // Double-sided helical ribbon
+                vc.addVertex(mat, x0a, y0a, z0).setColor(r, g, b, a0);
+                vc.addVertex(mat, x0b, y0b, z0).setColor(255, 255, 255, a0);
+                vc.addVertex(mat, x1b, y1b, z1).setColor(255, 255, 255, a1);
+                vc.addVertex(mat, x1a, y1a, z1).setColor(r, g, b, a1);
+                vc.addVertex(mat, x1a, y1a, z1).setColor(r, g, b, a1);
+                vc.addVertex(mat, x1b, y1b, z1).setColor(255, 255, 255, a1);
+                vc.addVertex(mat, x0b, y0b, z0).setColor(255, 255, 255, a0);
+                vc.addVertex(mat, x0a, y0a, z0).setColor(r, g, b, a0);
+            }
+        }
     }
 
     private static void renderImpactShockwave(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, int[] rgb) {
@@ -414,10 +567,34 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
             float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
             float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            // Double-sided so ground rings & waves render cleanly from every camera angle
             vc.addVertex(mat, c0 * rIn, y, s0 * rIn).setColor(r, g, b, a);
             vc.addVertex(mat, c0 * rOut, y, s0 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c1 * rOut, y, s1 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c1 * rIn, y, s1 * rIn).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rIn, y, s1 * rIn).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rOut, y, s1 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rOut, y, s0 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rIn, y, s0 * rIn).setColor(r, g, b, a);
+        }
+    }
+
+    private static void drawBeamRing(VertexConsumer vc, Matrix4f mat, float zDist, float rIn, float rOut, int segs, int r, int g, int b, int a) {
+        if (a <= 5) return;
+        float z = -zDist;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (Math.PI * 2.0D * i / segs);
+            float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            vc.addVertex(mat, c0 * rIn, s0 * rIn, z).setColor(r, g, b, 0);
+            vc.addVertex(mat, c0 * rOut, s0 * rOut, z).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rOut, s1 * rOut, z).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rIn, s1 * rIn, z).setColor(r, g, b, 0);
+            vc.addVertex(mat, c1 * rIn, s1 * rIn, z).setColor(r, g, b, 0);
+            vc.addVertex(mat, c1 * rOut, s1 * rOut, z).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rOut, s0 * rOut, z).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rIn, s0 * rIn, z).setColor(r, g, b, 0);
         }
     }
 

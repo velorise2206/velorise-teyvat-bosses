@@ -15,6 +15,7 @@ import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
+import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
@@ -32,6 +33,7 @@ import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
 import com.velorise.teyvatbosses.client.model.PrimoGeovishapModel;
+import com.velorise.teyvatbosses.client.model.PrimoInfusedStoneModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
@@ -58,6 +60,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(PrimoGeovishapModel.LAYER_LOCATION, PrimoGeovishapModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         EntityModelLayerRegistry.registerModelLayer(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(PrimoInfusedStoneModel.LAYER_LOCATION, PrimoInfusedStoneModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);
@@ -81,6 +84,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ANEMO_COMPANION, AnemoCompanionRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP, PrimoGeovishapRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GEO_DRILLER, GeoDrillerRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_INFUSED_STONE, PrimoInfusedStoneRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
 

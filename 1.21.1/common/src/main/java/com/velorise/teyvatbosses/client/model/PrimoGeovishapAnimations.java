@@ -190,28 +190,29 @@ public final class PrimoGeovishapAnimations {
         ModelPart armR = model.getBone("arm_right");
         ModelPart foreL = model.getBone("forearm_left");
         ModelPart foreR = model.getBone("forearm_right");
-        if (armL != null) { armL.xRot -= 10.0F * DEG; armL.zRot += 9.0F * DEG; }
-        if (armR != null) { armR.xRot -= 10.0F * DEG; armR.zRot -= 9.0F * DEG; }
-        if (foreL != null) { foreL.xRot += 12.0F * DEG; foreL.zRot -= 8.0F * DEG; }
-        if (foreR != null) { foreR.xRot += 12.0F * DEG; foreR.zRot += 8.0F * DEG; }
+        if (armL != null) { armL.xRot -= 12.0F * DEG; armL.zRot += 14.0F * DEG; }
+        if (armR != null) { armR.xRot -= 12.0F * DEG; armR.zRot -= 14.0F * DEG; }
+        if (foreL != null) { foreL.xRot += 14.0F * DEG; foreL.zRot -= 12.0F * DEG; }
+        if (foreR != null) { foreR.xRot += 14.0F * DEG; foreR.zRot += 12.0F * DEG; }
 
         ModelPart legL = model.getBone("leg_left");
         ModelPart legR = model.getBone("leg_right");
         ModelPart shinL = model.getBone("shin_left");
         ModelPart shinR = model.getBone("shin_right");
-        if (legL != null) { legL.xRot += 12.0F * DEG; legL.zRot += 5.0F * DEG; }
-        if (legR != null) { legR.xRot += 12.0F * DEG; legR.zRot -= 5.0F * DEG; }
-        if (shinL != null) { shinL.xRot -= 14.0F * DEG; shinL.zRot -= 4.0F * DEG; }
-        if (shinR != null) { shinR.xRot -= 14.0F * DEG; shinR.zRot += 4.0F * DEG; }
+        if (legL != null) { legL.xRot -= 12.0F * DEG; legL.zRot += 6.0F * DEG; }
+        if (legR != null) { legR.xRot -= 12.0F * DEG; legR.zRot -= 6.0F * DEG; }
+        if (shinL != null) { shinL.xRot += 14.0F * DEG; shinL.zRot -= 5.0F * DEG; }
+        if (shinR != null) { shinR.xRot += 14.0F * DEG; shinR.zRot += 5.0F * DEG; }
 
+        // In Minecraft model coords (+Y down, +Z back), negative xRot droops tail DOWN toward ground
         ModelPart t1 = model.getBone("tail_1");
         ModelPart t2 = model.getBone("tail_2");
         ModelPart t3 = model.getBone("tail_3");
         ModelPart t4 = model.getBone("tail_4");
-        if (t1 != null) t1.xRot += 12.0F * DEG;
-        if (t2 != null) t2.xRot += 10.0F * DEG;
-        if (t3 != null) t3.xRot -= 6.0F * DEG;
-        if (t4 != null) t4.xRot -= 9.0F * DEG;
+        if (t1 != null) t1.xRot -= 18.0F * DEG;
+        if (t2 != null) t2.xRot -= 12.0F * DEG;
+        if (t3 != null) t3.xRot += 10.0F * DEG;
+        if (t4 != null) t4.xRot += 14.0F * DEG;
     }
 
     private static void applyClipDirect(PrimoGeovishapModel<?> model, String clipName, float seconds) {
@@ -423,15 +424,15 @@ public final class PrimoGeovishapAnimations {
         Clip c = new Clip("attack_left_claw", 2.30F, false);
         float[] t = f(0.0F, 0.50F, 0.74F, 1.15F, 1.42F, 1.85F, 2.30F);
         c.pos("body", t, f(0, 1.8F, -2.0F, -1.8F, -1.0F, -0.4F, 0), f(0, -2.0F, -3.2F, -3.4F, -1.4F, -0.8F, 0), f(0, 2.2F, -4.4F, -4.2F, -2.4F, -0.8F, 0));
-        c.rot("torso", t, f(0, -12, 14, 16, -14, -4, 0), f(0, 26, -28, -22, 14, 4, 0), f(0, -9, 11, 9, -6, -2, 0));
-        c.rot("neck", t, f(0, -8, 12, 10, -12, -2, 0), f(0, -14, 16, 12, -8, 0, 0), f(0, 4, -6, -4, 3, 0, 0));
-        c.rot("head", t, f(0, -10, 8, 6, -12, 0, 0), f(0, -16, 18, 14, -10, 0, 0), f(0, 6, -8, -6, 4, 0, 0));
+        c.rot("torso", t, f(0, 12, -10, -12, 14, 4, 0), f(0, 28, -30, -24, 16, 4, 0), f(0, -10, 12, 9, -6, -2, 0));
+        c.rot("neck", t, f(0, 6, -8, -6, 10, 2, 0), f(0, -16, 18, 14, -10, 0, 0), f(0, 4, -6, -4, 3, 0, 0));
+        c.rot("head", t, f(0, 8, -6, -4, 10, 0, 0), f(0, -16, 18, 14, -10, 0, 0), f(0, 6, -8, -6, 4, 0, 0));
         c.rot("jaw", t, f(0, 14, 36, 22, 44, 10, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
-        // Hit 1: slam left claw down at 0.74s, pin until 1.15s, Hit 2: violently rip upward at 1.42s!
-        c.rot("arm_left", t, f(0, -80, 44, 42, -54, -14, 0), f(0, -16, 28, 24, -12, 0, 0), f(0, 28, -16, -14, 24, 6, 0));
-        c.rot("forearm_left", t, f(0, -42, -8, 8, -36, -14, 0), f(0,0,0,0,0,0,0), f(0, 12, -6, -4, 10, 0, 0));
-        c.rot("arm_right", t, f(0, 16, -16, -14, 10, 4, 0), f(0,0,0,0,0,0,0), f(0, -12, -16, -14, -8, -4, 0));
-        c.rot("forearm_right", t, f(0, -18, -24, -20, -12, -6, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
+        // Wide open-shoulder wind-up -> sweeping forward claw slam at 0.74s -> explosive rip-up at 1.42s!
+        c.rot("arm_left", t, f(0, 62, 24, 18, 72, 16, 0), f(0, 34, -38, -28, 22, 0, 0), f(0, 46, -14, -10, 38, 10, 0));
+        c.rot("forearm_left", t, f(0, 22, 12, 6, 28, 8, 0), f(0,0,0,0,0,0,0), f(0, 16, -8, -4, 14, 0, 0));
+        c.rot("arm_right", t, f(0, -12, 14, 12, -8, -4, 0), f(0,0,0,0,0,0,0), f(0, -14, -18, -14, -10, -4, 0));
+        c.rot("forearm_right", t, f(0, 12, 16, 14, 8, 4, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
         c.rot("leg_left", t, f(0, 10, -14, -14, 10, 4, 0), f(0,0,0,0,0,0,0), f(0,4,6,6,4,2,0));
         c.rot("shin_left", t, f(0, 8, 16, 16, 6, 4, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
         c.rot("leg_right", t, f(0, 10, -14, -14, 10, 4, 0), f(0,0,0,0,0,0,0), f(0,-4,-6,-6,-4,-2,0));
@@ -450,14 +451,15 @@ public final class PrimoGeovishapAnimations {
         Clip c = new Clip("attack_right_claw", 2.00F, false);
         float[] t = f(0.0F, 0.50F, 0.72F, 1.05F, 1.52F, 2.00F);
         c.pos("body", t, f(0, -1.8F, 2.2F, 1.8F, 0.5F, 0), f(0, -2.2F, -1.6F, -1.8F, -0.8F, 0), f(0, 2.2F, -4.5F, -3.8F, -1.2F, 0));
-        c.rot("torso", t, f(0, -10, 8, 10, -4, 0), f(0, -28, 30, 22, -6, 0), f(0, 9, -11, -8, 3, 0));
-        c.rot("neck", t, f(0, -6, 10, 8, 0, 0), f(0, 14, -16, -12, 0, 0), f(0, -4, 6, 4, 0, 0));
-        c.rot("head", t, f(0, -8, 6, 4, 0, 0), f(0, 16, -18, -14, 0, 0), f(0, -6, 8, 5, 0, 0));
+        c.rot("torso", t, f(0, 10, -8, -8, 4, 0), f(0, -28, 32, 22, -6, 0), f(0, 10, -12, -8, 3, 0));
+        c.rot("neck", t, f(0, 6, -8, -6, 0, 0), f(0, 16, -18, -12, 0, 0), f(0, -4, 6, 4, 0, 0));
+        c.rot("head", t, f(0, 8, -6, -4, 0, 0), f(0, 16, -18, -14, 0, 0), f(0, -6, 8, 5, 0, 0));
         c.rot("jaw", t, f(0, 14, 36, 24, 4, 0), f(0,0,0,0,0,0), f(0,0,0,0,0,0));
-        c.rot("arm_right", t, f(0, -74, 38, 34, -16, 0), f(0, 22, -36, -26, 4, 0), f(0, -32, 20, 16, -8, 0));
-        c.rot("forearm_right", t, f(0, -40, -14, 6, -20, 0), f(0,0,0,0,0,0), f(0, -12, 8, 4, -4, 0));
-        c.rot("arm_left", t, f(0, 14, -18, -12, 0, 0), f(0,0,0,0,0,0), f(0, 10, 14, 8, 0, 0));
-        c.rot("forearm_left", t, f(0, -18, -24, -14, 0, 0), f(0,0,0,0,0,0), f(0,0,0,0,0,0));
+        // Wide horizontal right-shoulder open -> full sweeping claw slash across front!
+        c.rot("arm_right", t, f(0, 60, 24, 18, 12, 0), f(0, -34, 42, 30, -6, 0), f(0, -48, 14, 10, -10, 0));
+        c.rot("forearm_right", t, f(0, 20, 12, 8, 6, 0), f(0,0,0,0,0,0), f(0, -16, 8, 4, -4, 0));
+        c.rot("arm_left", t, f(0, -10, 16, 10, 0, 0), f(0,0,0,0,0,0), f(0, 14, 18, 10, 0, 0));
+        c.rot("forearm_left", t, f(0, 12, 16, 10, 0, 0), f(0,0,0,0,0,0), f(0,0,0,0,0,0));
         c.rot("leg_left", t, f(0, 8, -12, -8, 0, 0), f(0,0,0,0,0,0), f(0,4,6,4,0,0));
         c.rot("shin_left", t, f(0, 8, 14, 10, 0, 0), f(0,0,0,0,0,0), f(0,0,0,0,0,0));
         c.rot("leg_right", t, f(0, 8, -12, -8, 0, 0), f(0,0,0,0,0,0), f(0,-4,-6,-4,0,0));
@@ -481,19 +483,20 @@ public final class PrimoGeovishapAnimations {
                 // Grounded hip squat during 1.98s rear-up (-1.6) so hind feet STAY GLUED TO GROUND!
                 f(0, -1.8F, -2.2F, -1.8F, -2.4F, -1.6F, -4.0F, -4.0F, -2.4F, 0),
                 f(0, 1.6F, -3.4F, -1.6F, -4.6F, 0.8F, -5.6F, -5.6F, -3.8F, 0));
-        c.rot("torso", t, f(0, -8, 12, -8, 14, -38, 22, 22, 12, 0), f(0, -24, 28, 26, -30, 0, 0, 0, 0, 0), f(0, 8, -10, -8, 10, 0, 0, 0, 0, 0));
-        c.rot("neck", t, f(0, -6, 8, -6, 10, -26, 20, 20, 10, 0), f(0, 14, -16, -14, 18, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, -6, 6, -6, 8, -18, 14, 14, 6, 0), f(0, 12, -14, -12, 16, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
+        // Right slash -> Left slash -> proud high Rear-Up (+34 deg chest lift) -> Double-Hand Geo Slam!
+        c.rot("torso", t, f(0, 10, -10, 10, -10, 34, -18, -18, -8, 0), f(0, -26, 30, 26, -30, 0, 0, 0, 0, 0), f(0, 9, -11, -9, 11, 0, 0, 0, 0, 0));
+        c.rot("neck", t, f(0, 6, -6, 6, -8, 22, -14, -14, -6, 0), f(0, 14, -16, -14, 18, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 6, -4, 6, -6, 16, -10, -10, -4, 0), f(0, 12, -14, -12, 16, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
         c.rot("jaw", t, f(0, 14, 32, 18, 36, 52, 44, 40, 14, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
-        c.rot("arm_right", t, f(0, -78, 40, -18, -20, -94, 34, 34, 20, 0), f(0, 18, -32, 0, 0, 14, -12, -12, -6, 0), f(0, -28, 18, -10, -12, -26, 12, 12, 6, 0));
-        c.rot("forearm_right", t, f(0, -40, 10, -16, -18, -44, -8, -8, -4, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, -10, 6, 0, 0, -12, 0, 0, 0, 0));
-        c.rot("arm_left", t, f(0, -16, -20, -80, 42, -94, 34, 34, 20, 0), f(0, 0, 0, -18, 32, -14, 12, 12, 6, 0), f(0, 10, 12, 28, -18, 26, -12, -12, -6, 0));
-        c.rot("forearm_left", t, f(0, -14, -16, -40, 10, -44, -8, -8, -4, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, 0, 0, 10, -6, 12, 0, 0, 0, 0));
-        // Hind legs counter-rotate +36 deg at 1.98s to keep feet planted flat on ground!
-        c.rot("leg_left", t, f(0, 6, -10, 6, -12, 34, -18, -18, -10, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,2,4,2,4,8,6,6,4,0));
-        c.rot("shin_left", t, f(0, 6, 12, 6, 14, -2, 22, 22, 14, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, 6, -10, 6, -12, 34, -18, -18, -10, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,-2,-4,-2,-4,-8,-6,-6,-4,0));
-        c.rot("shin_right", t, f(0, 6, 12, 6, 14, -2, 22, 22, 14, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("arm_right", t, f(0, 60, 24, 12, 10, 96, 18, 18, 10, 0), f(0, -34, 42, 0, 0, -18, 10, 10, 4, 0), f(0, -46, 14, -12, -14, -34, -10, -10, -4, 0));
+        c.rot("forearm_right", t, f(0, 22, 12, 10, 10, 32, 10, 10, 6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, -14, 6, 0, 0, -12, 0, 0, 0, 0));
+        c.rot("arm_left", t, f(0, 12, 10, 60, 24, 96, 18, 18, 10, 0), f(0, 0, 0, 34, -42, 18, -10, -10, -4, 0), f(0, 12, 14, 46, -14, 34, 10, 10, 4, 0));
+        c.rot("forearm_left", t, f(0, 10, 10, 22, 12, 32, 10, 10, 6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, 0, 0, 14, -6, 12, 0, 0, 0, 0));
+        // Hind legs counter-rotate -28 deg at 1.98s rear-up so hind feet stay solidly planted!
+        c.rot("leg_left", t, f(0, -6, 8, -6, 10, -28, 14, 14, 6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,2,4,2,4,8,6,6,4,0));
+        c.rot("shin_left", t, f(0, 4, -8, 4, -10, 14, -14, -14, -6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, -6, 8, -6, 10, -28, 14, 14, 6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,-2,-4,-2,-4,-8,-6,-6,-4,0));
+        c.rot("shin_right", t, f(0, 4, -8, 4, -10, 14, -14, -14, -6, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
         c.rot("tail_1", t, f(0, 4, 4, 4, 4, 26, 14, 14, 6, 0), f(0, 16, -20, -16, 22, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
         c.rot("tail_2", t, f(0, 5, 5, 5, 5, 14, 16, 16, 8, 0), f(0, 20, -26, -20, 28, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
         c.rot("tail_3", t, f(0, 6, 6, 6, 6, 8, 18, 18, 8, 0), f(0, 24, -30, -24, 32, 0, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0,0,0));
@@ -594,20 +597,21 @@ public final class PrimoGeovishapAnimations {
     // =========================================================================
     private static Clip build_attack_elemental_breath() {
         Clip c = new Clip("attack_elemental_breath", 4.20F, false);
-        float[] t = f(0.0F, 0.70F, 1.15F, 1.85F, 2.55F, 3.15F, 3.65F, 4.20F);
-        c.pos("body", t, f(0, -1.0F, -1.2F, 0.0F, 1.2F, 1.0F, 0.4F, 0), f(0, -2.4F, -2.6F, -2.8F, -2.6F, -2.2F, -1.0F, 0), f(0, 3.4F, 3.8F, 4.2F, 3.8F, 2.8F, 1.0F, 0));
-        c.rot("torso", t, f(0, -10, -8, -10, -8, -6, 0, 0), f(0, -16, -20, 0, 20, 16, 4, 0), f(0, 4, 5, 0, -5, -4, 0, 0));
-        c.rot("neck", t, f(0, -12, -8, -10, -8, -4, 0, 0), f(0, -26, -28, 0, 28, 22, 4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, -10, -6, -8, -6, -2, 0, 0), f(0, -22, -24, 0, 24, 18, 4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("jaw", t, f(0, 30, 50, 52, 50, 46, 12, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("arm_left", t, f(0, -16, -18, -20, -18, -12, -4, 0), f(0,0,0,0,0,0,0,0), f(0, 14, 18, 20, 18, 12, 4, 0));
-        c.rot("forearm_left", t, f(0, -12, -14, -14, -14, -10, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("arm_right", t, f(0, -16, -18, -20, -18, -12, -4, 0), f(0,0,0,0,0,0,0,0), f(0, -14, -18, -20, -18, -12, -4, 0));
-        c.rot("forearm_right", t, f(0, -12, -14, -14, -14, -10, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_1", t, f(0, 6, 8, 8, 8, 6, 2, 0), f(0, 14, 18, 0, -18, -14, -4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, 6, 8, 8, 8, 6, 2, 0), f(0, 18, 24, 0, -24, -18, -4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0, 6, 6, 6, 6, 4, 2, 0), f(0, 22, 28, 0, -28, -22, -4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0, 6, 6, 6, 6, 4, 2, 0), f(0, 26, 32, 0, -32, -26, -4, 0), f(0,0,0,0,0,0,0,0));
+        // Synchronized 1:1 with renderer & server beam sweep: t=1.10s (-46 deg) -> t=2.10s (0) -> t=3.10s (+46 deg)
+        float[] t = f(0.0F, 0.70F, 1.10F, 1.60F, 2.10F, 2.60F, 3.10F, 3.65F, 4.20F);
+        c.pos("body", t, f(0, -0.8F, -1.0F, -0.5F, 0.0F, 0.5F, 1.0F, 0.4F, 0), f(0, -2.2F, -2.4F, -2.6F, -2.6F, -2.6F, -2.2F, -1.0F, 0), f(0, 3.0F, 3.4F, 3.6F, 3.8F, 3.6F, 3.0F, 1.0F, 0));
+        c.rot("torso", t, f(0, 6, 4, 4, 4, 4, 4, 0, 0), f(0, -11, -14, -7, 0, 7, 14, 4, 0), f(0, 3, 4, 2, 0, -2, -4, 0, 0));
+        c.rot("neck", t, f(0, 4, -4, -5, -6, -5, -4, 0, 0), f(0, -15, -18, -9, 0, 9, 18, 6, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 4, -4, -5, -6, -5, -4, 0, 0), f(0, -12, -14, -7, 0, 7, 14, 4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 32, 52, 54, 54, 54, 48, 12, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("arm_left", t, f(0, 14, 16, 18, 18, 18, 14, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 14, 18, 20, 20, 20, 14, 4, 0));
+        c.rot("forearm_left", t, f(0, 10, 12, 12, 12, 12, 10, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("arm_right", t, f(0, 14, 16, 18, 18, 18, 14, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -14, -18, -20, -20, -20, -14, -4, 0));
+        c.rot("forearm_right", t, f(0, 10, 12, 12, 12, 12, 10, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_1", t, f(0, 4, 6, 6, 6, 6, 4, 2, 0), f(0, 12, 16, 8, 0, -8, -16, -4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, 4, 6, 6, 6, 6, 4, 2, 0), f(0, 16, 20, 10, 0, -10, -20, -4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0, 4, 4, 4, 4, 4, 4, 2, 0), f(0, 20, 24, 12, 0, -12, -24, -4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0, 4, 4, 4, 4, 4, 4, 2, 0), f(0, 22, 28, 14, 0, -14, -28, -4, 0), f(0,0,0,0,0,0,0,0,0));
         return c;
     }
 

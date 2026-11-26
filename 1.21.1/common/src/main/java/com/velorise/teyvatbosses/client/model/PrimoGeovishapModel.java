@@ -133,43 +133,43 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(0, 0).addBox(7.200F, -6.500F, 8.000F, 5.200F, 8.500F, 9.500F, new CubeDeformation(inflate + 0.015F))
                 , PartPose.offset(0.000F, -0.000F, 0.000F));
         part.addOrReplaceChild("c_0", CubeListBuilder.create().texOffs(128, 0).addBox(-2.200F, -9.500F, -2.200F, 4.400F, 11.000F, 4.400F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(-11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, 0.4538F));
-        part.addOrReplaceChild("c_1", CubeListBuilder.create().texOffs(192, 0).addBox(-1.320F, -11.900F, -1.320F, 2.640F, 4.600F, 2.640F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(-11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, 0.4538F));
-        part.addOrReplaceChild("c_2", CubeListBuilder.create().texOffs(128, 0).addBox(-2.500F, -12.500F, -2.500F, 5.000F, 14.000F, 5.000F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(-13.500F, -13.500F, -8.500F, -0.6283F, -0.0000F, 0.5236F));
-        part.addOrReplaceChild("c_3", CubeListBuilder.create().texOffs(128, 0).addBox(-2.600F, -13.500F, -2.600F, 5.200F, 15.000F, 5.200F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(-14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, 0.4887F));
-        part.addOrReplaceChild("c_4", CubeListBuilder.create().texOffs(192, 0).addBox(-1.560F, -15.900F, -1.560F, 3.120F, 4.600F, 3.120F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(-14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, 0.4887F));
-        part.addOrReplaceChild("c_5", CubeListBuilder.create().texOffs(128, 0).addBox(-2.400F, -12.000F, -2.400F, 4.800F, 13.500F, 4.800F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(-13.000F, -11.800F, 2.500F, -0.6981F, -0.0000F, 0.4189F));
+        part.addOrReplaceChild("c_1", CubeListBuilder.create().texOffs(192, 0).addBox(-1.150F, -9.800F, -1.150F, 2.300F, 3.200F, 2.300F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(-11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, 0.4538F));
+        part.addOrReplaceChild("c_2", CubeListBuilder.create().texOffs(128, 0).addBox(-2.700F, -10.500F, -2.700F, 5.400F, 12.000F, 5.400F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(-13.500F, -13.500F, -8.500F, -0.6283F, -0.0000F, 0.5236F));
+        part.addOrReplaceChild("c_3", CubeListBuilder.create().texOffs(128, 0).addBox(-2.850F, -11.400F, -2.850F, 5.700F, 12.800F, 5.700F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(-14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, 0.4887F));
+        part.addOrReplaceChild("c_4", CubeListBuilder.create().texOffs(192, 0).addBox(-1.350F, -13.200F, -1.350F, 2.700F, 3.400F, 2.700F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(-14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, 0.4887F));
+        part.addOrReplaceChild("c_5", CubeListBuilder.create().texOffs(128, 0).addBox(-2.600F, -10.200F, -2.600F, 5.200F, 11.600F, 5.200F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(-13.000F, -11.800F, 2.500F, -0.6981F, -0.0000F, 0.4189F));
         part.addOrReplaceChild("c_6", CubeListBuilder.create().texOffs(128, 0).addBox(-2.100F, -10.500F, -2.100F, 4.200F, 12.000F, 4.200F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(-11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, 0.3491F));
-        part.addOrReplaceChild("c_7", CubeListBuilder.create().texOffs(192, 0).addBox(-1.260F, -12.900F, -1.260F, 2.520F, 4.600F, 2.520F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(-11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, 0.3491F));
+        part.addOrReplaceChild("c_7", CubeListBuilder.create().texOffs(192, 0).addBox(-1.100F, -10.600F, -1.100F, 2.200F, 3.200F, 2.200F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(-11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, 0.3491F));
         part.addOrReplaceChild("c_8", CubeListBuilder.create().texOffs(128, 0).addBox(-1.800F, -8.500F, -1.800F, 3.600F, 10.000F, 3.600F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(-9.500F, -7.800F, 12.000F, -0.7679F, -0.0000F, 0.2793F));
         part.addOrReplaceChild("c_9", CubeListBuilder.create().texOffs(128, 0).addBox(-1.500F, -6.500F, -1.500F, 3.000F, 8.000F, 3.000F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(-7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, 0.2094F));
-        part.addOrReplaceChild("c_10", CubeListBuilder.create().texOffs(192, 0).addBox(-0.900F, -8.900F, -0.900F, 1.800F, 4.600F, 1.800F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(-7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, 0.2094F));
+        part.addOrReplaceChild("c_10", CubeListBuilder.create().texOffs(192, 0).addBox(-0.850F, -7.200F, -0.850F, 1.700F, 2.800F, 1.700F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(-7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, 0.2094F));
         part.addOrReplaceChild("c_11", CubeListBuilder.create().texOffs(0, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(-12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, 0.2094F));
-        part.addOrReplaceChild("c_12", CubeListBuilder.create().texOffs(128, 128).addBox(-2.450F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(-12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, 0.2094F));
+        part.addOrReplaceChild("c_12", CubeListBuilder.create().texOffs(128, 128).addBox(-2.220F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(-12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, 0.2094F));
         part.addOrReplaceChild("c_13", CubeListBuilder.create().texOffs(64, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(-12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, 0.2094F));
-        part.addOrReplaceChild("c_14", CubeListBuilder.create().texOffs(128, 128).addBox(-2.450F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(-12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, 0.2094F));
+        part.addOrReplaceChild("c_14", CubeListBuilder.create().texOffs(128, 128).addBox(-2.220F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(-12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, 0.2094F));
         part.addOrReplaceChild("c_15", CubeListBuilder.create().texOffs(0, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(-11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, 0.2094F));
-        part.addOrReplaceChild("c_16", CubeListBuilder.create().texOffs(128, 128).addBox(-2.450F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(-11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, 0.2094F));
+        part.addOrReplaceChild("c_16", CubeListBuilder.create().texOffs(128, 128).addBox(-2.220F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(-11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, 0.2094F));
         part.addOrReplaceChild("c_17", CubeListBuilder.create().texOffs(64, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(-10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, 0.2094F));
-        part.addOrReplaceChild("c_18", CubeListBuilder.create().texOffs(128, 128).addBox(-2.450F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(-10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, 0.2094F));
+        part.addOrReplaceChild("c_18", CubeListBuilder.create().texOffs(128, 128).addBox(-2.220F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(-10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, 0.2094F));
         part.addOrReplaceChild("c_19", CubeListBuilder.create().texOffs(128, 0).addBox(-2.200F, -9.500F, -2.200F, 4.400F, 11.000F, 4.400F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, -0.4538F));
-        part.addOrReplaceChild("c_20", CubeListBuilder.create().texOffs(192, 0).addBox(-1.320F, -11.900F, -1.320F, 2.640F, 4.600F, 2.640F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, -0.4538F));
-        part.addOrReplaceChild("c_21", CubeListBuilder.create().texOffs(128, 0).addBox(-2.500F, -12.500F, -2.500F, 5.000F, 14.000F, 5.000F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(13.500F, -13.500F, -8.500F, -0.6283F, -0.0000F, -0.5236F));
-        part.addOrReplaceChild("c_22", CubeListBuilder.create().texOffs(128, 0).addBox(-2.600F, -13.500F, -2.600F, 5.200F, 15.000F, 5.200F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, -0.4887F));
-        part.addOrReplaceChild("c_23", CubeListBuilder.create().texOffs(192, 0).addBox(-1.560F, -15.900F, -1.560F, 3.120F, 4.600F, 3.120F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, -0.4887F));
-        part.addOrReplaceChild("c_24", CubeListBuilder.create().texOffs(128, 0).addBox(-2.400F, -12.000F, -2.400F, 4.800F, 13.500F, 4.800F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(13.000F, -11.800F, 2.500F, -0.6981F, -0.0000F, -0.4189F));
+        part.addOrReplaceChild("c_20", CubeListBuilder.create().texOffs(192, 0).addBox(-1.150F, -9.800F, -1.150F, 2.300F, 3.200F, 2.300F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(11.500F, -12.500F, -13.500F, -0.5585F, -0.0000F, -0.4538F));
+        part.addOrReplaceChild("c_21", CubeListBuilder.create().texOffs(128, 0).addBox(-2.700F, -10.500F, -2.700F, 5.400F, 12.000F, 5.400F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(13.500F, -13.500F, -8.500F, -0.6283F, -0.0000F, -0.5236F));
+        part.addOrReplaceChild("c_22", CubeListBuilder.create().texOffs(128, 0).addBox(-2.850F, -11.400F, -2.850F, 5.700F, 12.800F, 5.700F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, -0.4887F));
+        part.addOrReplaceChild("c_23", CubeListBuilder.create().texOffs(192, 0).addBox(-1.350F, -13.200F, -1.350F, 2.700F, 3.400F, 2.700F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(14.000F, -13.000F, -3.000F, -0.6632F, -0.0000F, -0.4887F));
+        part.addOrReplaceChild("c_24", CubeListBuilder.create().texOffs(128, 0).addBox(-2.600F, -10.200F, -2.600F, 5.200F, 11.600F, 5.200F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(13.000F, -11.800F, 2.500F, -0.6981F, -0.0000F, -0.4189F));
         part.addOrReplaceChild("c_25", CubeListBuilder.create().texOffs(128, 0).addBox(-2.100F, -10.500F, -2.100F, 4.200F, 12.000F, 4.200F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, -0.3491F));
-        part.addOrReplaceChild("c_26", CubeListBuilder.create().texOffs(192, 0).addBox(-1.260F, -12.900F, -1.260F, 2.520F, 4.600F, 2.520F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, -0.3491F));
+        part.addOrReplaceChild("c_26", CubeListBuilder.create().texOffs(192, 0).addBox(-1.100F, -10.600F, -1.100F, 2.200F, 3.200F, 2.200F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(11.500F, -10.000F, 7.500F, -0.7330F, -0.0000F, -0.3491F));
         part.addOrReplaceChild("c_27", CubeListBuilder.create().texOffs(128, 0).addBox(-1.800F, -8.500F, -1.800F, 3.600F, 10.000F, 3.600F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(9.500F, -7.800F, 12.000F, -0.7679F, -0.0000F, -0.2793F));
         part.addOrReplaceChild("c_28", CubeListBuilder.create().texOffs(128, 0).addBox(-1.500F, -6.500F, -1.500F, 3.000F, 8.000F, 3.000F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, -0.2094F));
-        part.addOrReplaceChild("c_29", CubeListBuilder.create().texOffs(192, 0).addBox(-0.900F, -8.900F, -0.900F, 1.800F, 4.600F, 1.800F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, -0.2094F));
+        part.addOrReplaceChild("c_29", CubeListBuilder.create().texOffs(192, 0).addBox(-0.850F, -7.200F, -0.850F, 1.700F, 2.800F, 1.700F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(7.500F, -5.800F, 16.000F, -0.7854F, -0.0000F, -0.2094F));
         part.addOrReplaceChild("c_30", CubeListBuilder.create().texOffs(0, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, -0.2094F));
-        part.addOrReplaceChild("c_31", CubeListBuilder.create().texOffs(128, 128).addBox(1.250F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, -0.2094F));
+        part.addOrReplaceChild("c_31", CubeListBuilder.create().texOffs(128, 128).addBox(1.520F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(12.800F, -2.500F, -13.000F, -0.0000F, -0.0000F, -0.2094F));
         part.addOrReplaceChild("c_32", CubeListBuilder.create().texOffs(64, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, -0.2094F));
-        part.addOrReplaceChild("c_33", CubeListBuilder.create().texOffs(128, 128).addBox(1.250F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, -0.2094F));
+        part.addOrReplaceChild("c_33", CubeListBuilder.create().texOffs(128, 128).addBox(1.520F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(12.000F, -1.300F, -4.500F, -0.0000F, -0.0000F, -0.2094F));
         part.addOrReplaceChild("c_34", CubeListBuilder.create().texOffs(0, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, -0.2094F));
-        part.addOrReplaceChild("c_35", CubeListBuilder.create().texOffs(128, 128).addBox(1.250F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, -0.2094F));
+        part.addOrReplaceChild("c_35", CubeListBuilder.create().texOffs(128, 128).addBox(1.520F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.015F)), PartPose.offsetAndRotation(11.200F, -0.100F, 4.000F, -0.0000F, -0.0000F, -0.2094F));
         part.addOrReplaceChild("c_36", CubeListBuilder.create().texOffs(64, 0).addBox(-2.000F, -4.200F, -3.800F, 4.000F, 8.400F, 7.600F, new CubeDeformation(inflate + 0.018F)), PartPose.offsetAndRotation(10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, -0.2094F));
-        part.addOrReplaceChild("c_37", CubeListBuilder.create().texOffs(128, 128).addBox(1.250F, -2.800F, -2.600F, 1.200F, 5.600F, 5.200F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, -0.2094F));
+        part.addOrReplaceChild("c_37", CubeListBuilder.create().texOffs(128, 128).addBox(1.520F, -0.950F, -2.300F, 0.700F, 1.900F, 4.600F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(10.400F, 1.100F, 12.500F, -0.0000F, -0.0000F, -0.2094F));
         part.addOrReplaceChild("c_38", CubeListBuilder.create().texOffs(128, 0).addBox(-1.600F, -5.500F, -1.400F, 3.200F, 6.500F, 2.800F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(0.000F, -15.500F, -14.500F, -0.4887F, -0.0000F, 0.0000F));
         part.addOrReplaceChild("c_39", CubeListBuilder.create().texOffs(128, 0).addBox(-1.600F, -8.000F, -1.400F, 3.200F, 9.000F, 2.800F, new CubeDeformation(inflate + 0.006F)), PartPose.offsetAndRotation(0.000F, -14.100F, -7.700F, -0.4887F, -0.0000F, 0.0000F));
         part.addOrReplaceChild("c_40", CubeListBuilder.create().texOffs(128, 0).addBox(-1.600F, -8.000F, -1.400F, 3.200F, 9.000F, 2.800F, new CubeDeformation(inflate + 0.009F)), PartPose.offsetAndRotation(0.000F, -12.700F, -0.900F, -0.4887F, -0.0000F, 0.0000F));
@@ -220,10 +220,10 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
         PartDefinition part = parent.addOrReplaceChild("head", CubeListBuilder.create()
                 .texOffs(0, 0).addBox(-6.500F, -4.500F, -10.000F, 13.000F, 7.700F, 11.500F, new CubeDeformation(inflate + 0.003F))
                 .texOffs(0, 0).addBox(-5.200F, -2.500F, -15.500F, 10.400F, 6.000F, 6.500F, new CubeDeformation(inflate + 0.006F))
-                .texOffs(64, 0).addBox(-3.600F, -1.800F, -17.200F, 7.200F, 4.800F, 2.700F, new CubeDeformation(inflate + 0.009F))
+                .texOffs(0, 0).addBox(-3.600F, -1.800F, -17.200F, 7.200F, 4.800F, 2.700F, new CubeDeformation(inflate + 0.009F))
                 .texOffs(128, 0).addBox(-1.200F, -7.600F, -12.500F, 2.400F, 2.800F, 10.500F, new CubeDeformation(inflate + 0.012F))
-                .texOffs(128, 0).addBox(-4.000F, 2.400F, -13.500F, 8.000F, 1.400F, 11.000F, new CubeDeformation(inflate + 0.015F))
-                .texOffs(64, 128).addBox(-6.700F, -1.600F, -9.200F, 1.600F, 1.800F, 3.000F, new CubeDeformation(inflate + 0.018F))
+                .texOffs(256, 128).addBox(-4.000F, 2.400F, -13.500F, 8.000F, 1.400F, 11.000F, new CubeDeformation(inflate + 0.015F))
+                
                 .texOffs(128, 64).addBox(-4.800F, 3.200F, -15.100F, 1.200F, 3.200F, 1.200F, new CubeDeformation(inflate + 0.006F))
                 .texOffs(128, 64).addBox(-4.800F, 3.200F, -10.400F, 1.200F, 2.400F, 1.200F, new CubeDeformation(inflate + 0.009F))
                 .texOffs(0, 0).addBox(-5.700F, -2.200F, -15.000F, 2.400F, 3.200F, 5.000F, new CubeDeformation(inflate + 0.015F))
@@ -232,7 +232,7 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(0, 0).addBox(-6.400F, -5.800F, -7.000F, 3.200F, 2.300F, 7.500F, new CubeDeformation(inflate + 0.003F))
                 .texOffs(64, 64).addBox(-7.400F, -0.000F, -5.500F, 2.400F, 3.000F, 6.500F, new CubeDeformation(inflate + 0.006F))
                 .texOffs(0, 128).addBox(-3.200F, -2.400F, -17.500F, 1.400F, 1.600F, 2.000F, new CubeDeformation(inflate + 0.009F))
-                .texOffs(64, 128).addBox(5.100F, -1.600F, -9.200F, 1.600F, 1.800F, 3.000F, new CubeDeformation(inflate + 0.012F))
+                
                 .texOffs(128, 64).addBox(3.600F, 3.200F, -15.100F, 1.200F, 3.200F, 1.200F, new CubeDeformation(inflate + 0.000F))
                 .texOffs(128, 64).addBox(3.600F, 3.200F, -10.400F, 1.200F, 2.400F, 1.200F, new CubeDeformation(inflate + 0.003F))
                 .texOffs(0, 0).addBox(3.300F, -2.200F, -15.000F, 2.400F, 3.200F, 5.000F, new CubeDeformation(inflate + 0.009F))
@@ -242,6 +242,8 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(64, 64).addBox(5.000F, -0.000F, -5.500F, 2.400F, 3.000F, 6.500F, new CubeDeformation(inflate + 0.000F))
                 .texOffs(0, 128).addBox(1.800F, -2.400F, -17.500F, 1.400F, 1.600F, 2.000F, new CubeDeformation(inflate + 0.003F))
                 , PartPose.offset(0.000F, -3.000F, -8.000F));
+        part.addOrReplaceChild("eye_left", CubeListBuilder.create().texOffs(64, 128).addBox(-6.850F, -1.800F, -10.200F, 1.800F, 2.000F, 3.600F, new CubeDeformation(inflate + 0.020F)), PartPose.ZERO);
+        part.addOrReplaceChild("eye_right", CubeListBuilder.create().texOffs(64, 128).addBox(5.050F, -1.800F, -10.200F, 1.800F, 2.000F, 3.600F, new CubeDeformation(inflate + 0.020F)), PartPose.ZERO);
         part.addOrReplaceChild("c_0", CubeListBuilder.create().texOffs(64, 0).addBox(-7.100F, -3.800F, -11.000F, 3.000F, 2.200F, 7.000F, new CubeDeformation(inflate + 0.000F)), PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.0000F, -0.0000F, 0.2443F));
         part.addOrReplaceChild("c_1", CubeListBuilder.create().texOffs(0, 0).addBox(-7.700F, -5.000F, -7.000F, 2.400F, 2.600F, 6.500F, new CubeDeformation(inflate + 0.003F)), PartPose.offsetAndRotation(0.000F, -0.000F, 0.000F, -0.0000F, -0.0000F, 0.3142F));
         part.addOrReplaceChild("c_2", CubeListBuilder.create().texOffs(128, 64).addBox(-2.200F, -2.200F, -3.800F, 4.400F, 4.400F, 7.600F, new CubeDeformation(inflate + 0.012F)), PartPose.offsetAndRotation(-5.500F, -4.200F, -0.500F, -0.3142F, -0.3142F, 0.2094F));
@@ -268,8 +270,8 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
         PartDefinition part = parent.addOrReplaceChild("jaw", CubeListBuilder.create()
                 .texOffs(0, 0).addBox(-5.200F, -0.000F, -11.000F, 10.400F, 3.500F, 11.500F, new CubeDeformation(inflate + 0.006F))
                 .texOffs(64, 0).addBox(-4.200F, 2.500F, -12.200F, 8.400F, 2.300F, 9.200F, new CubeDeformation(inflate + 0.009F))
-                .texOffs(128, 0).addBox(-3.800F, -0.200F, -9.000F, 7.600F, 1.700F, 8.500F, new CubeDeformation(inflate + 0.012F))
-                .texOffs(192, 0).addBox(-2.400F, -0.800F, -7.000F, 4.800F, 1.800F, 5.500F, new CubeDeformation(inflate + 0.015F))
+                .texOffs(256, 128).addBox(-3.800F, -0.200F, -9.000F, 7.600F, 1.700F, 8.500F, new CubeDeformation(inflate + 0.012F))
+                .texOffs(256, 128).addBox(-2.400F, -0.800F, -7.000F, 4.800F, 1.800F, 5.500F, new CubeDeformation(inflate + 0.015F))
                 .texOffs(128, 64).addBox(-4.400F, -2.500F, -10.800F, 1.200F, 2.700F, 1.200F, new CubeDeformation(inflate + 0.018F))
                 .texOffs(128, 64).addBox(-4.400F, -1.900F, -6.600F, 1.200F, 2.100F, 1.200F, new CubeDeformation(inflate + 0.000F))
                 .texOffs(0, 64).addBox(-4.400F, 3.600F, -11.000F, 2.400F, 1.600F, 5.000F, new CubeDeformation(inflate + 0.009F))
@@ -539,5 +541,24 @@ public class PrimoGeovishapModel<T extends Entity> extends EntityModel<T> {
     @Override
     public void renderToBuffer(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color) {
         root.render(poseStack, buffer, packedLight, packedOverlay, color);
+    }
+
+    /** Renders ONLY the golden-amber dragon eyes along the animated root->body->torso->neck->head transform chain. */
+    public void renderGoldenEyes(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color) {
+        ModelPart bBody = bones.get("body");
+        ModelPart bTorso = bones.get("torso");
+        ModelPart bNeck = bones.get("neck");
+        ModelPart bHead = bones.get("head");
+        if (bBody == null || bTorso == null || bNeck == null || bHead == null) return;
+        if (!bHead.hasChild("eye_left") || !bHead.hasChild("eye_right")) return;
+        poseStack.pushPose();
+        root.translateAndRotate(poseStack);
+        bBody.translateAndRotate(poseStack);
+        bTorso.translateAndRotate(poseStack);
+        bNeck.translateAndRotate(poseStack);
+        bHead.translateAndRotate(poseStack);
+        bHead.getChild("eye_left").render(poseStack, buffer, packedLight, packedOverlay, color);
+        bHead.getChild("eye_right").render(poseStack, buffer, packedLight, packedOverlay, color);
+        poseStack.popPose();
     }
 }

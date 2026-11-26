@@ -15,6 +15,7 @@ import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
+import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
@@ -135,6 +136,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<GeoDrillerEntity> GEO_DRILLER = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("geo_driller"),
             EntityType.Builder.of(GeoDrillerEntity::new, MobCategory.MISC).sized(2.4F, 2.1F).clientTrackingRange(14).build("geo_driller"));
+    public static final EntityType<PrimoInfusedStoneEntity> PRIMO_INFUSED_STONE = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("primo_infused_stone"),
+            EntityType.Builder.<PrimoInfusedStoneEntity>of(PrimoInfusedStoneEntity::new, MobCategory.MISC).sized(1.3F, 2.2F).clientTrackingRange(14).updateInterval(2).build("primo_infused_stone"));
 
     // 5 Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
@@ -381,7 +385,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> ANEMO_HYPOSTASIS, () -> ANEMO_WIND_ORB, () -> ANEMO_TORNADO, () -> ANEMO_MISSILE, () -> WIND_CURRENT, () -> TROUNCE_BLOSSOM,
                 () -> RUIN_GUARD, () -> RUIN_MISSILE, () -> RUIN_MECH, () -> CRYO_TURRET,
                 () -> RUIN_NAUTILUS, () -> RUIN_TORPEDO, () -> RUIN_SUBMERSIBLE, () -> ANEMO_COMPANION,
-                () -> PRIMO_GEOVISHAP, () -> GEO_DRILLER
+                () -> PRIMO_GEOVISHAP, () -> GEO_DRILLER, () -> PRIMO_INFUSED_STONE
         );
         TeyvatBossesBlocks.bind(
                 () -> CRYO_REGISVINE_TROPHY, () -> ANEMO_HYPOSTASIS_TROPHY,

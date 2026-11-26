@@ -12,6 +12,7 @@ import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
+import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
@@ -50,6 +51,7 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<AnemoCompanionEntity>> anemoCompanion;
     private static Supplier<EntityType<PrimoGeovishapEntity>> primoGeovishap;
     private static Supplier<EntityType<GeoDrillerEntity>> geoDriller;
+    private static Supplier<EntityType<PrimoInfusedStoneEntity>> primoInfusedStone;
 
     private TeyvatBossesEntities() {}
 
@@ -73,7 +75,8 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersibleSupplier,
             Supplier<EntityType<AnemoCompanionEntity>> anemoCompanionSupplier,
             Supplier<EntityType<PrimoGeovishapEntity>> primoGeovishapSupplier,
-            Supplier<EntityType<GeoDrillerEntity>> geoDrillerSupplier
+            Supplier<EntityType<GeoDrillerEntity>> geoDrillerSupplier,
+            Supplier<EntityType<PrimoInfusedStoneEntity>> primoInfusedStoneSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -95,6 +98,7 @@ public final class TeyvatBossesEntities {
         anemoCompanion = anemoCompanionSupplier;
         primoGeovishap = primoGeovishapSupplier;
         geoDriller = geoDrillerSupplier;
+        primoInfusedStone = primoInfusedStoneSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -117,4 +121,5 @@ public final class TeyvatBossesEntities {
     public static EntityType<AnemoCompanionEntity> anemoCompanion() { return anemoCompanion.get(); }
     public static EntityType<PrimoGeovishapEntity> primoGeovishap() { return primoGeovishap.get(); }
     public static EntityType<GeoDrillerEntity> geoDriller() { return geoDriller.get(); }
+    public static EntityType<PrimoInfusedStoneEntity> primoInfusedStone() { return primoInfusedStone.get(); }
 }

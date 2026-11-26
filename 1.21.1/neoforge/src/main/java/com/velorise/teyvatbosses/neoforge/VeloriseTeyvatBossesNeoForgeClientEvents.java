@@ -6,6 +6,7 @@ import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
+import com.velorise.teyvatbosses.client.TeyvatBossBarRenderer;
 import net.minecraft.client.Minecraft;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.neoforged.api.distmarker.Dist;
@@ -13,6 +14,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -71,6 +73,20 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setDistance(RuinSubClientController.THIRD_PERSON_ZOOM);
         } else if (GeoDrillerClientController.isPilotingDriller()) {
             event.setDistance(GeoDrillerClientController.THIRD_PERSON_ZOOM);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBossBarRender(CustomizeGuiOverlayEvent.BossEventProgress event) {
+        int customInc = TeyvatBossBarRenderer.tryRender(
+                event.getGuiGraphics(),
+                event.getBossEvent(),
+                event.getX(),
+                event.getY()
+        );
+        if (customInc > 0) {
+            event.setCanceled(true);
+            event.setIncrement(customInc);
         }
     }
 }

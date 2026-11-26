@@ -4,6 +4,7 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.BossMusicManager;
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,6 +33,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -111,14 +113,14 @@ public class PrimoGeovishapEntity extends Monster {
 
     // Canonical Genshin per-skill cooldowns (in ticks, 20 ticks = 1s)
     private int stateTick = 0;
-    private int attackCooldown = 44;         // Global action interval (~2.2–3.2s)
-    private int showerCooldown = 400;        // Initial 20s CD (canonical Genshin)
-    private int springCooldown = 0;          // Near-death (<=20% HP) Primeval Spring CD (20-40s)
+    private int attackCooldown = 28;         // Brisk Genshin action interval (~1.4–2.1s)
+    private int showerCooldown = 260;        // Initial 13s CD (canonical Genshin 12-15s)
+    private int springCooldown = 0;          // Near-death (<=20% HP) Primeval Spring CD (20-30s)
     private int whirlwindCooldown = 0;       // Anti-flank Whirlwind CD (5s)
-    private int burrowCooldown = 160;        // Burrow Close (20s) / Far (5s)
-    private int breathCooldown = 180;        // Elemental Breath CD (15-24s)
-    private int comboCooldown = 140;         // Combo Slash CD (15-22s)
-    private int scatteredCooldown = 100;     // Scattered Rocks CD (10-16s)
+    private int burrowCooldown = 120;        // Burrow Close (16s) / Far (6s)
+    private int breathCooldown = 140;        // Elemental Breath CD (14-20s)
+    private int comboCooldown = 100;         // Combo Slash CD (11-16s)
+    private int scatteredCooldown = 80;      // Scattered Rocks CD (9-13s)
 
     private int lastAttackAnim = -1;
     private int noTargetTicks = 0;
@@ -170,7 +172,7 @@ public class PrimoGeovishapEntity extends Monster {
                 .add(Attributes.ATTACK_DAMAGE, 20.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.25D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.STEP_HEIGHT, 1.5D)
+                .add(Attributes.STEP_HEIGHT, 1.85D)
                 .add(Attributes.FOLLOW_RANGE, 44.0D);
     }
 
@@ -259,10 +261,27 @@ public class PrimoGeovishapEntity extends Monster {
     }
 
     @Override
+    protected PathNavigation createNavigation(Level level) {
+        return new BossGroundNavigation(this, level);
+    }
+
+    @Override
     public boolean removeWhenFarAway(double distSq) { return false; }
 
     @Override
     public boolean isPushable() { return false; }
+
+    @Override
+    public void push(Entity entity) {}
+
+    @Override
+    public void push(double x, double y, double z) {}
+
+    @Override
+    public void knockback(double strength, double x, double z) {}
+
+    @Override
+    public boolean ignoreExplosion(net.minecraft.world.level.Explosion explosion) { return true; }
 
     @Override
     protected boolean canRide(Entity vehicle) { return false; }
@@ -593,9 +612,7 @@ public class PrimoGeovishapEntity extends Monster {
 
     private void spawnInfusedStone(ServerLevel sl, double x, double z, int fuseTicks) {
         double y = sampleSafeGroundY(sl, x, z, getY());
-        activeStones.add(new InfusedStoneHazard(new Vec3(x, y, z), fuseTicks, getInfusion()));
-        sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DRIPSTONE_BLOCK.defaultBlockState()),
-                x, y + 0.4D, z, 8, 0.4D, 0.3D, 0.4D, 0.08D);
+        PrimoInfusedStoneEntity.spawn(sl, this, x, y, z, getInfusion(), fuseTicks);
     }
 
     private void detonateInfusedStone(ServerLevel sl, InfusedStoneHazard stone) {
@@ -654,7 +671,7 @@ public class PrimoGeovishapEntity extends Monster {
      */
     private void tickAntiTrapBlockBreak(ServerLevel sl) {
         if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
-            destroyBlocksTick = 20;
+            destroyBlocksTick = 10;
         }
         if (destroyBlocksTick <= 0) return;
         destroyBlocksTick--;
@@ -715,22 +732,28 @@ public class PrimoGeovishapEntity extends Monster {
                 return;
             }
 
-            // Smooth turn rate; slower when idle for heavy draconic weight, nimble when pursuing
-            faceTargetSmooth(target, dist > 7.5D ? 6.5F : 5.0F);
+            // Responsive turn rate so boss locks on briskly without wasting seconds rotating
+            faceTargetSmooth(target, dist > 7.5D ? 10.5F : 8.5F);
             if (attackCooldown > 0) attackCooldown--;
 
             // Clean rest & pursuit cadence (scaled for 1.60x canonical body size)
-            if (dist > 6.6D) {
+            if (dist > 6.2D) {
                 if (anim != ANIM_WALK) {
                     entityData.set(DATA_ANIM, ANIM_WALK);
                     entityData.set(DATA_ANIM_TICK, 0);
                     stateTick = 0;
                 }
-                Vec3 dir = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
-                double speed = dist > 15.0D ? 0.27D : 0.23D;
-                setDeltaMovement(Mth.lerp(0.24D, getDeltaMovement().x, dir.x * speed),
-                        getDeltaMovement().y,
-                        Mth.lerp(0.24D, getDeltaMovement().z, dir.z * speed));
+                if (stateTick % 6 == 0 || getNavigation().isDone()) {
+                    getNavigation().moveTo(target, dist > 15.0D ? 1.35D : 1.18D);
+                }
+                Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
+                        ? bnav.getSteerDirection(target.position())
+                        : new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
+                double speed = dist > 15.0D ? 0.29D : 0.25D;
+                double jumpY = (this.horizontalCollision && this.onGround()) ? 0.48D : getDeltaMovement().y;
+                setDeltaMovement(Mth.lerp(0.28D, getDeltaMovement().x, dir.x * speed),
+                        jumpY,
+                        Mth.lerp(0.28D, getDeltaMovement().z, dir.z * speed));
                 if (stateTick % 18 == 9) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.35F, 0.58F);
                 }
@@ -776,11 +799,10 @@ public class PrimoGeovishapEntity extends Monster {
             chosen = ANIM_PRIMEVAL_SPRING;
             springCooldown = 400 + random.nextInt(200); // 20-30s
         }
-        // Priority 1 (Normal >20% HP): Primordial Shower only when front-facing (0-60 deg) & <=14m
-        else if (!nearDeath && showerCooldown <= 0 && getHealth() <= getMaxHealth() * 0.90F
-                && dist <= 14.0D && relAngle <= 65.0F) {
+        // Priority 1 (Normal >20% HP): Primordial Shower whenever off CD & front-facing (no HP<=90% lock!)
+        else if (!nearDeath && showerCooldown <= 0 && dist <= 15.0D && relAngle <= 75.0F) {
             chosen = ANIM_PRIMORDIAL_SHOWER;
-            showerCooldown = 400; // Canonical 20s CD
+            showerCooldown = 360; // Canonical 18s CD
         }
         // Far range (>20m): Fast Burrow (Far) with short 5s CD to punish kiters
         else if (dist > 20.0D && burrowCooldown <= 0) {
@@ -808,28 +830,38 @@ public class PrimoGeovishapEntity extends Monster {
         // Mid-Close combat (0-12.5m): smart weighted pool respecting per-skill cooldowns
         else {
             List<Integer> candidates = new ArrayList<>();
-            if (dist <= 9.0D) {
+            // Strict range-gated melee: never whiff 7.2m claws at 9-12m!
+            if (dist <= 7.2D) {
                 candidates.add(ANIM_RIGHT_CLAW);
                 candidates.add(ANIM_LEFT_CLAW);
             }
-            if (comboCooldown <= 0 && dist <= 12.5D) {
+            if (comboCooldown <= 0 && dist <= 8.6D) {
                 candidates.add(ANIM_COMBO_SLASH);
-                if (nearDeath) candidates.add(ANIM_COMBO_SLASH); // Extra aggression near death
+                if (nearDeath) candidates.add(ANIM_COMBO_SLASH);
             }
-            if (breathCooldown <= 0 && dist <= 11.5D && relAngle <= 95.0F) {
+            if (breathCooldown <= 0 && dist <= 13.0D && relAngle <= 95.0F) {
                 candidates.add(ANIM_ELEMENTAL_BREATH);
             }
-            if (scatteredCooldown <= 0 && dist >= 7.5D) {
+            if (scatteredCooldown <= 0 && dist >= 5.5D) {
                 candidates.add(ANIM_SCATTERED_ROCKS);
             }
+            if (burrowCooldown <= 0 && dist >= 7.8D) {
+                candidates.add(ANIM_BURROW);
+            }
             if (candidates.isEmpty()) {
+                // If out of melee reach and gap-closers are on cooldown, keep walking closer instead of whiffing!
+                if (dist > 7.4D) {
+                    attackCooldown = 10;
+                    return;
+                }
                 candidates.add(ANIM_RIGHT_CLAW);
                 candidates.add(ANIM_LEFT_CLAW);
             }
             chosen = pickNonRepeating(candidates);
-            if (chosen == ANIM_COMBO_SLASH) comboCooldown = 260 + random.nextInt(120);
-            else if (chosen == ANIM_ELEMENTAL_BREATH) breathCooldown = 300 + random.nextInt(160);
-            else if (chosen == ANIM_SCATTERED_ROCKS) scatteredCooldown = 220 + random.nextInt(100);
+            if (chosen == ANIM_COMBO_SLASH) comboCooldown = 220 + random.nextInt(100);
+            else if (chosen == ANIM_ELEMENTAL_BREATH) breathCooldown = 280 + random.nextInt(120);
+            else if (chosen == ANIM_SCATTERED_ROCKS) scatteredCooldown = 180 + random.nextInt(80);
+            else if (chosen == ANIM_BURROW) burrowCooldown = 320;
         }
 
         lastAttackAnim = chosen;
@@ -861,10 +893,11 @@ public class PrimoGeovishapEntity extends Monster {
         return c;
     }
 
-    /** Finishes an attack and enforces a clean Genshin-style action interval (2.2s–3.2s, faster near death). */
+    /** Finishes an attack with brisk Genshin-style pacing (1.4s–2.1s, faster near death). */
     private void finishAttack(int baseRestTicks) {
-        int scaled = isNearDeathPhase() ? Math.max(28, (int) (baseRestTicks * 0.78F)) : baseRestTicks;
-        attackCooldown = scaled + random.nextInt(20);
+        int clamped = Mth.clamp((int) (baseRestTicks * 0.68F), 24, 34);
+        int scaled = isNearDeathPhase() ? Math.max(18, (int) (clamped * 0.78F)) : clamped;
+        attackCooldown = scaled + random.nextInt(10);
         transitionTo(STATE_COMBAT, ANIM_IDLE);
     }
 
@@ -879,8 +912,9 @@ public class PrimoGeovishapEntity extends Monster {
         if (stateTick == 14) {
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.8F, 0.52F);
             dealConeDamage(sl, 7.2D, 80.0D, left ? 16.0F : 19.5F, 1.25D, false);
-            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(3.8D);
-            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX() + fwd.x, getY() + 1.6D, getZ() + fwd.z, 2, 0.8D, 0.3D, 0.8D, 0.0D);
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(4.2D);
+            sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
+                    getX() + fwd.x, getY() + 1.2D, getZ() + fwd.z, 12, 1.2D, 0.4D, 1.2D, 0.10D);
         } else if (left && stateTick == 28) {
             // Canonical Genshin Left Claw Hit 2: explosive rip-up ground rupture synced to 1.42s keyframe!
             Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(4.0D);
@@ -1038,15 +1072,30 @@ public class PrimoGeovishapEntity extends Monster {
         if (stateTick == 23) {
             sl.playSound(null, getX(), getY() + 2.4D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.9F, 0.70F);
         }
-        if (stateTick >= 23 && stateTick <= 62) {
-            float progress = (stateTick - 23) / 39.0F;
-            float sweepYaw = getYRot() + Mth.lerp(progress, 44.0F, -48.0F);
+        if (stateTick >= 22 && stateTick <= 62) {
+            float progress = (stateTick - 22) / 40.0F;
+            float sweepYaw = getYRot() + Mth.lerp(progress, 46.0F, -46.0F);
             Vec3 aim = Vec3.directionFromRotation(0.0F, sweepYaw);
-            for (int d = 4; d <= 16; d += 2) {
-                Vec3 pt = position().add(aim.scale(d)).add(0.0D, 2.1D, 0.0D);
-                sl.sendParticles(infusionParticle(), pt.x, pt.y, pt.z, 5, 0.65D, 0.55D, 0.65D, 0.05D);
+            ParticleOptions secondary = switch (getInfusion()) {
+                case INFUSION_HYDRO -> ParticleTypes.BUBBLE_POP;
+                case INFUSION_CRYO -> ParticleTypes.CLOUD;
+                case INFUSION_ELECTRO -> ParticleTypes.END_ROD;
+                default -> ParticleTypes.LARGE_SMOKE;
+            };
+            for (int d = 3; d <= 16; d += 2) {
+                double beamY = Math.max(0.45D, 2.25D - d * 0.095D);
+                double spread = 0.28D + d * 0.055D;
+                Vec3 pt = position().add(aim.scale(d)).add(0.0D, beamY, 0.0D);
+                sl.sendParticles(infusionParticle(), pt.x, pt.y, pt.z, 6, spread, spread * 0.7D, spread, 0.08D);
+                if (d % 4 == 1) {
+                    sl.sendParticles(secondary, pt.x, pt.y, pt.z, 2, spread * 0.8D, 0.35D, spread * 0.8D, 0.04D);
+                }
             }
-            if ((stateTick - 23) % 6 == 0) {
+            // Genshin-style billowing ground-impact elemental spray along the floor contact zone
+            Vec3 impact = position().add(aim.scale(13.8D));
+            sl.sendParticles(infusionParticle(), impact.x, getY() + 0.35D, impact.z, 10, 1.1D, 0.45D, 1.1D, 0.12D);
+            sl.sendParticles(secondary, impact.x, getY() + 0.55D, impact.z, 4, 0.9D, 0.35D, 0.9D, 0.05D);
+            if ((stateTick - 22) % 6 == 0) {
                 dealBeamSweepDamage(sl, aim, 16.5D, 2.6D, 11.5F);
             }
         }
@@ -1067,40 +1116,48 @@ public class PrimoGeovishapEntity extends Monster {
             spawnGroundRing(sl, 11.5D, 52, ParticleTypes.EXPLOSION);
 
             AABB box = getBoundingBox().inflate(16.0D, 6.0D, 16.0D);
+            LivingEntity counterSource = null;
+            boolean counterUsedElemShield = false;
             for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
                 if (e == this || !e.isAlive() || e.distanceToSqr(this) > 16.0D * 16.0D) continue;
                 boolean hasElemShield = StavesElementBridge.hasElementalShield(e);
                 boolean hasVanillaShield = (e instanceof Player p && p.isBlocking());
-                if ((hasElemShield || hasVanillaShield) && !showerCountered) {
-                    showerCountered = true;
-                    float reflectDmg = getMaxHealth() * (hasElemShield ? 0.15F : 0.10F);
-                    super.hurt(sl.damageSources().thorns(e), reflectDmg);
-                    sl.playSound(null, e.getX(), e.getY() + 1.2D, e.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 2.2F, 0.85F);
-                    sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 2.0F, 0.52F);
-                    sl.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.4D, getZ(), 3, 0.7D, 0.7D, 0.7D, 0.0D);
-                    if (e instanceof Player p) {
-                        p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.countered")
-                                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
+                if (hasElemShield || hasVanillaShield) {
+                    if (counterSource == null || (hasElemShield && !counterUsedElemShield)) {
+                        counterSource = e;
+                        counterUsedElemShield = hasElemShield;
                     }
-                    // Physical recoil knockback away from the countering player (matches 1.mp4 00:38 & 2.mp4 00:23!)
-                    Vec3 recoil = position().subtract(e.position()).multiply(1.0D, 0.0D, 1.0D);
-                    if (recoil.lengthSqr() > 1.0E-4D) {
-                        recoil = recoil.normalize().scale(0.85D);
-                        setDeltaMovement(recoil.x, 0.18D, recoil.z);
-                    }
-                    CompoundTag beamTag = new CompoundTag();
-                    beamTag.putFloat("dx", (float) (e.getX() - getX()));
-                    beamTag.putFloat("dy", (float) (e.getY() - getY()));
-                    beamTag.putFloat("dz", (float) (e.getZ() - getZ()));
-                    entityData.set(DATA_COUNTER_BEAM, beamTag);
-                    transitionTo(STATE_STAGGER, ANIM_COUNTERED_STAGGER);
-                    return;
+                    continue;
                 }
                 applyElementalOrPhysicalHit(sl, e, 34.0F, true);
                 Vec3 push = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
                 if (push.lengthSqr() > 1.0E-4D) push = push.normalize().scale(1.75D);
                 e.setDeltaMovement(push.x, 0.70D, push.z);
                 e.hurtMarked = true;
+            }
+            if (counterSource != null && !showerCountered) {
+                showerCountered = true;
+                float reflectDmg = getMaxHealth() * (counterUsedElemShield ? 0.15F : 0.10F);
+                super.hurt(sl.damageSources().thorns(counterSource), reflectDmg);
+                sl.playSound(null, counterSource.getX(), counterSource.getY() + 1.2D, counterSource.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 2.2F, 0.85F);
+                sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 2.0F, 0.52F);
+                sl.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.4D, getZ(), 3, 0.7D, 0.7D, 0.7D, 0.0D);
+                if (counterSource instanceof Player p) {
+                    p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.countered")
+                            .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
+                }
+                Vec3 recoil = position().subtract(counterSource.position()).multiply(1.0D, 0.0D, 1.0D);
+                if (recoil.lengthSqr() > 1.0E-4D) {
+                    recoil = recoil.normalize().scale(0.85D);
+                    setDeltaMovement(recoil.x, 0.18D, recoil.z);
+                }
+                CompoundTag beamTag = new CompoundTag();
+                beamTag.putFloat("dx", (float) (counterSource.getX() - getX()));
+                beamTag.putFloat("dy", (float) (counterSource.getY() - getY()));
+                beamTag.putFloat("dz", (float) (counterSource.getZ() - getZ()));
+                entityData.set(DATA_COUNTER_BEAM, beamTag);
+                transitionTo(STATE_STAGGER, ANIM_COUNTERED_STAGGER);
+                return;
             }
         }
         if (stateTick >= 92) finishAttack(56);
@@ -1173,8 +1230,13 @@ public class PrimoGeovishapEntity extends Monster {
     }
 
     private void applyElementalOrPhysicalHit(ServerLevel sl, LivingEntity target, float dmg, boolean elemental) {
-        if (elemental && StavesElementBridge.isAvailable()) {
-            StavesElementBridge.dealElementalDamage(target, this, getInfusionElementName(), dmg, 1.0F, false);
+        if (StavesElementBridge.isAvailable()) {
+            if (elemental) {
+                StavesElementBridge.dealElementalDamage(target, this, getInfusionElementName(), dmg, 1.0F, false, 0.25F);
+            } else {
+                // Canonical Primo Geovishap melee & ground slams deal Geo damage (triggers Crystallize with Velorise's Staves!)
+                StavesElementBridge.dealElementalDamage(target, this, "GEO", dmg, 1.0F, false, 0.22F);
+            }
         } else {
             target.hurt(sl.damageSources().mobAttack(this), dmg);
         }
@@ -1238,8 +1300,8 @@ public class PrimoGeovishapEntity extends Monster {
         double dz = target.getZ() - getZ();
         float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
         float delta = Mth.wrapDegrees(desiredYaw - getYRot());
-        // Smooth proportional turn so small adjustments glide effortlessly without micro-jitter
-        float step = Mth.clamp(delta * 0.35F, -maxTurnDeg, maxTurnDeg);
+        // Responsive proportional turn so boss tracks targets briskly without micro-jitter
+        float step = Mth.clamp(delta * 0.45F, -maxTurnDeg, maxTurnDeg);
         float next = getYRot() + step;
         setYRot(next);
         yBodyRot = next;

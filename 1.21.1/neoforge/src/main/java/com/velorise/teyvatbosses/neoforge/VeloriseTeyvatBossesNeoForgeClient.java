@@ -15,6 +15,7 @@ import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
+import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
@@ -30,6 +31,7 @@ import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
 import com.velorise.teyvatbosses.client.model.PrimoGeovishapModel;
+import com.velorise.teyvatbosses.client.model.PrimoInfusedStoneModel;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
@@ -57,6 +59,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(PrimoGeovishapModel.LAYER_LOCATION, PrimoGeovishapModel::createBodyLayer);
         event.registerLayerDefinition(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         event.registerLayerDefinition(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
+        event.registerLayerDefinition(PrimoInfusedStoneModel.LAYER_LOCATION, PrimoInfusedStoneModel::createBodyLayer);
     }
 
     @SubscribeEvent
@@ -83,6 +86,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_COMPANION.get(), AnemoCompanionRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP.get(), PrimoGeovishapRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GEO_DRILLER.get(), GeoDrillerRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_INFUSED_STONE.get(), PrimoInfusedStoneRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }

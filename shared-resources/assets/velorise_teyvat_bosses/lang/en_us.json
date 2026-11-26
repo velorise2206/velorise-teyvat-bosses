@@ -127,5 +127,6 @@
   "message.velorise_teyvat_bosses.geo_driller.chest_single": "Attached Vanilla Chest (27 slots). Right-click with 1 more Chest to upgrade to Double Chest!",
   "message.velorise_teyvat_bosses.geo_driller.chest_double": "Upgraded to Vanilla Double Chest (54 slots)! Shift+RMB to open cargo.",
   "message.velorise_teyvat_bosses.geo_driller.recharged": "Driller Fuel: %s / %s",
-  "message.velorise_teyvat_bosses.geo_driller.repaired": "Driller Hull Repaired: %s / %s HP"
+  "message.velorise_teyvat_bosses.geo_driller.repaired": "Driller Hull Repaired: %s / %s HP",
+  "entity.velorise_teyvat_bosses.primo_infused_stone": "Elemental-Infused Stone"
 }

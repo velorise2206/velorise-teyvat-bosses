@@ -127,5 +127,6 @@
   "message.velorise_teyvat_bosses.geo_driller.chest_single": "Đã gắn Rương thường (27 ô). Chuột phải thêm 1 Rương nữa để nâng cấp Rương Đôi!",
   "message.velorise_teyvat_bosses.geo_driller.chest_double": "Đã nâng cấp Rương Đôi (54 ô)! Shift+Chuột phải để mở kho đồ.",
   "message.velorise_teyvat_bosses.geo_driller.recharged": "Nhiên liệu Xe Khoan: %s / %s",
-  "message.velorise_teyvat_bosses.geo_driller.repaired": "Đã sửa giáp Xe Khoan: %s / %s HP"
+  "message.velorise_teyvat_bosses.geo_driller.repaired": "Đã sửa giáp Xe Khoan: %s / %s HP",
+  "entity.velorise_teyvat_bosses.primo_infused_stone": "Đá Nguyên Tố Rồng Đất Cổ"
 }
