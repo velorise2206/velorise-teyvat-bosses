@@ -4,6 +4,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
@@ -87,8 +88,8 @@ public class AnemoJetpackItem extends Item implements Equipable {
             Vec3 vel = player.getDeltaMovement();
             if (vel.y < -0.22D) {
                 player.setDeltaMovement(vel.x * 1.01D, -0.22D, vel.z * 1.01D);
-                if (level instanceof ServerLevel sl && player.tickCount % 3 == 0) {
-                    sl.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.5D, player.getZ(), 2, 0.35D, 0.05D, 0.35D, 0.01D);
+                if (level instanceof ServerLevel sl && player.tickCount % 4 == 0) {
+                    spawnNozzleExhaust(sl, player, (player.tickCount & 4) == 0 ? -1.0D : 1.0D, -0.14D, 0.04D);
                 }
             }
             return;
@@ -115,13 +116,27 @@ public class AnemoJetpackItem extends Item implements Equipable {
                     stack.setDamageValue(Math.min(MAX_PRESSURE - 1, used + 1));
                 }
                 if (player.tickCount % 2 == 0) {
-                    sl.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.35D, player.getZ(), 4, 0.32D, 0.12D, 0.32D, 0.04D);
-                    sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 0.45D, player.getZ(), 2, 0.25D, 0.10D, 0.25D, 0.03D);
+                    // Clean straight twin exhaust trails directly from left & right thruster nozzles
+                    spawnNozzleExhaust(sl, player, -1.0D, -0.32D, 0.07D);
+                    spawnNozzleExhaust(sl, player,  1.0D, -0.32D, 0.07D);
                 }
                 if (player.tickCount % 7 == 0) {
                     sl.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 0.35F, 1.45F);
                 }
             }
         }
+    }
+
+    private static void spawnNozzleExhaust(ServerLevel sl, Player player, double sideSign, double downVel, double backVel) {
+        float bodyYawRad = player.yBodyRot * Mth.DEG_TO_RAD;
+        double backX = Mth.sin(bodyYawRad);
+        double backZ = -Mth.cos(bodyYawRad);
+        double rightX = -Mth.cos(bodyYawRad);
+        double rightZ = -Mth.sin(bodyYawRad);
+        double nozzleY = player.getY() + (player.isCrouching() ? 0.62D : 0.76D);
+        double nx = player.getX() + backX * 0.32D + rightX * (sideSign * 0.27D);
+        double nz = player.getZ() + backZ * 0.32D + rightZ * (sideSign * 0.27D);
+        // count = 0 uses (dx, dy, dz) as exact velocity vector with zero random scatter
+        sl.sendParticles(ParticleTypes.CLOUD, nx, nozzleY, nz, 0, backX * backVel, downVel, backZ * backVel, 1.0D);
     }
 }

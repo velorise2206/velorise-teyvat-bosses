@@ -27,7 +27,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.level.Level;
@@ -61,6 +64,9 @@ public class CryoTurretEntity extends Mob {
             SynchedEntityData.defineId(CryoTurretEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
             SynchedEntityData.defineId(CryoTurretEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> DATA_ROOT_YAW =
+            SynchedEntityData.defineId(CryoTurretEntity.class, EntityDataSerializers.FLOAT);
+    private boolean rootYawInitialized = false;
 
     private int serverAnimTick = 0;
     private int clientAnimTick = 0;
@@ -88,12 +94,20 @@ public class CryoTurretEntity extends Mob {
         builder.define(DATA_PARTS_MASK, FULL_PARTS);
         builder.define(DATA_ANIM_ID, ANIM_IDLE);
         builder.define(DATA_ANIM_EPOCH, 0);
+        builder.define(DATA_ROOT_YAW, 0.0F);
     }
 
     public void initAssemblyChassis() {
         entityData.set(DATA_PARTS_MASK, PART_ROOT);
+        setRootYaw(getYRot());
         playAnim(ANIM_DORMANT);
         updateAssemblyLabel();
+    }
+
+    public float getRootYaw() { return entityData.get(DATA_ROOT_YAW); }
+    public void setRootYaw(float yaw) {
+        entityData.set(DATA_ROOT_YAW, Mth.wrapDegrees(yaw));
+        this.rootYawInitialized = true;
     }
 
     public int getPartsMask() { return entityData.get(DATA_PARTS_MASK); }
@@ -165,9 +179,14 @@ public class CryoTurretEntity extends Mob {
     @Override
     public void die(DamageSource cause) {
         if (!level().isClientSide()) {
-            if (hasPart(PART_ROOT) && TeyvatBossesItems.cryoTurretRoot() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretRoot());
-            if (hasPart(PART_STEM) && TeyvatBossesItems.cryoTurretStem() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretStem());
-            if (hasPart(PART_COROLLA) && TeyvatBossesItems.cryoTurretCorolla() != null) spawnAtLocation(TeyvatBossesItems.cryoTurretCorolla());
+            // Destroyed in combat: only 1 random welded part survives (uproot with a Shovel to recover all parts)
+            List<Item> welded = new ArrayList<>(3);
+            if (hasPart(PART_ROOT) && TeyvatBossesItems.cryoTurretRoot() != null) welded.add(TeyvatBossesItems.cryoTurretRoot());
+            if (hasPart(PART_STEM) && TeyvatBossesItems.cryoTurretStem() != null) welded.add(TeyvatBossesItems.cryoTurretStem());
+            if (hasPart(PART_COROLLA) && TeyvatBossesItems.cryoTurretCorolla() != null) welded.add(TeyvatBossesItems.cryoTurretCorolla());
+            if (!welded.isEmpty()) {
+                spawnAtLocation(welded.get(random.nextInt(welded.size())));
+            }
         }
         super.die(cause);
     }
@@ -259,6 +278,7 @@ public class CryoTurretEntity extends Mob {
         }
 
         ServerLevel sl = (ServerLevel) level();
+        if (!rootYawInitialized) setRootYaw(getYRot());
         serverAnimTick++;
         int anim = getAnimId();
         int t = serverAnimTick;
@@ -363,12 +383,14 @@ public class CryoTurretEntity extends Mob {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putInt("PartsMask", getPartsMask());
+        tag.putFloat("RootYaw", getRootYaw());
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.contains("PartsMask")) entityData.set(DATA_PARTS_MASK, tag.getInt("PartsMask"));
+        if (tag.contains("RootYaw")) setRootYaw(tag.getFloat("RootYaw"));
         updateAssemblyLabel();
     }
 }

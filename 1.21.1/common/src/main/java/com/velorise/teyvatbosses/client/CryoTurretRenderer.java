@@ -81,7 +81,9 @@ public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
 
     @Override
     public void render(CryoTurretEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-        float yaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float rootYaw = entity.getRootYaw();
+        float stemWorldYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float stemDeltaYawRad = Mth.wrapDegrees(stemWorldYaw - rootYaw) * Mth.DEG_TO_RAD;
         float liveTick = entity.tickCount + partialTicks;
         float sec = (entity.getAnimTick() + partialTicks) / 20.0F;
         String currClip = entity.getBaseClipName();
@@ -98,11 +100,17 @@ public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
         sm.lastEpoch = currEpoch;
 
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
+        // Root base stays permanently anchored at spawn rootYaw; only stem_1 rotates to track targets
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - rootYaw));
         poseStack.scale(-TURRET_SCALE, -TURRET_SCALE, TURRET_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
         CryoRegisvineAnimations.apply(model, currClip, sec);
+
+        ModelPart stem1 = model.getBone("stem_1");
+        if (stem1 != null) {
+            stem1.yRot += stemDeltaYawRad;
+        }
 
         // Shortest-arc 10-tick pose-snapshot cross-fade so turret animations never snap on reset
         float elapsed = liveTick - sm.blendStartTick;

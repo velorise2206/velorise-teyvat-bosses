@@ -31,16 +31,12 @@ public class AnemoJetpackModel<T extends LivingEntity> extends EntityModel<T> {
 
     private final ModelPart root;
     private final ModelPart coreCrystal;
-    private final ModelPart wingLeft;
-    private final ModelPart wingRight;
     private final ModelPart flameLeft;
     private final ModelPart flameRight;
 
     public AnemoJetpackModel(ModelPart root) {
         this.root = root.getChild("jetpack_root");
         this.coreCrystal = this.root.getChild("core_crystal");
-        this.wingLeft = this.root.getChild("wing_left");
-        this.wingRight = this.root.getChild("wing_right");
         this.flameLeft = this.root.getChild("pod_left").getChild("flame_left");
         this.flameRight = this.root.getChild("pod_right").getChild("flame_right");
     }
@@ -94,33 +90,12 @@ public class AnemoJetpackModel<T extends LivingEntity> extends EntityModel<T> {
                 .texOffs(50, 0).addBox(-1.2F, 0.0F, -1.2F, 2.4F, 5.5F, 2.4F),
                 PartPose.offset(0.0F, 5.4F, 0.0F));
 
-        // Articulated 3-feather swept Mondstadt Anemo Wind-Wings (left & right)
-        root.addOrReplaceChild("wing_left", CubeListBuilder.create()
-                .texOffs(0, 34).addBox(-9.0F, -1.2F, -0.5F, 9.0F, 2.2F, 0.9F)
-                .texOffs(0, 40).addBox(-7.4F, 1.0F, -0.4F, 7.2F, 1.8F, 0.8F)
-                .texOffs(0, 46).addBox(-5.2F, 2.8F, -0.3F, 5.0F, 1.5F, 0.7F),
-                PartPose.offsetAndRotation(-4.6F, 3.2F, 4.6F, 0.18F, 0.52F, -0.22F));
-
-        root.addOrReplaceChild("wing_right", CubeListBuilder.create()
-                .texOffs(0, 34).addBox(0.0F, -1.2F, -0.5F, 9.0F, 2.2F, 0.9F)
-                .texOffs(0, 40).addBox(0.2F, 1.0F, -0.4F, 7.2F, 1.8F, 0.8F)
-                .texOffs(0, 46).addBox(0.2F, 2.8F, -0.3F, 5.0F, 1.5F, 0.7F),
-                PartPose.offsetAndRotation(4.6F, 3.2F, 4.6F, 0.18F, -0.52F, 0.22F));
-
         return LayerDefinition.create(mesh, 64, 64);
     }
 
     public void updatePose(boolean airborne, boolean boosting, float ageTicks) {
         // Core crystal gently spins faster while boosting
         coreCrystal.zRot = 0.7854F + ageTicks * (boosting ? 0.22F : 0.045F);
-
-        // Swept Wind-Wings flare open smoothly while flying/boosting and fold sleekly on ground
-        float flare = boosting ? 1.0F : (airborne ? 0.55F : 0.0F);
-        float flutter = boosting ? Mth.sin(ageTicks * 1.4F) * 0.08F : Mth.sin(ageTicks * 0.14F) * 0.03F;
-        wingLeft.yRot  = Mth.lerp(flare, 0.72F, 0.16F) + flutter;
-        wingLeft.zRot  = Mth.lerp(flare, -0.38F, -0.05F);
-        wingRight.yRot = -Mth.lerp(flare, 0.72F, 0.16F) - flutter;
-        wingRight.zRot = Mth.lerp(flare, 0.38F, 0.05F);
 
         // Dynamic pulsing thruster plumes only when boosting
         flameLeft.visible = boosting;
