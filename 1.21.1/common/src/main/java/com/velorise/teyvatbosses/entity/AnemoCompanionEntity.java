@@ -87,6 +87,7 @@ public class AnemoCompanionEntity extends Mob {
 
     private int fireCooldown = 0;
     private int rechargeTimer = 0;
+    private int outOfCombatTicks = 0;
     private float orbitAngle = 0.0F;
     private int attackBrakeTicks = 0;
     private int targetGraceTicks = 0;
@@ -311,12 +312,25 @@ public class AnemoCompanionEntity extends Mob {
         } else if (targetGraceTicks > 0 && lastTargetUuid != null) {
             targetGraceTicks--;
             Entity prev = sl.getEntity(lastTargetUuid);
-            if (prev instanceof LivingEntity le && isValidTarget(le, owner)
+            if (prev instanceof LivingEntity le && isValidOwnerAggroTarget(le, owner)
                     && distanceToSqr(le) <= (ENGAGE_DETECT_RANGE + 3.0D) * (ENGAGE_DETECT_RANGE + 3.0D)) {
                 target = le;
             }
         } else {
             lastTargetUuid = null;
+        }
+
+        // Out-of-combat shell auto-regeneration: if no target for 3s (60 ticks), smoothly rebuild missing cubes (+1 / 0.6s)
+        if (target == null && !isRecharging() && getActiveShells() < MAX_CUBES) {
+            outOfCombatTicks++;
+            if (outOfCombatTicks >= 60 && (outOfCombatTicks - 60) % 12 == 0) {
+                int nextShells = Math.min(MAX_CUBES, getActiveShells() + 1);
+                entityData.set(DATA_ACTIVE_SHELLS, nextShells);
+                sl.playSound(null, getX(), getY() + 0.5D, getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.35F, 1.25F + nextShells * 0.05F);
+                sl.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 0.5D, getZ(), 3, 0.2D, 0.2D, 0.2D, 0.02D);
+            }
+        } else {
+            outOfCombatTicks = 0;
         }
 
         boolean inCombat = (target != null && !isRecharging());
@@ -458,19 +472,26 @@ public class AnemoCompanionEntity extends Mob {
 
     private @Nullable LivingEntity findTarget(ServerLevel sl, @Nullable Player owner) {
         Vec3 scanCenter = owner != null && !isStaying() ? owner.position() : position();
+        double maxRangeSq = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
         if (owner != null) {
+            // Prioritize whatever target the owner recently attacked (within 7s) — works on neutral mobs & non-Enemy bosses too!
             LivingEntity hurtMob = owner.getLastHurtMob();
-            if (isValidTarget(hurtMob, owner) && hurtMob.position().distanceToSqr(scanCenter) <= ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE && hasLineOfSight(hurtMob)) {
+            if (hurtMob != null && (owner.tickCount - owner.getLastHurtMobTimestamp()) <= 140
+                    && isValidOwnerAggroTarget(hurtMob, owner)
+                    && hurtMob.position().distanceToSqr(scanCenter) <= maxRangeSq) {
                 return hurtMob;
             }
+            // Defend owner against whatever recently damaged them (within 7s)
             LivingEntity hurtBy = owner.getLastHurtByMob();
-            if (isValidTarget(hurtBy, owner) && hurtBy.position().distanceToSqr(scanCenter) <= ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE && hasLineOfSight(hurtBy)) {
+            if (hurtBy != null && (owner.tickCount - owner.getLastHurtByMobTimestamp()) <= 140
+                    && isValidOwnerAggroTarget(hurtBy, owner)
+                    && hurtBy.position().distanceToSqr(scanCenter) <= maxRangeSq) {
                 return hurtBy;
             }
         }
         AABB box = new AABB(scanCenter, scanCenter).inflate(ENGAGE_DETECT_RANGE);
         LivingEntity best = null;
-        double bestDistSq = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
+        double bestDistSq = maxRangeSq;
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> isValidTarget(le, owner))) {
             double dSq = e.position().distanceToSqr(scanCenter);
             if (dSq < bestDistSq && hasLineOfSight(e)) {
@@ -481,16 +502,22 @@ public class AnemoCompanionEntity extends Mob {
         return best;
     }
 
-    private boolean isValidTarget(@Nullable LivingEntity e, @Nullable Player owner) {
+    /** Accepts any living target (including neutral mobs & non-Enemy bosses like Ruin Nautilus) when explicitly attacked by the owner. */
+    private boolean isValidOwnerAggroTarget(@Nullable LivingEntity e, @Nullable Player owner) {
         if (e == null || !e.isAlive() || e == this || e == owner) return false;
         if (e instanceof Player || e instanceof AnemoCompanionEntity || e instanceof RuinSubmersibleEntity
-                || e instanceof RuinMechEntity || e instanceof CryoTurretEntity) {
+                || e instanceof RuinMechEntity || e instanceof CryoTurretEntity || e instanceof GeoDrillerEntity) {
             return false;
         }
         if (owner != null && e instanceof OwnableEntity ownable && owner.getUUID().equals(ownable.getOwnerUUID())) {
             return false;
         }
-        return e instanceof Enemy;
+        return true;
+    }
+
+    /** Auto-scan filter when owner hasn't designated a target: only engage hostile Enemy mobs. */
+    private boolean isValidTarget(@Nullable LivingEntity e, @Nullable Player owner) {
+        return isValidOwnerAggroTarget(e, owner) && e instanceof Enemy;
     }
 
     @Override
