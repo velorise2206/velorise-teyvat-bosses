@@ -35,6 +35,7 @@ public class RuinMissileProjectile extends Entity {
     private float damage = 8.5F;
     private int maxLife = 90;
     private boolean terminalLocked = false;
+    private Vec3 freeAimPoint = null;
 
     public RuinMissileProjectile(EntityType<? extends RuinMissileProjectile> type, Level level) {
         super(type, level);
@@ -58,6 +59,19 @@ public class RuinMissileProjectile extends Entity {
         m.updateRotationFromVelocity(initialVel, true);
         level.addFreshEntity(m);
         level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 0.9F, 0.85F);
+        return m;
+    }
+
+    public static RuinMissileProjectile launchFreeAim(
+            ServerLevel level,
+            LivingEntity owner,
+            Vec3 aimPoint,
+            Vec3 origin,
+            Vec3 initialVel,
+            float damage
+    ) {
+        RuinMissileProjectile m = launch(level, owner, null, origin, initialVel, damage);
+        m.freeAimPoint = aimPoint;
         return m;
     }
 
@@ -90,7 +104,35 @@ public class RuinMissileProjectile extends Entity {
                 // Phase 1: Brief upward launch arc with gentle drag so apex stays compact
                 vel = vel.scale(0.95D).add(0.0D, -0.02D, 0.0D);
                 setDeltaMovement(vel);
-            } else if (!terminalLocked && tickCount <= 26 && targetUuid != null) {
+            } else if (!terminalLocked && tickCount <= 26 && (targetUuid != null || freeAimPoint != null)) {
+                Vec3 aimPos = null;
+                if (targetUuid != null) {
+                    Entity te = sl.getEntity(targetUuid);
+                    if (te instanceof LivingEntity target && target.isAlive()) {
+                        aimPos = target.position().add(0.0D, target.getBbHeight() * 0.45D, 0.0D);
+                    }
+                } else {
+                    aimPos = freeAimPoint;
+                }
+                if (aimPos != null) {
+                    Vec3 toTarget = aimPos.subtract(position());
+                    double dist = toTarget.length();
+                    if (dist < (targetUuid != null ? 5.5D : 3.0D)) {
+                        vel = toTarget.normalize().scale(0.95D);
+                        terminalLocked = true;
+                    } else {
+                        double speed = Math.min(0.96D, 0.62D + (tickCount - 8) * 0.025D);
+                        Vec3 desired = toTarget.normalize().scale(speed);
+                        vel = vel.lerp(desired, 0.34D);
+                        if (vel.lengthSqr() > 1e-4D) {
+                            vel = vel.normalize().scale(speed);
+                        }
+                    }
+                    setDeltaMovement(vel);
+                } else {
+                    terminalLocked = true;
+                }
+            } else if (false) {
                 // Phase 2: Tight responsive homing dive
                 Entity te = sl.getEntity(targetUuid);
                 if (te instanceof LivingEntity target && target.isAlive()) {

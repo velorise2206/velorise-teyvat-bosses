@@ -315,7 +315,7 @@ public class RuinGuardEntity extends Monster {
                     eyeHits++;
                     eyeResetTimer = 140;
                     ServerLevel sl = (ServerLevel) level();
-                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.0F, 1.72F);
+                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.0F, 1.72F);
                     sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.9F, 1.35F);
                     sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 3.1D, getZ(), 24, 0.45D, 0.45D, 0.45D, 0.16D);
                     sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.1D, getZ(), 18, 0.40D, 0.35D, 0.40D, 0.14D);
@@ -836,7 +836,7 @@ public class RuinGuardEntity extends Monster {
             dealRadialDamage(sl, 5.4D, 27.0F, 1.35D, 0.62D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.56F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.50F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.15F, 0.46F);
+            sl.playSound(null, getX(), getY(), getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 0.46F);
             sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.4D, getZ(), 5, 2.0D, 0.25D, 2.0D, 0.0D);
             spawnGroundDustRing(sl, 4.8D, 36);
         } else {
@@ -844,7 +844,7 @@ public class RuinGuardEntity extends Monster {
         }
 
         if (stateTick == 7) {
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 0.85F, 0.82F);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 0.85F, 0.82F);
             Vec3 clapSpot = position().add(forward.scale(1.4D));
             sl.sendParticles(ParticleTypes.FLAME, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 10, 0.25D, 0.2D, 0.25D, 0.05D);
             sl.sendParticles(ParticleTypes.CRIT, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 8, 0.3D, 0.25D, 0.3D, 0.12D);
@@ -886,7 +886,7 @@ public class RuinGuardEntity extends Monster {
         }
         if (stateTick == 23) {
             dealArcDamage(sl, 5.4D, 105.0F, 24.0F, 1.40D);
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5F, 0.52F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.5F, 0.52F);
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.45F, 0.74F);
             Vec3 clapPos = position().add(forward.scale(2.4D));
             sl.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, clapPos.x, clapPos.y + 1.7D, clapPos.z, 3, 0.8D, 0.4D, 0.8D, 0.0D);
@@ -996,7 +996,7 @@ public class RuinGuardEntity extends Monster {
             dealRadialDamage(sl, 6.4D, 29.0F, 1.50D, 0.72D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.85F, 0.52F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.55F, 0.48F);
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.25F, 0.45F);
+            sl.playSound(null, getX(), getY(), getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.25F, 0.45F);
             sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 0.5D, getZ(), 1, 0.5D, 0.2D, 0.5D, 0.0D);
             spawnGroundDustRing(sl, 5.8D, 46);
         } else {

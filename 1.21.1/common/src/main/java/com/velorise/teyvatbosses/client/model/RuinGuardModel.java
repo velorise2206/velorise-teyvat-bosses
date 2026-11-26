@@ -34,6 +34,12 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
         registerBone("back_reactor", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("back_reactor"));
         registerBone("missile_pod_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_r"));
         registerBone("missile_pod_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l"));
+        registerBone("missile_tip_0", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_r").getChild("missile_tip_0"));
+        registerBone("missile_tip_2", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_r").getChild("missile_tip_2"));
+        registerBone("missile_tip_4", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_r").getChild("missile_tip_4"));
+        registerBone("missile_tip_1", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_1"));
+        registerBone("missile_tip_3", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_3"));
+        registerBone("missile_tip_5", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_5"));
         registerBone("shoulder_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r"));
         registerBone("upper_arm_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r"));
         registerBone("forearm_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r").getChild("forearm_r"));
@@ -128,7 +134,7 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(272, 21).addBox(-10.00F, -6.00F, -7.00F, 20.0F, 6.0F, 14.0F)
             .texOffs(341, 21).addBox(-7.00F, -6.00F, -10.00F, 14.0F, 6.0F, 20.0F, new CubeDeformation(-0.02F))
             .texOffs(410, 21).addBox(-10.50F, -1.00F, -7.50F, 21.0F, 1.0F, 15.0F)
-            .texOffs(0, 48).addBox(-10.50F, -6.00F, -7.50F, 21.0F, 1.0F, 15.0F)
+            .texOffs(0, 48).addBox(-10.50F, -6.00F, -7.50F, 21.0F, 1.0F, 15.0F, new CubeDeformation(0.03F))
             .texOffs(73, 48).addBox(-12.00F, -19.00F, -8.50F, 24.0F, 13.0F, 17.0F)
             .texOffs(156, 48).addBox(-8.50F, -19.00F, -12.00F, 17.0F, 13.0F, 24.0F, new CubeDeformation(-0.02F))
             .texOffs(239, 48).addBox(-8.50F, -18.50F, -12.30F, 17.0F, 13.0F, 3.0F)
@@ -164,17 +170,17 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(298, 86).addBox(-12.00F, -22.00F, -8.50F, 24.0F, 3.0F, 17.0F)
             .texOffs(381, 86).addBox(-8.50F, -22.00F, -12.00F, 17.0F, 3.0F, 24.0F, new CubeDeformation(-0.02F))
             .texOffs(0, 114).addBox(-12.50F, -20.00F, -9.00F, 25.0F, 1.0F, 18.0F)
-            .texOffs(87, 114).addBox(-12.50F, -22.00F, -9.00F, 25.0F, 1.0F, 18.0F)
+            .texOffs(87, 114).addBox(-12.50F, -22.00F, -9.00F, 25.0F, 1.0F, 18.0F, new CubeDeformation(0.03F))
             .texOffs(174, 114).addBox(-10.00F, -25.00F, -7.00F, 20.0F, 3.0F, 14.0F)
             .texOffs(243, 114).addBox(-7.00F, -25.00F, -10.00F, 14.0F, 3.0F, 20.0F, new CubeDeformation(-0.02F))
             .texOffs(312, 114).addBox(-10.50F, -23.00F, -7.50F, 21.0F, 1.0F, 15.0F)
-            .texOffs(385, 114).addBox(-10.50F, -25.00F, -7.50F, 21.0F, 1.0F, 15.0F)
+            .texOffs(385, 114).addBox(-10.50F, -25.00F, -7.50F, 21.0F, 1.0F, 15.0F, new CubeDeformation(0.03F))
             .texOffs(458, 114).addBox(-7.00F, -27.00F, -5.00F, 14.0F, 2.0F, 10.0F)
             .texOffs(0, 138).addBox(-5.00F, -27.00F, -7.00F, 10.0F, 2.0F, 14.0F, new CubeDeformation(-0.02F))
             .texOffs(49, 138).addBox(-4.00F, -29.00F, -3.00F, 8.0F, 2.0F, 6.0F)
             .texOffs(78, 138).addBox(-3.00F, -29.00F, -4.00F, 6.0F, 2.0F, 8.0F, new CubeDeformation(-0.02F))
-            .texOffs(107, 138).addBox(-1.50F, -29.00F, -4.50F, 3.0F, 1.0F, 9.0F)
-            .texOffs(132, 138).addBox(-4.50F, -29.00F, -1.50F, 9.0F, 1.0F, 3.0F, new CubeDeformation(-0.02F))
+            .texOffs(107, 138).addBox(-1.50F, -29.00F, -4.50F, 3.0F, 1.0F, 9.0F, new CubeDeformation(0.04F))
+            .texOffs(132, 138).addBox(-4.50F, -29.00F, -1.50F, 9.0F, 1.0F, 3.0F, new CubeDeformation(0.02F))
             .texOffs(157, 138).addBox(-2.00F, -28.50F, -7.50F, 4.0F, 2.0F, 2.0F)
             .texOffs(170, 138).addBox(-3.00F, -27.50F, 5.00F, 6.0F, 2.0F, 3.0F)
             .texOffs(189, 138).addBox(-8.50F, -18.50F, 9.30F, 17.0F, 13.0F, 3.0F)
@@ -217,29 +223,29 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
         PartDefinition b_missile_pod_r = b_torso.addOrReplaceChild("missile_pod_r", CubeListBuilder.create()
             .texOffs(145, 155).addBox(-3.50F, -5.50F, -3.00F, 7.0F, 8.0F, 7.0F)
             .texOffs(174, 155).addBox(-4.00F, -5.50F, -2.50F, 8.0F, 6.0F, 6.0F, new CubeDeformation(-0.02F))
-            .texOffs(203, 155).addBox(-3.50F, -6.50F, -3.00F, 7.0F, 2.0F, 7.0F)
+            .texOffs(203, 155).addBox(-3.50F, -6.50F, -3.00F, 7.0F, 2.0F, 7.0F, new CubeDeformation(0.03F))
             .texOffs(232, 155).addBox(-2.80F, -7.50F, -2.00F, 2.0F, 2.0F, 2.0F)
-            .texOffs(241, 155).addBox(-2.30F, -7.80F, -1.50F, 1.0F, 1.0F, 1.0F)
             .texOffs(246, 155).addBox(0.80F, -7.50F, -2.00F, 2.0F, 2.0F, 2.0F)
-            .texOffs(255, 155).addBox(1.30F, -7.80F, -1.50F, 1.0F, 1.0F, 1.0F)
             .texOffs(260, 155).addBox(-1.00F, -7.50F, 1.30F, 2.0F, 2.0F, 2.0F)
-            .texOffs(269, 155).addBox(-0.50F, -7.80F, 1.80F, 1.0F, 1.0F, 1.0F)
             .texOffs(274, 155).addBox(-2.50F, -1.50F, 3.50F, 5.0F, 4.0F, 2.0F)
             .texOffs(289, 155).addBox(-1.50F, -0.50F, 4.80F, 3.0F, 2.0F, 1.0F)
             , PartPose.offsetAndRotation(11.00F, -21.00F, 5.00F, 0.2443F, -0.2094F, -0.1745F));
+        b_missile_pod_r.addOrReplaceChild("missile_tip_0", CubeListBuilder.create().texOffs(241, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(-1.80F, -7.30F, -1.00F));
+        b_missile_pod_r.addOrReplaceChild("missile_tip_2", CubeListBuilder.create().texOffs(255, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(1.80F, -7.30F, -1.00F));
+        b_missile_pod_r.addOrReplaceChild("missile_tip_4", CubeListBuilder.create().texOffs(269, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(0.00F, -7.30F, 2.30F));
         PartDefinition b_missile_pod_l = b_torso.addOrReplaceChild("missile_pod_l", CubeListBuilder.create()
             .texOffs(298, 155).addBox(-3.50F, -5.50F, -3.00F, 7.0F, 8.0F, 7.0F)
             .texOffs(327, 155).addBox(-4.00F, -5.50F, -2.50F, 8.0F, 6.0F, 6.0F, new CubeDeformation(-0.02F))
-            .texOffs(356, 155).addBox(-3.50F, -6.50F, -3.00F, 7.0F, 2.0F, 7.0F)
+            .texOffs(356, 155).addBox(-3.50F, -6.50F, -3.00F, 7.0F, 2.0F, 7.0F, new CubeDeformation(0.03F))
             .texOffs(385, 155).addBox(-2.80F, -7.50F, -2.00F, 2.0F, 2.0F, 2.0F)
-            .texOffs(394, 155).addBox(-2.30F, -7.80F, -1.50F, 1.0F, 1.0F, 1.0F)
             .texOffs(399, 155).addBox(0.80F, -7.50F, -2.00F, 2.0F, 2.0F, 2.0F)
-            .texOffs(408, 155).addBox(1.30F, -7.80F, -1.50F, 1.0F, 1.0F, 1.0F)
             .texOffs(413, 155).addBox(-1.00F, -7.50F, 1.30F, 2.0F, 2.0F, 2.0F)
-            .texOffs(422, 155).addBox(-0.50F, -7.80F, 1.80F, 1.0F, 1.0F, 1.0F)
             .texOffs(427, 155).addBox(-2.50F, -1.50F, 3.50F, 5.0F, 4.0F, 2.0F)
             .texOffs(442, 155).addBox(-1.50F, -0.50F, 4.80F, 3.0F, 2.0F, 1.0F)
             , PartPose.offsetAndRotation(-11.00F, -21.00F, 5.00F, 0.2443F, 0.2094F, 0.1745F));
+        b_missile_pod_l.addOrReplaceChild("missile_tip_1", CubeListBuilder.create().texOffs(394, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(-1.80F, -7.30F, -1.00F));
+        b_missile_pod_l.addOrReplaceChild("missile_tip_3", CubeListBuilder.create().texOffs(408, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(1.80F, -7.30F, -1.00F));
+        b_missile_pod_l.addOrReplaceChild("missile_tip_5", CubeListBuilder.create().texOffs(422, 155).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F), PartPose.offset(0.00F, -7.30F, 2.30F));
         PartDefinition b_shoulder_r = b_torso.addOrReplaceChild("shoulder_r", CubeListBuilder.create()
             .texOffs(451, 155).addBox(-1.50F, -3.50F, -4.00F, 7.0F, 7.0F, 8.0F)
             .texOffs(0, 171).addBox(-0.50F, -5.00F, -6.00F, 10.0F, 6.0F, 12.0F)

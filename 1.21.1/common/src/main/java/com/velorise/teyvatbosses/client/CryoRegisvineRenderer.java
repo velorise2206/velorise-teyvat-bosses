@@ -143,7 +143,7 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         String currClip = entity.getCurrentAnimName();
         int currEpoch = entity.getAnimEpoch();
 
-        boolean musicActive = entity.getBossState() != CryoRegisvineEntity.STATE_DORMANT && entity.getBossState() != CryoRegisvineEntity.STATE_DEATH;
+        boolean musicActive = entity.isAlive() && (entity.getBossState() == CryoRegisvineEntity.STATE_COMBAT || entity.getBossState() == CryoRegisvineEntity.STATE_STUNNED);
         BossMusicManager.update(entity, MUSIC_ID, musicActive);
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {

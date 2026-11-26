@@ -174,7 +174,7 @@ public class TheOpenEyedRenderer extends EntityRenderer<TheOpenEyedEntity> {
         float liveT = entity.tickCount + partialTicks;
 
         boolean dormant = entity.getBossState() == TheOpenEyedEntity.STATE_DORMANT;
-        boolean musicActive = !dormant && entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
+        boolean musicActive = entity.isAlive() && !dormant && entity.getBossState() != TheOpenEyedEntity.STATE_DESCEND && entity.getBossState() != TheOpenEyedEntity.STATE_DEATH;
         BossMusicManager.update(entity, MUSIC_ID, musicActive);
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (dormant) {

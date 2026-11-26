@@ -262,7 +262,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
     private static void updateBossMusic(RuinGuardEntity entity) {
         int st = entity.getBossState();
-        boolean active = entity.isAlive() && st != RuinGuardEntity.STATE_DORMANT && st != RuinGuardEntity.STATE_DEATH;
+        boolean active = entity.isAlive() && (st == RuinGuardEntity.STATE_COMBAT || st == RuinGuardEntity.STATE_STUNNED);
         BossMusicManager.update(entity, MUSIC_ID, active);
     }
 

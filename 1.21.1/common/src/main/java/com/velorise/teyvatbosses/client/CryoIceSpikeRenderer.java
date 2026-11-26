@@ -39,7 +39,7 @@ public class CryoIceSpikeRenderer extends EntityRenderer<CryoIceSpikeEntity> {
     ) {
         float age = entity.tickCount + partialTicks;
         int mode = entity.getMode();
-        float sc = entity.getSpikeScale();
+        float sc = entity.getSpikeScale() * 0.5F;
         int eruptTick = (mode == CryoIceSpikeEntity.MODE_PILLAR) ? CryoIceSpikeEntity.PILLAR_TELEGRAPH_TICKS : 2;
         int maxTicks = (mode == CryoIceSpikeEntity.MODE_PILLAR) ? CryoIceSpikeEntity.PILLAR_LIFETIME_TICKS : CryoIceSpikeEntity.SLAM_LIFETIME_TICKS;
 

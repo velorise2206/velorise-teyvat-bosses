@@ -300,6 +300,28 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         setBoneVisible("hip_r", entity.hasPart(RuinMechEntity.PART_LEFT_LEG));
         setBoneVisible("hip_l", entity.hasPart(RuinMechEntity.PART_RIGHT_LEG));
 
+        // Dynamic 6-tube shoulder missile warhead sync + pop-out launch animation!
+        int ammo = entity.getMissileAmmo();
+        for (int i = 0; i < 6; i++) {
+            ModelPart tip = model.getBone("missile_tip_" + i);
+            if (tip == null) continue;
+            if (animId == RuinMechEntity.ANIM_MISSILE_SALVO) {
+                float fireTick = 16.0F + i * 3.0F;
+                if (animTicksF < fireTick) {
+                    tip.visible = true;
+                } else if (animTicksF < fireTick + 3.5F) {
+                    // Pop upward out of the exact shoulder launch tube as it ignites!
+                    tip.visible = true;
+                    float pop = (animTicksF - fireTick) / 3.5F;
+                    tip.y -= pop * 5.5F;
+                } else {
+                    tip.visible = i < ammo;
+                }
+            } else {
+                tip.visible = i < ammo;
+            }
+        }
+
         // Unobstructed 1st-person cockpit view
         setBoneVisible("eye_assembly", !firstPersonPilot);
         setBoneVisible("back_reactor", !firstPersonPilot);
@@ -365,6 +387,7 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
         setBoneVisible("hip_r", true);
         setBoneVisible("eye_assembly", true);
         setBoneVisible("back_reactor", true);
+        for (int i = 0; i < 6; i++) setBoneVisible("missile_tip_" + i, true);
         poseStack.popPose();
 
         super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);

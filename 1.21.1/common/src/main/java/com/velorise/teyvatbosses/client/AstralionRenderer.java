@@ -148,7 +148,7 @@ public class AstralionRenderer extends EntityRenderer<AstralionEntity> {
         float liveT = entity.tickCount + partialTicks;
 
         boolean dormant = entity.getBossState() == AstralionEntity.STATE_DORMANT;
-        boolean musicActive = !dormant && entity.getBossState() != AstralionEntity.STATE_DEATH;
+        boolean musicActive = entity.isAlive() && !dormant && entity.getBossState() != AstralionEntity.STATE_DEATH && entity.getAnimId() != AstralionEntity.ANIM_IDLE;
         BossMusicManager.update(entity, MUSIC_ID, musicActive);
 
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());

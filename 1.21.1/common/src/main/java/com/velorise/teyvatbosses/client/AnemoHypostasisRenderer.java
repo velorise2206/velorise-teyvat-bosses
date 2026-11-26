@@ -202,7 +202,7 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
 
     private static void updateBossMusic(AnemoHypostasisEntity entity, AnimSM sm) {
         int st = entity.getBossState();
-        boolean active = entity.isAlive() && st != AnemoHypostasisEntity.STATE_DORMANT && st != AnemoHypostasisEntity.STATE_DEATH;
+        boolean active = entity.isAlive() && st != AnemoHypostasisEntity.STATE_DORMANT && st != AnemoHypostasisEntity.STATE_AWAKEN && st != AnemoHypostasisEntity.STATE_DEATH;
         BossMusicManager.update(entity, MUSIC_ID, active);
     }
 

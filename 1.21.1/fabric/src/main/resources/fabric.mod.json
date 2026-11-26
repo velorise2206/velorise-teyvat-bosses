@@ -15,6 +15,9 @@
     ],
     "client": [
       "com.velorise.teyvatbosses.fabric.VeloriseTeyvatBossesFabricClient"
+    ],
+    "jade": [
+      "com.velorise.teyvatbosses.compat.TeyvatBossesJadePlugin"
     ]
   },
   "depends": {
