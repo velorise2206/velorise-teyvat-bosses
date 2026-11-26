@@ -260,30 +260,49 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         }
     }
 
+    /**
+     * Genshin-faithful Primordial Shower VFX (1.mp4 00:35–00:38 &amp; 2.mp4 00:20–00:23):
+     * <ul>
+     *   <li>Charge (tick 6..46): 3 contracting elemental suction rings pulling energy INWARD along the floor
+     *       + soft glowing ground aura (ZERO giant blocky octahedron or sky beacon pillar!).</li>
+     *   <li>Release (tick 47..68): Massive multi-layer flat elemental tsunami floor wave + 12 radial ground
+     *       surge blades tearing outward across the 18m arena floor!</li>
+     * </ul>
+     */
     private static void renderPrimordialShowerVfx(PoseStack poseStack, VertexConsumer lvc, int animTick,
                                                   float partialTicks, float clientSec, float bodyYaw, int[] rgb) {
+        int lr = Math.min(255, rgb[0] + 65);
+        int lg = Math.min(255, rgb[1] + 65);
+        int lb = Math.min(255, rgb[2] + 65);
         poseStack.pushPose();
         Matrix4f mat = poseStack.last().pose();
         if (animTick >= 6 && animTick < 47) {
             float p = Mth.clamp((animTick - 6 + partialTicks) / 41.0F, 0.0F, 1.0F);
-            // Blazing elemental orb gathering in front of boss's compressed jaws/chest!
-            float radYaw = (180.0F - bodyYaw) * Mth.DEG_TO_RAD;
-            float ox = -Mth.sin(radYaw) * 2.6F;
-            float oz = -Mth.cos(radYaw) * 2.6F;
-            float orbR = 0.55F + p * 1.45F + Mth.sin(clientSec * 24.0F) * 0.14F;
-            drawGlowingOctahedron(lvc, mat, ox, 1.65F, oz, orbR * 1.25F, rgb[0], rgb[1], rgb[2], (int) (185 * p));
-            drawGlowingOctahedron(lvc, mat, ox, 1.65F, oz, orbR * 0.68F, 255, 255, 255, (int) (235 * p));
-            // Rising energy vortex column
-            drawEnergyColumn(lvc, mat, 1.2F + p * 1.8F, 0.2F, 5.5F + p * 7.0F, 20, rgb[0], rgb[1], rgb[2], (int) (115 * p));
+            // 3 contracting suction rings pulling elemental energy INWARD toward the crouched boss
+            for (int k = 0; k < 3; k++) {
+                float inward = 1.0F - (((clientSec * 1.45F) + k * 0.333F) % 1.0F);
+                float rOuter = 2.2F + inward * 14.0F;
+                float rInner = Math.max(0.6F, rOuter - (1.2F + inward * 1.4F));
+                int a = (int) (135 * p * Mth.sin(inward * Mth.PI));
+                if (a > 8) {
+                    drawRing(lvc, mat, rInner, rOuter, 48, 0.11F + k * 0.02F, rgb[0], rgb[1], rgb[2], a);
+                }
+            }
+            // Soft elemental floor glow pool underneath the trembling boss
+            float pulse = 0.88F + 0.12F * Mth.sin(clientSec * 20.0F);
+            drawRing(lvc, mat, 0.4F, (3.2F + p * 2.8F) * pulse, 36, 0.14F, lr, lg, lb, (int) (125 * p));
+            drawRing(lvc, mat, 0.2F, (1.8F + p * 1.4F) * pulse, 28, 0.18F, 255, 255, 255, (int) (145 * p));
         } else if (animTick >= 47 && animTick <= 68) {
             float p = Mth.clamp((animTick - 47 + partialTicks) / 21.0F, 0.0F, 1.0F);
             float ease = 1.0F - (1.0F - p) * (1.0F - p);
-            float waveR = 2.0F + ease * 16.5F;
-            int alpha = (int) (230 * (1.0F - p));
-            // Massive flat elemental floor wave (matches 1.mp4 00:37-00:38 & 2.mp4 00:22-00:23!)
-            drawRing(lvc, mat, Math.max(0.5F, waveR - 3.8F), waveR, 60, 0.18F, rgb[0], rgb[1], rgb[2], alpha);
-            drawRing(lvc, mat, Math.max(0.5F, waveR - 1.1F), waveR, 60, 0.28F, 255, 255, 255, Math.min(255, alpha + 20));
-            drawEnergyColumn(lvc, mat, 3.0F * (1.0F - p * 0.55F), 0.1F, 16.0F, 24, rgb[0], rgb[1], rgb[2], (int) (175 * (1.0F - p)));
+            float waveR = 2.2F + ease * 16.5F;
+            int alpha = (int) (235 * (1.0F - p));
+            // Massive 3-layer flat elemental tsunami floor wave (matches 1.mp4 00:37 & 2.mp4 00:22!)
+            drawRing(lvc, mat, Math.max(0.4F, waveR - 5.2F), waveR, 64, 0.14F, rgb[0], rgb[1], rgb[2], (int) (alpha * 0.78F));
+            drawRing(lvc, mat, Math.max(0.4F, waveR - 2.4F), waveR + 0.2F, 64, 0.22F, lr, lg, lb, alpha);
+            drawRing(lvc, mat, Math.max(0.4F, waveR - 0.85F), waveR + 0.35F, 64, 0.30F, 255, 255, 255, Math.min(255, alpha + 20));
+            // Low wide ground-hugging elemental shockwave crest wall (height 1.8m, NOT a 16m sky beacon!)
+            drawEnergyColumn(lvc, mat, waveR * 0.94F, 0.10F, 1.85F * (1.0F - p * 0.5F), 32, lr, lg, lb, (int) (120 * (1.0F - p)));
         }
         poseStack.popPose();
     }
@@ -333,28 +352,15 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         int lg = Math.min(255, rgb[1] + 65);
         int lb = Math.min(255, rgb[2] + 65);
 
-        // 1. Soft radial throat/mouth energy swirl (translucent feathered rings inside jaws — no hard polygon!)
-        float mouthPulse = 0.88F + 0.12F * Mth.sin(clientSec * 26.0F);
-        drawBeamRing(lvc, mat, 2.45F, 0.08F, 0.85F * mouthPulse, 18, rgb[0], rgb[1], rgb[2], (int) (135 * fade));
-        drawBeamRing(lvc, mat, 2.55F, 0.05F, 0.48F * mouthPulse, 16, 255, 255, 255, (int) (175 * fade));
+        // 1. Silky 4-layer undulating volumetric torrent (outer vapor mist -> mid elemental surge -> bright plasma -> white-hot jet core)
+        drawUndulatingBreathStream(lvc, mat, 2.40F, 17.2F, 0.60F, 3.05F, 10, 20, clientSec, 0.16F, rgb[0], rgb[1], rgb[2], (int) (82 * fade));
+        drawUndulatingBreathStream(lvc, mat, 2.44F, 16.5F, 0.40F, 1.95F, 10, 18, clientSec * 1.15F, 0.13F, lr, lg, lb, (int) (145 * fade));
+        drawUndulatingBreathStream(lvc, mat, 2.50F, 15.6F, 0.24F, 1.05F, 10, 16, clientSec * 1.32F, 0.10F, 230, 248, 255, (int) (180 * fade));
+        drawUndulatingBreathStream(lvc, mat, 2.55F, 14.4F, 0.13F, 0.48F, 8, 12, clientSec * 1.50F, 0.07F, 255, 255, 255, (int) (220 * fade));
 
-        // 2. 8-segment undulating multi-layer volumetric torrent (outer mist + saturated mid + pulsing white core)
-        drawUndulatingBreathStream(lvc, mat, 2.45F, 16.9F, 0.56F, 2.85F, 8, 18, clientSec, 0.14F, rgb[0], rgb[1], rgb[2], (int) (95 * fade));
-        drawUndulatingBreathStream(lvc, mat, 2.48F, 16.4F, 0.34F, 1.72F, 8, 16, clientSec * 1.15F, 0.11F, lr, lg, lb, (int) (155 * fade));
-        drawUndulatingBreathStream(lvc, mat, 2.55F, 15.2F, 0.16F, 0.68F, 8, 12, clientSec * 1.35F, 0.08F, 255, 255, 255, (int) (210 * fade));
-
-        // 3. 3 twisting helical vortex ribbons wrapping the torrent at high velocity
-        drawHelicalBreathRibbons(lvc, mat, 2.60F, 16.2F, 0.46F, 2.40F, 18, clientSec, rgb[0], rgb[1], rgb[2], (int) (165 * fade));
-
-        // 4. Scrolling pressure rings + billowing splash flare near ground impact
-        for (int k = 0; k < 4; k++) {
-            float flow = ((clientSec * 2.6F) + k * 0.25F) % 1.0F;
-            float zPos = Mth.lerp(flow, 3.0F, 15.8F);
-            float rRing = Mth.lerp(flow, 0.52F, 2.55F);
-            int rAlpha = (int) (130 * fade * Mth.sin(flow * Mth.PI));
-            drawBeamRing(lvc, mat, zPos, rRing * 0.70F, rRing, 16, lr, lg, lb, rAlpha);
-        }
-        drawBeamRing(lvc, mat, 14.2F, 0.60F, 2.95F * mouthPulse, 20, rgb[0], rgb[1], rgb[2], (int) (95 * fade));
+        // 2. Dual counter-flowing twisting helical vortex ribbons (eliminates flat geometric hoops!)
+        drawHelicalBreathRibbons(lvc, mat, 2.50F, 16.4F, 0.44F, 2.45F, 22, clientSec, rgb[0], rgb[1], rgb[2], (int) (155 * fade));
+        drawHelicalBreathRibbons(lvc, mat, 2.60F, 15.8F, 0.26F, 1.55F, 20, -clientSec * 0.85F, lr, lg, lb, (int) (135 * fade));
         poseStack.popPose();
     }
 

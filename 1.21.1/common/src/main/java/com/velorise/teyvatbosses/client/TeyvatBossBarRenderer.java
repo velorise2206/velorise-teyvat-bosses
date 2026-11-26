@@ -30,7 +30,7 @@ public final class TeyvatBossBarRenderer {
     private static final int FRAME_PAD_X = 16; // (214 - 182) / 2
     private static final int FRAME_PAD_Y = 9;  // (23 - 5) / 2
     private static final int TOP_CLEARANCE = 6; // ensures y=3 spikes stay below title shadow
-    private static final int ROW_INCREMENT = 30;
+    private static final int ROW_INCREMENT = 33;
 
     private static final String KEY_CRYO_REGISVINE = "entity.velorise_teyvat_bosses.cryo_regisvine";
     private static final String KEY_ANEMO_HYPOSTASIS = "entity.velorise_teyvat_bosses.anemo_hypostasis";

@@ -16,12 +16,13 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.util.Mth;
 
 /**
- * 3D Hollowed-Out ("Đục Ruột") Elemental-Infused Stone Monolith model:
+ * Sleek Tapered Hollowed-Out ("Đục Ruột") Elemental-Infused Stone Obelisk model
+ * matching Genshin Impact's Primo Geovishap monolith shards (2.mp4 00:28–00:30, 01:11–01:13):
  * <ul>
- *   <li>{@code rock_shell}: Grounded jagged basalt plinth + 4 arched outer stone ribs &amp; crown jaws
- *       framing 4 wide carved-out openings so the hollow interior cavity is clearly visible from all sides.</li>
- *   <li>{@code crystal_core}: Levitating, rotating faceted elemental crystal core suspended inside the
- *       hollowed-out stone cavity, rendered separately with full-bright elemental tinting.</li>
+ *   <li>{@code rock_shell}: Compact jagged dark-slate base + 4 sleek inward-tapering stone blades
+ *       forming a sharp pointed hollow obelisk with luminous open channels on all 4 sides.</li>
+ *   <li>{@code crystal_core}: Tall pointed elemental crystal spear suspended &amp; pulsing inside the
+ *       hollowed-out stone obelisk.</li>
  * </ul>
  */
 public class PrimoInfusedStoneModel extends EntityModel<PrimoInfusedStoneEntity> {
@@ -42,56 +43,58 @@ public class PrimoInfusedStoneModel extends EntityModel<PrimoInfusedStoneEntity>
         PartDefinition root = mesh.getRoot();
 
         // =====================================================================
-        // 1. HOLLOWED-OUT ROCK CARAPACE (4 thick corner ribs + open windows + base plinth)
+        // 1. SLEEK TAPERED HOLLOWED-OUT DARK-SLATE OBELISK SHELL
         // =====================================================================
         PartDefinition shell = root.addOrReplaceChild("rock_shell", CubeListBuilder.create()
-                // Solid rugged limestone/basalt foundation plinth
-                .texOffs(64, 0).addBox(-9.5F, -4.0F, -9.5F, 19.0F, 4.0F, 19.0F, new CubeDeformation(0.0F))
-                .texOffs(0, 0).addBox(-8.0F, -6.5F, -8.0F, 16.0F, 3.0F, 16.0F, new CubeDeformation(0.0F)),
+                // Compact stepped basalt base
+                .texOffs(64, 0).addBox(-6.0F, -2.5F, -6.0F, 12.0F, 2.5F, 12.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 0).addBox(-4.8F, -4.5F, -4.8F, 9.6F, 2.5F, 9.6F, new CubeDeformation(0.0F)),
                 PartPose.offset(0.0F, 24.0F, 0.0F));
 
-        // 4 angled corner rock ribs forming the hollowed-out cage with wide open windows on N/S/E/W!
-        float[][] corners = {
-                {-6.8F, -6.8F,  0.14F,  0.14F},
-                { 6.8F, -6.8F,  0.14F, -0.14F},
-                {-6.8F,  6.8F, -0.14F,  0.14F},
-                { 6.8F,  6.8F, -0.14F, -0.14F}
+        // 4 sleek inward-tilted dark-slate obelisk blades framing a sharp hollowed-out pyramid cavity!
+        float[][] blades = {
+                {-3.8F, -3.8F,  0.16F,  0.16F},
+                { 3.8F, -3.8F,  0.16F, -0.16F},
+                {-3.8F,  3.8F, -0.16F,  0.16F},
+                { 3.8F,  3.8F, -0.16F, -0.16F}
         };
         for (int i = 0; i < 4; i++) {
-            float cx = corners[i][0], cz = corners[i][1];
-            float rx = corners[i][2], rz = corners[i][3];
-            shell.addOrReplaceChild("rib_" + i, CubeListBuilder.create()
-                    // Thick carved stone corner pillar
-                    .texOffs(0, 0).addBox(-2.6F, -22.0F, -2.6F, 5.2F, 17.5F, 5.2F, new CubeDeformation(0.0F))
-                    // Upper inward-arching stone tooth framing the open top chimney
-                    .texOffs(64, 0).addBox(-2.0F, -29.5F, -2.0F, 4.0F, 8.5F, 4.0F, new CubeDeformation(0.0F)),
-                    PartPose.offsetAndRotation(cx, -4.0F, cz, rx, 0.7854F * (i % 2), rz));
+            float bx = blades[i][0], bz = blades[i][1];
+            float rx = blades[i][2], rz = blades[i][3];
+            shell.addOrReplaceChild("blade_" + i, CubeListBuilder.create()
+                    // Lower tapered dark-slate flank
+                    .texOffs(0, 0).addBox(-1.9F, -19.0F, -1.9F, 3.8F, 16.5F, 3.8F, new CubeDeformation(0.0F))
+                    // Mid converging obelisk shoulder
+                    .texOffs(0, 0).addBox(-1.45F, -29.0F, -1.45F, 2.9F, 11.0F, 2.9F, new CubeDeformation(0.0F))
+                    // Sharp pointed apex shard
+                    .texOffs(64, 0).addBox(-0.95F, -35.5F, -0.95F, 1.9F, 7.5F, 1.9F, new CubeDeformation(0.0F)),
+                    PartPose.offsetAndRotation(bx, -3.0F, bz, rx, 0.7854F, rz));
         }
 
-        // 3 jagged outer rubble spurs burst out around the base
+        // 3 compact angular ground shards burst around the obelisk foot
         shell.addOrReplaceChild("spur_0", CubeListBuilder.create()
-                .texOffs(0, 0).addBox(-2.5F, -10.5F, -2.5F, 5.0F, 11.0F, 5.0F),
-                PartPose.offsetAndRotation(-9.2F, -1.0F, 2.0F, 0.18F, 0.35F, -0.42F));
+                .texOffs(0, 0).addBox(-1.5F, -7.5F, -1.5F, 3.0F, 8.0F, 3.0F),
+                PartPose.offsetAndRotation(-5.6F, -0.5F, 1.4F, 0.16F, 0.35F, -0.34F));
         shell.addOrReplaceChild("spur_1", CubeListBuilder.create()
-                .texOffs(64, 0).addBox(-2.2F, -9.5F, -2.2F, 4.4F, 10.0F, 4.4F),
-                PartPose.offsetAndRotation(9.0F, -1.0F, -3.2F, -0.22F, -0.5F, 0.38F));
+                .texOffs(64, 0).addBox(-1.4F, -6.8F, -1.4F, 2.8F, 7.2F, 2.8F),
+                PartPose.offsetAndRotation(5.4F, -0.5F, -2.0F, -0.18F, -0.45F, 0.32F));
         shell.addOrReplaceChild("spur_2", CubeListBuilder.create()
-                .texOffs(0, 0).addBox(-2.4F, -8.5F, -2.4F, 4.8F, 9.0F, 4.8F),
-                PartPose.offsetAndRotation(1.5F, -1.0F, 9.4F, 0.44F, 0.2F, 0.15F));
+                .texOffs(0, 0).addBox(-1.4F, -6.0F, -1.4F, 2.8F, 6.5F, 2.8F),
+                PartPose.offsetAndRotation(0.8F, -0.5F, 5.5F, 0.36F, 0.2F, 0.12F));
 
         // =====================================================================
-        // 2. SUSPENDED HOLLOW-INTERIOR ELEMENTAL CRYSTAL CORE (levitates & spins inside!)
+        // 2. SUSPENDED POINTED ELEMENTAL CRYSTAL CORE (glows through the 4 hollow slits!)
         // =====================================================================
         PartDefinition core = root.addOrReplaceChild("crystal_core", CubeListBuilder.create()
-                // Central faceted crystal diamond pillar
-                .texOffs(0, 64).addBox(-3.2F, -9.0F, -3.2F, 6.4F, 18.0F, 6.4F, new CubeDeformation(0.0F))
-                // Cross-rotated inner crystal prism for rich 8-faceted silhouette
-                .texOffs(64, 64).addBox(-2.4F, -11.5F, -2.4F, 4.8F, 23.0F, 4.8F, new CubeDeformation(0.0F)),
-                PartPose.offset(0.0F, 8.0F, 0.0F));
+                // Tall central glowing elemental core prism
+                .texOffs(0, 64).addBox(-2.2F, -10.5F, -2.2F, 4.4F, 21.0F, 4.4F, new CubeDeformation(0.0F))
+                // Sharp crystal spire tip extending cleanly up into the open obelisk crown
+                .texOffs(64, 64).addBox(-1.3F, -16.5F, -1.3F, 2.6F, 27.0F, 2.6F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, 7.0F, 0.0F));
 
-        core.addOrReplaceChild("core_orbit_a", CubeListBuilder.create()
-                .texOffs(0, 64).addBox(-1.6F, -5.0F, -1.6F, 3.2F, 10.0F, 3.2F),
-                PartPose.offsetAndRotation(0.0F, 0.0F, 0.0F, 0.32F, 0.7854F, 0.24F));
+        core.addOrReplaceChild("core_facet", CubeListBuilder.create()
+                .texOffs(0, 64).addBox(-1.5F, -7.5F, -1.5F, 3.0F, 15.0F, 3.0F),
+                PartPose.offsetAndRotation(0.0F, 0.0F, 0.0F, 0.0F, 0.7854F, 0.0F));
 
         return LayerDefinition.create(mesh, 128, 128);
     }
@@ -100,10 +103,11 @@ public class PrimoInfusedStoneModel extends EntityModel<PrimoInfusedStoneEntity>
     public void setupAnim(PrimoInfusedStoneEntity entity, float limbSwing, float limbSwingAmount,
                           float ageInTicks, float netHeadYaw, float headPitch) {
         float urgency = Mth.clamp(1.0F - (entity.getFuseLeft() / (float) entity.getFuseMax()), 0.0F, 1.0F);
-        float spinSpeed = 0.09F + urgency * 0.28F;
+        float spinSpeed = 0.08F + urgency * 0.26F;
         this.crystalCore.yRot = ageInTicks * spinSpeed;
-        this.crystalCore.y = 8.0F + Mth.sin(ageInTicks * (0.22F + urgency * 0.55F)) * 1.45F;
-        this.rockShell.yRot = 0.0F;
+        this.crystalCore.y = 7.0F + Mth.sin(ageInTicks * (0.20F + urgency * 0.50F)) * 1.15F;
+        // Subtle organic obelisk lean like Genshin's jagged stones
+        this.rockShell.zRot = 0.06F;
     }
 
     public void renderRockShell(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, int color) {
