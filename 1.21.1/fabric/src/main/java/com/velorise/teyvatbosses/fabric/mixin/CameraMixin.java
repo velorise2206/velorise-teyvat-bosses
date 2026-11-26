@@ -46,6 +46,9 @@ public abstract class CameraMixin {
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             float[] off = RuinSubClientController.computeCameraOffsets(partialTick);
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
+        } else if (GeoDrillerClientController.isPilotingDriller()) {
+            float[] off = GeoDrillerClientController.computeCameraOffsets(partialTick);
+            this.setRotation(this.yRot + off[0], this.xRot + off[1]);
         }
         if (BossCameraShake.isActive()) {
             float[] off = BossCameraShake.computeOffsets(partialTick);

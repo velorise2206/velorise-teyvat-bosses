@@ -43,6 +43,15 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     private final PrimoGeovishapModel<PrimoGeovishapEntity> model;
     private final PrimoGeovishapModel<PrimoGeovishapEntity> emissiveModel;
     private final Map<PrimoGeovishapEntity, PrimoGeovishapAnimations.BlendState> blendStates = new WeakHashMap<>();
+    private final Map<PrimoGeovishapEntity, WalkStrideState> walkStates = new WeakHashMap<>();
+
+    private static final class WalkStrideState {
+        float walkAnimSec = 0.0F;
+        float lastClientSec = -1.0F;
+        double lastX = 0.0D;
+        double lastZ = 0.0D;
+        boolean hasPos = false;
+    }
 
     public PrimoGeovishapRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
@@ -65,9 +74,35 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         float headLookYaw = Mth.wrapDegrees(headYaw - bodyYaw);
         float headLookPitch = Mth.lerp(partialTicks, entity.xRotO, entity.getXRot());
 
+        float evalClipSec = clipSec;
+        WalkStrideState ws = walkStates.computeIfAbsent(entity, k -> new WalkStrideState());
+        if (animId == PrimoGeovishapEntity.ANIM_WALK) {
+            double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            if (!ws.hasPos || ws.lastClientSec < 0.0F || clientSec < ws.lastClientSec || (clientSec - ws.lastClientSec) > 0.35F) {
+                ws.lastX = ex;
+                ws.lastZ = ez;
+                ws.lastClientSec = clientSec;
+                ws.hasPos = true;
+            } else {
+                float dtSec = clientSec - ws.lastClientSec;
+                double distMoved = Math.hypot(ex - ws.lastX, ez - ws.lastZ);
+                // Natural stride of Primo Geovishap walk (1.60s loop @ 1.35x scale) is ~1.85 blocks per clip-second
+                float distAdvance = (float) (distMoved / 1.85D);
+                float turnFloor = dtSec * 0.60F;
+                ws.walkAnimSec += Math.max(distAdvance, turnFloor);
+                ws.lastX = ex;
+                ws.lastZ = ez;
+                ws.lastClientSec = clientSec;
+            }
+            evalClipSec = ws.walkAnimSec;
+        } else {
+            ws.hasPos = false;
+        }
+
         PrimoGeovishapAnimations.BlendState blend = blendStates.computeIfAbsent(
                 entity, k -> new PrimoGeovishapAnimations.BlendState());
-        PrimoGeovishapAnimations.applyBlended(model, blend, clip, clipSec, clientSec, headLookYaw, headLookPitch);
+        PrimoGeovishapAnimations.applyBlended(model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch);
         emissiveModel.copyPoseFrom(model);
 
         int[] rgb = entity.getInfusionRgb();

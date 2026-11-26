@@ -648,16 +648,18 @@ public class RuinGuardEntity extends Monster {
             if (shouldWalk || needsPivotStep) {
                 if (anim != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
                 if (shouldWalk) {
-                    // Cataclysm-style A* pathfinding steering around pits, craters & ledges + brisk heavy mech pursuit
-                    if (stateTick % 6 == 0 || getNavigation().isDone()) {
-                        getNavigation().moveTo(target, isPhase2() ? 1.30D : 1.15D);
+                    // Path-only A* steering (no MoveControl velocity stacking!) + heavy iron-mech stride speed
+                    if (getNavigation() instanceof BossGroundNavigation bnav) {
+                        if (stateTick % 6 == 0 || bnav.isDone()) {
+                            bnav.computePathTo(target);
+                        }
                     }
                     Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
                             ? bnav.getSteerDirection(target.position())
                             : new Vec3(dxT, 0.0D, dzT).normalize();
                     double stepPhase = (stateTick % 24) / 24.0D;
-                    double cadence = 0.65D + 0.35D * Math.sin(stepPhase * Math.PI * 2.0D);
-                    double speed = (isPhase2() ? 0.25D : 0.21D) * cadence;
+                    double cadence = 0.84D + 0.16D * Math.sin(stepPhase * Math.PI * 2.0D);
+                    double speed = (isPhase2() ? 0.145D : 0.125D) * cadence;
                     double jumpY = cur.y;
                     if (this.horizontalCollision && this.onGround()) {
                         jumpY = 0.46D; // Step/hop cleanly out of 2-block craters & ledges
@@ -1067,8 +1069,10 @@ public class RuinGuardEntity extends Monster {
     }
 
     private void tickCycloneActive(ServerLevel sl, LivingEntity target) {
-        if (stateTick % 6 == 0 || getNavigation().isDone()) {
-            getNavigation().moveTo(target, isPhase2() ? 1.45D : 1.30D);
+        if (getNavigation() instanceof BossGroundNavigation bnav) {
+            if (stateTick % 6 == 0 || bnav.isDone()) {
+                bnav.computePathTo(target);
+            }
         }
         Vec3 toTarget = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
         if (toTarget.lengthSqr() > 0.25D) {

@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.fabric.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
+import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,6 +24,8 @@ public abstract class GameRendererMixin {
             roll = RuinMechCameraController.computeOffsets(partialTicks)[2];
         } else if (RuinSubClientController.isPilotingSubmersible()) {
             roll = RuinSubClientController.computeCameraOffsets(partialTicks)[2];
+        } else if (GeoDrillerClientController.isPilotingDriller()) {
+            roll = GeoDrillerClientController.computeCameraOffsets(partialTicks)[2];
         }
         if (Math.abs(roll) > 0.001F) {
             poseStack.mulPose(Axis.ZP.rotationDegrees(roll));

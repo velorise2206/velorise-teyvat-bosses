@@ -56,6 +56,11 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);
+        } else if (GeoDrillerClientController.isPilotingDriller()) {
+            float[] off = GeoDrillerClientController.computeCameraOffsets((float) event.getPartialTick());
+            event.setYaw(event.getYaw() + off[0]);
+            event.setPitch(event.getPitch() + off[1]);
+            event.setRoll(event.getRoll() + off[2]);
         }
         if (BossCameraShake.isActive()) {
             float[] off = BossCameraShake.computeOffsets((float) event.getPartialTick());

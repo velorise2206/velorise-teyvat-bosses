@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import org.joml.Matrix4f;
 
 /**
  * Renders {@link GeoDrillerEntity} with smooth partial-tick interpolated procedural animations:
@@ -105,9 +106,19 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         float vibY = rumble > 0.05F ? Mth.sin(age * 2.8F) * 0.022F * rumble : 0.0F;
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
 
+        // Subtle whole-chassis slope tilt when boring UP/DOWN so the driller leans into tunnel grades
+        float slopePitchDeg = switch (entity.getPitchMode()) {
+            case GeoDrillerEntity.PITCH_DOWN -> -5.5F;
+            case GeoDrillerEntity.PITCH_UP -> 5.5F;
+            default -> 0.0F;
+        };
+
         poseStack.pushPose();
         poseStack.translate(0.0D, vibY, 0.0D);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        if (Math.abs(slopePitchDeg) > 0.1F) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(slopePitchDeg));
+        }
 
         poseStack.pushPose();
         poseStack.scale(-1.0F, -1.0F, 1.0F);
@@ -134,8 +145,67 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             poseStack.popPose();
         }
 
+        // 7. AAA 3D Volumetric Headlight Beam Cone + Spinning Geo Bore-Surge Aura!
+        if (entity.isHeadlightOn() || smoothDrillSpool > 0.15F) {
+            VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
+            Matrix4f mat = poseStack.last().pose();
+            if (entity.isHeadlightOn()) {
+                drawDrillerCone(lvc, mat, 1.35F, 1.35F, 10.5F, 0.24F, 2.35F, 16, 255, 232, 165, 58);
+                drawDrillerCone(lvc, mat, 1.35F, 1.35F, 7.5F, 0.14F, 1.15F, 14, 255, 250, 220, 82);
+            }
+            if (smoothDrillSpool > 0.15F && hasDrill) {
+                boolean surge = entity.isSurging();
+                int aRing = (int) ((surge ? 185 : 95) * smoothDrillSpool);
+                float boreR = surge ? 1.15F : 0.85F;
+                poseStack.pushPose();
+                poseStack.translate(0.0D, 0.85D, -1.75D);
+                poseStack.mulPose(Axis.ZP.rotation(smoothDrill * 1.4F));
+                Matrix4f dm = poseStack.last().pose();
+                drawBoreVortexRing(lvc, dm, boreR * 0.55F, boreR, 16, 255, surge ? 225 : 190, surge ? 95 : 55, aRing);
+                if (surge) {
+                    drawDrillerCone(lvc, dm, 0.0F, 0.0F, 2.6F, 0.95F, 0.15F, 16, 255, 215, 80, 130);
+                }
+                poseStack.popPose();
+            }
+        }
+
         poseStack.popPose();
         super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
+    }
+
+    private static void drawDrillerCone(VertexConsumer vc, Matrix4f mat, float yCenter, float zStart, float zEnd,
+                                        float rStart, float rEnd, int segs, int r, int g, int b, int a) {
+        if (a <= 4) return;
+        float z0 = -zStart;
+        float z1 = -zEnd;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (Math.PI * 2.0D * i / segs);
+            float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            vc.addVertex(mat, c0 * rStart, yCenter + s0 * rStart, z0).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rStart, yCenter + s1 * rStart, z0).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rEnd, yCenter + s1 * rEnd, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, c0 * rEnd, yCenter + s0 * rEnd, z1).setColor(r, g, b, 0);
+        }
+    }
+
+    private static void drawBoreVortexRing(VertexConsumer vc, Matrix4f mat, float rIn, float rOut, int segs, int r, int g, int b, int a) {
+        if (a <= 4) return;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (Math.PI * 2.0D * i / segs);
+            float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            vc.addVertex(mat, c0 * rIn, s0 * rIn, 0.0F).setColor(r, g, b, 0);
+            vc.addVertex(mat, c0 * rOut, s0 * rOut, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rOut, s1 * rOut, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rIn, s1 * rIn, 0.0F).setColor(r, g, b, 0);
+            vc.addVertex(mat, c1 * rIn, s1 * rIn, 0.0F).setColor(r, g, b, 0);
+            vc.addVertex(mat, c1 * rOut, s1 * rOut, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rOut, s0 * rOut, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rIn, s0 * rIn, 0.0F).setColor(r, g, b, 0);
+        }
     }
 
     private static void renderChestHalf(ModelPart chestPart, Material material, double offsetX, PoseStack poseStack, MultiBufferSource buf, int packedLight) {

@@ -63,6 +63,11 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         boolean hasLastPose = false;
         final Map<String, BonePose> fromPose = new HashMap<>();
         final Map<String, BonePose> lastPose = new HashMap<>();
+        float walkAnimSec = 0.0F;
+        float lastWalkLiveTick = -1.0F;
+        double lastWalkX = 0.0D;
+        double lastWalkZ = 0.0D;
+        boolean hasWalkPos = false;
 
         void reset() {
             currClip = null;
@@ -157,8 +162,33 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        // 1. Evaluate target keyframe pose (always calls full resetPose including scales)
-        RuinGuardAnimations.apply(model, clip, currSec);
+        // 1. Evaluate target keyframe pose (velocity-synced walk playback so feet stay planted with zero sliding!)
+        float evalSec = currSec;
+        if (animId == RuinGuardEntity.ANIM_WALK) {
+            double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            if (!sm.hasWalkPos || sm.lastWalkLiveTick < 0.0F || liveTick < sm.lastWalkLiveTick || (liveTick - sm.lastWalkLiveTick) > 6.0F) {
+                sm.lastWalkX = ex;
+                sm.lastWalkZ = ez;
+                sm.lastWalkLiveTick = liveTick;
+                sm.hasWalkPos = true;
+            } else {
+                float dtSec = (liveTick - sm.lastWalkLiveTick) / 20.0F;
+                double distMoved = Math.hypot(ex - sm.lastWalkX, ez - sm.lastWalkZ);
+                // Exact geometric stride of new high-knee walk_combat (1.58 blk/step = 3.16 blk / 2.40s = 1.318 blk/clip-sec)
+                // Using 1.26D keeps planted foot gripping ground tightly with ZERO forward foot-sliding!
+                float distAdvance = (float) (distMoved / 1.26D);
+                float pivotAdvance = (distMoved < 0.015D) ? (dtSec * 0.45F) : 0.0F;
+                sm.walkAnimSec += Math.max(distAdvance, pivotAdvance);
+                sm.lastWalkX = ex;
+                sm.lastWalkZ = ez;
+                sm.lastWalkLiveTick = liveTick;
+            }
+            evalSec = sm.walkAnimSec;
+        } else {
+            sm.hasWalkPos = false;
+        }
+        RuinGuardAnimations.apply(model, clip, evalSec);
 
         // 2. Procedural secondary motion layer
         applyProceduralSecondaryMotion(entity, animId, liveTick, currSec);

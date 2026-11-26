@@ -743,13 +743,15 @@ public class PrimoGeovishapEntity extends Monster {
                     entityData.set(DATA_ANIM_TICK, 0);
                     stateTick = 0;
                 }
-                if (stateTick % 6 == 0 || getNavigation().isDone()) {
-                    getNavigation().moveTo(target, dist > 15.0D ? 1.35D : 1.18D);
+                if (getNavigation() instanceof BossGroundNavigation bnav) {
+                    if (stateTick % 6 == 0 || bnav.isDone()) {
+                        bnav.computePathTo(target);
+                    }
                 }
                 Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
                         ? bnav.getSteerDirection(target.position())
                         : new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
-                double speed = dist > 15.0D ? 0.29D : 0.25D;
+                double speed = dist > 15.0D ? 0.195D : 0.165D;
                 double jumpY = (this.horizontalCollision && this.onGround()) ? 0.48D : getDeltaMovement().y;
                 setDeltaMovement(Mth.lerp(0.28D, getDeltaMovement().x, dir.x * speed),
                         jumpY,

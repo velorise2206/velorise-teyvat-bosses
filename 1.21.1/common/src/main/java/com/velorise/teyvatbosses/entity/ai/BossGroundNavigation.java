@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.entity.ai;
 
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.level.Level;
@@ -8,8 +9,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Large-hitbox-aware ground A* navigation (inspired by L_Ender's Cataclysm / Mowzie's Mobs):
- * prevents wide bosses (2.4–4.4 blocks) from stalling on single-voxel waypoints, shallow craters,
- * or 1-block grass ledges, while routing cleanly around cliffs and trees.
+ * computes A* paths around pits, cliffs, and obstacles without letting vanilla MoveControl
+ * double-stack velocity on top of custom stride-synced boss movement.
  */
 public class BossGroundNavigation extends GroundPathNavigation {
 
@@ -18,10 +19,25 @@ public class BossGroundNavigation extends GroundPathNavigation {
         this.setCanFloat(true);
     }
 
+    /**
+     * Computes and stores an A* path to {@code target} for steering queries only
+     * (does not engage vanilla MoveControl velocity stacking).
+     */
+    public void computePathTo(LivingEntity target) {
+        Path p = this.createPath(target, 1);
+        if (p != null) {
+            this.path = p;
+        }
+    }
+
     @Override
     protected void followThePath() {
         Vec3 mobPos = this.getTempMobPos();
-        // Wide bosses must advance waypoints using a hitbox-scaled radius instead of vanilla's tiny 0.5-block threshold
+        advanceWaypoints();
+        this.doStuckDetection(mobPos);
+    }
+
+    private void advanceWaypoints() {
         this.maxDistanceToWaypoint = Math.max(1.25F, this.mob.getBbWidth() * 0.62F);
         Path current = this.path;
         if (current != null && !current.isDone()) {
@@ -33,7 +49,6 @@ public class BossGroundNavigation extends GroundPathNavigation {
                 current.advance();
             }
         }
-        this.doStuckDetection(mobPos);
     }
 
     /**
@@ -41,6 +56,7 @@ public class BossGroundNavigation extends GroundPathNavigation {
      * falling back to direct target direction when unobstructed or at close range.
      */
     public Vec3 getSteerDirection(Vec3 targetPos) {
+        advanceWaypoints();
         Path current = this.path;
         if (current != null && !current.isDone()) {
             Vec3 next = current.getNextEntityPos(this.mob);
