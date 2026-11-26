@@ -573,22 +573,21 @@ public class RuinGuardEntity extends Monster {
                     Vec3 dir = new Vec3(dxT, 0.0D, dzT).normalize();
                     // Exact 2.40s (48-tick, 24 ticks/step) Genshin zero-slide velocity matched to 1.04 blocks/step leg sweep:
                     // Footplant stomp occurs at tick 12 (phase 0.50); anchors firmly on stomp (0.46..0.66) for zero foot sliding
+                    // True zero-slide stance push-off: ONLY advance forward when the planted leg pulls backward (0.54..0.96).
+                    // During leg swing-forward & footplant stomp (0.00..0.54), anchor chassis firmly so planted foot NEVER slides!
                     double stepPhase = (stateTick % 24) / 24.0D;
                     double phaseMul = isPhase2() ? 1.08D : 1.0D;
-                    double speed;
-                    if (stepPhase >= 0.46D && stepPhase <= 0.66D) {
-                        speed = 0.008D;
-                    } else if (stepPhase < 0.46D) {
-                        speed = 0.036D + 0.024D * Math.sin((stepPhase / 0.46D) * Math.PI);
+                    if (stepPhase >= 0.54D && stepPhase <= 0.96D) {
+                        double pushFrac = (stepPhase - 0.54D) / 0.42D;
+                        double speed = 0.115D * Math.pow(Math.sin(pushFrac * Math.PI), 1.2D) * phaseMul;
+                        setDeltaMovement(
+                                Mth.lerp(0.55D, cur.x, dir.x * speed),
+                                cur.y,
+                                Mth.lerp(0.55D, cur.z, dir.z * speed)
+                        );
                     } else {
-                        speed = 0.038D + 0.020D * Math.sin(((stepPhase - 0.66D) / 0.34D) * Math.PI);
+                        setDeltaMovement(cur.x * 0.18D, cur.y, cur.z * 0.18D);
                     }
-                    speed *= phaseMul;
-                    setDeltaMovement(
-                            Mth.lerp(0.45D, cur.x, dir.x * speed),
-                            cur.y,
-                            Mth.lerp(0.45D, cur.z, dir.z * speed)
-                    );
                 } else {
                     setDeltaMovement(cur.x * 0.32D, cur.y, cur.z * 0.32D);
                 }

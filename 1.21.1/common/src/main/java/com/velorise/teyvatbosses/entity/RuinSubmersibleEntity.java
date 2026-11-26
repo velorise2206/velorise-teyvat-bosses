@@ -39,12 +39,12 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Pilotable 6-DoF Underwater Submersible with Alex's Caves-style Panoramic Glass Canopy Dome:
- * assembled from 4 {@link RuinNautilusEntity} salvage parts (Hull, Cockpit, Propeller, Torpedo Pods).
+ * Pilotable 6-DoF Underwater Submersible (Fontaine Clockwork Dreadnought with curved glass canopy).
  *
- * <p>Uses direct client-synced W/A/S/D + Space/Ctrl controls (zero stuck input), single-pass 6-DoF physics
- * (no double-move jitter), surface-skimming water detection, safe overhead dismount, infinite breathing +
- * flicker-free Night Vision headlight, Sonar Pulse (LMB), 6-Torpedo salvo (RMB), Jet Dash (R), and Headlight (F).
+ * <p>Uses proper Minecraft 1.21.1 client-authoritative {@link #travel(Vec3)} vehicle physics
+ * (just like Alex's Caves Submarine &amp; vanilla Boat): movement runs smoothly on the controlling client
+ * and syncs automatically via {@code ServerboundMoveVehiclePacket}, completely eliminating the
+ * frozen/rubber-banding bug caused by moving on the server while {@code LocalPlayer} owns the vehicle.
  */
 public class RuinSubmersibleEntity extends Mob {
 
@@ -76,15 +76,23 @@ public class RuinSubmersibleEntity extends Mob {
     private static final EntityDataAccessor<Float> DATA_HULL_ROLL =
             SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.FLOAT);
 
-    private float forwardInput = 0.0F;
-    private float strafeInput = 0.0F;
-    private int verticalInput = 0; // +1 ascend (Space), -1 descend (Ctrl)
-    private int inputTimeoutTicks = 0;
+    // Client-side immediate pilot inputs (fed by RuinSubClientController for 0ms lag!)
+    private float clientFwd = 0.0F;
+    private float clientStrafe = 0.0F;
+    private int clientVert = 0;
+    private int clientDashCooldown = 0;
+    private float localPitchDeg = 0.0F;
+    private float localRollDeg = 0.0F;
+
+    // Server-side state & cooldowns
     private int sonarCooldown = 0;
     private int torpedoCooldown = 0;
     private int dashCooldown = 0;
     private int torpedoRegenTicks = 0;
     private float propSpinAngle = 0.0F;
+    private double prevServerX = 0.0D;
+    private double prevServerY = 0.0D;
+    private double prevServerZ = 0.0D;
 
     public RuinSubmersibleEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -98,7 +106,8 @@ public class RuinSubmersibleEntity extends Mob {
                 .add(Attributes.ARMOR, 12.0D)
                 .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.35D);
+                .add(Attributes.MOVEMENT_SPEED, 0.40D)
+                .add(Attributes.STEP_HEIGHT, 1.2D);
     }
 
     @Override
@@ -119,14 +128,27 @@ public class RuinSubmersibleEntity extends Mob {
         updateAssemblyLabel();
     }
 
+    public void setClientPilotInputs(float fwd, float strafe, int vert) {
+        this.clientFwd = Mth.clamp(fwd, -1.0F, 1.0F);
+        this.clientStrafe = Mth.clamp(strafe, -1.0F, 1.0F);
+        this.clientVert = Mth.clamp(vert, -1, 1);
+    }
+
+    public void triggerClientDash(Vec3 aimDir) {
+        if (!level().isClientSide() || clientDashCooldown > 0 || getEnergy() < 14.0F || !isInOrOnWater()) return;
+        clientDashCooldown = 36;
+        Vec3 dash = aimDir.lengthSqr() > 1e-4D ? aimDir.normalize() : Vec3.directionFromRotation(getXRot(), getYRot());
+        setDeltaMovement(getDeltaMovement().add(dash.scale(1.65D)));
+    }
+
     public int getPartsMask() { return entityData.get(DATA_PARTS_MASK); }
     public boolean isFullyAssembled() { return (getPartsMask() & FULL_PARTS) == FULL_PARTS; }
     public boolean hasPart(int bit) { return (getPartsMask() & bit) != 0; }
     public float getEnergy() { return entityData.get(DATA_ENERGY); }
     public int getTorpedoAmmo() { return entityData.get(DATA_TORPEDO_AMMO); }
     public boolean isHeadlightOn() { return entityData.get(DATA_HEADLIGHT); }
-    public float getHullPitchDeg() { return entityData.get(DATA_HULL_PITCH); }
-    public float getHullRollDeg() { return entityData.get(DATA_HULL_ROLL); }
+    public float getHullPitchDeg() { return isControlledByLocalInstance() ? localPitchDeg : entityData.get(DATA_HULL_PITCH); }
+    public float getHullRollDeg() { return isControlledByLocalInstance() ? localRollDeg : entityData.get(DATA_HULL_ROLL); }
     public float getPropSpinAngle() { return propSpinAngle; }
 
     private void addEnergy(float delta) {
@@ -144,7 +166,7 @@ public class RuinSubmersibleEntity extends Mob {
         }
     }
 
-    private boolean isInOrOnWater() {
+    public boolean isInOrOnWater() {
         return isInWater() || isUnderWater()
                 || level().getFluidState(blockPosition()).is(FluidTags.WATER)
                 || level().getFluidState(blockPosition().below()).is(FluidTags.WATER);
@@ -161,11 +183,6 @@ public class RuinSubmersibleEntity extends Mob {
     @Override protected int decreaseAirSupply(int currentAir) { return currentAir; }
 
     @Override
-    public void travel(Vec3 travelVector) {
-        // Movement is executed once per tick inside tick() — no duplicate move() call!
-    }
-
-    @Override
     public LivingEntity getControllingPassenger() {
         return getFirstPassenger() instanceof Player p ? p : null;
     }
@@ -176,14 +193,81 @@ public class RuinSubmersibleEntity extends Mob {
         float rad = yBodyRot * Mth.DEG_TO_RAD;
         double fwdX = -Mth.sin(rad);
         double fwdZ = Mth.cos(rad);
-        // Seat pilot cleanly inside the forward Alex's Caves-style panoramic glass canopy dome
-        moveFunc.accept(passenger, getX() + fwdX * 2.10D, getY() + 0.45D, getZ() + fwdZ * 2.10D);
+        // Seat pilot cleanly inside the curved glass nose cockpit so they are clearly visible in 3rd person!
+        moveFunc.accept(passenger, getX() + fwdX * 1.95D, getY() + 1.05D, getZ() + fwdZ * 1.95D);
     }
 
     @Override
     public Vec3 getDismountLocationForPassenger(LivingEntity passenger) {
-        // Always dismount safely above the submarine deck so the pilot never clips into seabed/walls
         return new Vec3(getX(), getY() + getBbHeight() + 0.65D, getZ());
+    }
+
+    /**
+     * Proper Minecraft 1.21.1 client-authoritative 6-DoF submarine propulsion!
+     * Runs on the controlling client (when piloted) so {@code ServerboundMoveVehiclePacket} syncs
+     * smooth zero-lag motion to the server without ever snapping back or getting stuck.
+     */
+    @Override
+    public void travel(Vec3 travelVector) {
+        if (!isAlive()) return;
+        boolean inWaterNow = isInOrOnWater();
+        LivingEntity pilot = getControllingPassenger();
+
+        if (pilot instanceof Player p && isFullyAssembled() && isControlledByLocalInstance()) {
+            if (getEnergy() > 0.5F && inWaterNow) {
+                float targetYaw = p.getYRot();
+                float deltaYaw = Mth.wrapDegrees(targetYaw - getYRot());
+                float nextYaw = getYRot() + Mth.clamp(deltaYaw, -9.0F, 9.0F);
+                setYRot(nextYaw);
+                this.yRotO = nextYaw;
+                this.yBodyRot = nextYaw;
+                this.yHeadRot = nextYaw;
+
+                // Read client inputs (fallback to player.zza / player.xxa for complete reliability)
+                float fwdIn = Math.abs(clientFwd) > 0.01F ? clientFwd : p.zza;
+                float strafeIn = Math.abs(clientStrafe) > 0.01F ? clientStrafe : p.xxa;
+
+                float rad = nextYaw * Mth.DEG_TO_RAD;
+                Vec3 fwd = new Vec3(-Mth.sin(rad), 0.0D, Mth.cos(rad));
+                Vec3 right = new Vec3(-Mth.cos(rad), 0.0D, -Mth.sin(rad));
+
+                double maxSpd = 0.72D;
+                double vertVel = clientVert * 0.42D;
+                // Allow gliding right up to water surface without launching out of the ocean
+                if (vertVel > 0.0D && !level().getFluidState(blockPosition().above()).is(FluidTags.WATER)) {
+                    vertVel = 0.0D;
+                }
+
+                Vec3 wish = fwd.scale(fwdIn * maxSpd)
+                        .add(right.scale(-strafeIn * 0.42D))
+                        .add(0.0D, vertVel, 0.0D);
+                Vec3 nextVel = getDeltaMovement().lerp(wish, 0.26D);
+                setDeltaMovement(nextVel);
+                move(MoverType.SELF, nextVel);
+
+                float targetPitch = Mth.clamp((float) (-nextVel.y * 65.0D), -30.0F, 30.0F);
+                float targetRoll = Mth.clamp(-deltaYaw * 1.8F - strafeIn * 10.0F, -20.0F, 20.0F);
+                localPitchDeg = Mth.lerp(0.20F, localPitchDeg, targetPitch);
+                localRollDeg = Mth.lerp(0.20F, localRollDeg, targetRoll);
+            } else {
+                // Out of water or out of energy: gentle sink/stop
+                double vy = inWaterNow ? 0.0D : Math.max(-0.35D, getDeltaMovement().y - 0.05D);
+                Vec3 damp = new Vec3(getDeltaMovement().x * 0.78D, vy, getDeltaMovement().z * 0.78D);
+                setDeltaMovement(damp);
+                move(MoverType.SELF, damp);
+                localPitchDeg = Mth.lerp(0.15F, localPitchDeg, 0.0F);
+                localRollDeg = Mth.lerp(0.15F, localRollDeg, 0.0F);
+            }
+            return;
+        }
+
+        // Unpiloted submarine on server: gentle buoyancy/gravity settling
+        if (!level().isClientSide() && !isVehicle()) {
+            double vy = inWaterNow ? 0.0D : Math.max(-0.35D, getDeltaMovement().y - 0.05D);
+            Vec3 damp = new Vec3(getDeltaMovement().x * 0.80D, vy, getDeltaMovement().z * 0.80D);
+            setDeltaMovement(damp);
+            move(MoverType.SELF, damp);
+        }
     }
 
     @Override
@@ -281,10 +365,6 @@ public class RuinSubmersibleEntity extends Mob {
     public void handlePilotControl(ServerLevel sl, Player pilot, float fwdIn, float strafeIn,
                                    int vertInput, int action, Vec3 aimDir) {
         if (getControllingPassenger() != pilot) return;
-        this.forwardInput = Mth.clamp(fwdIn, -1.0F, 1.0F);
-        this.strafeInput = Mth.clamp(strafeIn, -1.0F, 1.0F);
-        this.verticalInput = Mth.clamp(vertInput, -1, 1);
-        this.inputTimeoutTicks = 12;
 
         if (action == ACTION_HEADLIGHT) {
             entityData.set(DATA_HEADLIGHT, !isHeadlightOn());
@@ -294,8 +374,6 @@ public class RuinSubmersibleEntity extends Mob {
         if (action == ACTION_DASH && dashCooldown <= 0 && getEnergy() >= 14.0F && isInOrOnWater()) {
             addEnergy(-14.0F);
             dashCooldown = 36;
-            Vec3 dash = aimDir.lengthSqr() > 1e-4D ? aimDir.normalize() : Vec3.directionFromRotation(getXRot(), getYRot());
-            setDeltaMovement(getDeltaMovement().add(dash.scale(1.85D)));
             playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DOLPHIN_SPLASH, 1.2F, 0.95F);
             return;
         }
@@ -364,19 +442,15 @@ public class RuinSubmersibleEntity extends Mob {
         double speed = getDeltaMovement().length();
         propSpinAngle += (float) (0.14D + speed * 1.45D);
 
-        if (level().isClientSide()) return;
+        if (level().isClientSide()) {
+            if (clientDashCooldown > 0) clientDashCooldown--;
+            return;
+        }
         ServerLevel sl = (ServerLevel) level();
 
         if (sonarCooldown > 0) sonarCooldown--;
         if (torpedoCooldown > 0) torpedoCooldown--;
         if (dashCooldown > 0) dashCooldown--;
-        if (inputTimeoutTicks > 0) {
-            inputTimeoutTicks--;
-        } else {
-            forwardInput = 0.0F;
-            strafeInput = 0.0F;
-            verticalInput = 0;
-        }
 
         if (getTorpedoAmmo() < MAX_TORPEDOES) {
             torpedoRegenTicks++;
@@ -391,7 +465,6 @@ public class RuinSubmersibleEntity extends Mob {
         boolean inWaterNow = isInOrOnWater();
         LivingEntity pilot = getControllingPassenger();
         if (pilot instanceof Player p && isFullyAssembled()) {
-            // Infinite air + crystal-clear underwater vision (400t Night Vision prevents <200t flicker)
             p.setAirSupply(p.getMaxAirSupply());
             if (inWaterNow) {
                 p.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 60, 0, true, false));
@@ -400,59 +473,32 @@ public class RuinSubmersibleEntity extends Mob {
                 }
             }
 
-            if (getEnergy() > 0.5F && inWaterNow) {
-                float targetYaw = p.getYRot();
-                float deltaYaw = Mth.wrapDegrees(targetYaw - getYRot());
-                float nextYaw = getYRot() + Mth.clamp(deltaYaw, -7.5F, 7.5F);
-                setYRot(nextYaw);
-                this.yBodyRot = nextYaw;
-                this.yHeadRot = nextYaw;
-
-                float rad = nextYaw * Mth.DEG_TO_RAD;
+            // Detect real client-driven displacement on server for energy drain, bubbles, sound & multiplayer pitch sync
+            double dx = getX() - prevServerX;
+            double dy = getY() - prevServerY;
+            double dz = getZ() - prevServerZ;
+            double movedSq = dx * dx + dy * dy + dz * dz;
+            if (movedSq > 0.002D) {
+                if (tickCount % 20 == 0) addEnergy(-0.5F);
+                float rad = yBodyRot * Mth.DEG_TO_RAD;
                 Vec3 fwd = new Vec3(-Mth.sin(rad), 0.0D, Mth.cos(rad));
-                Vec3 right = new Vec3(-Mth.cos(rad), 0.0D, -Mth.sin(rad));
-
-                double maxSpd = 0.92D;
-                double vertVel = verticalInput * 0.48D;
-                // Prevent breaching far above water surface while still allowing easy surface skimming
-                if (vertVel > 0.0D && !level().getFluidState(blockPosition().above()).is(FluidTags.WATER)) {
-                    vertVel = 0.0D;
-                }
-                Vec3 wish = fwd.scale(forwardInput * maxSpd).add(right.scale(-strafeInput * 0.48D)).add(0.0D, vertVel, 0.0D);
-                Vec3 nextVel = getDeltaMovement().lerp(wish, 0.30D);
-                setDeltaMovement(nextVel);
-                move(MoverType.SELF, nextVel);
-
-                float targetPitch = Mth.clamp((float) (-nextVel.y * 70.0D), -32.0F, 32.0F);
-                float targetRoll = Mth.clamp(-deltaYaw * 2.0F - strafeInput * 10.0F, -22.0F, 22.0F);
-                entityData.set(DATA_HULL_PITCH, Mth.lerp(0.18F, getHullPitchDeg(), targetPitch));
-                entityData.set(DATA_HULL_ROLL, Mth.lerp(0.18F, getHullRollDeg(), targetRoll));
-
-                if (wish.lengthSqr() > 1e-3D && tickCount % 20 == 0) {
-                    addEnergy(-0.5F);
-                }
-                if (wish.lengthSqr() > 0.02D && tickCount % 3 == 0) {
+                if (tickCount % 3 == 0) {
                     Vec3 tail = position().subtract(fwd.scale(3.3D)).add(0.0D, 1.35D, 0.0D);
                     sl.sendParticles(ParticleTypes.BUBBLE, tail.x, tail.y, tail.z, 0, -fwd.x * 0.18D, 0.02D, -fwd.z * 0.18D, 1.0D);
                 }
-                if (wish.lengthSqr() > 0.02D && tickCount % 28 == 0) {
+                if (tickCount % 28 == 0) {
                     playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 0.40F, 1.05F);
                 }
-            } else {
-                double vy = inWaterNow ? 0.0D : Math.max(-0.4D, getDeltaMovement().y - 0.06D);
-                setDeltaMovement(getDeltaMovement().x * 0.75D, vy, getDeltaMovement().z * 0.75D);
-                move(MoverType.SELF, getDeltaMovement());
             }
+            float syncedPitch = Mth.clamp((float) (-dy * 65.0D), -30.0F, 30.0F);
+            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.22F, entityData.get(DATA_HULL_PITCH), syncedPitch));
         } else {
-            forwardInput = 0.0F;
-            strafeInput = 0.0F;
-            verticalInput = 0;
-            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.12F, getHullPitchDeg(), 0.0F));
-            entityData.set(DATA_HULL_ROLL, Mth.lerp(0.12F, getHullRollDeg(), 0.0F));
-            double vy = inWaterNow ? 0.0D : Math.max(-0.4D, getDeltaMovement().y - 0.06D);
-            setDeltaMovement(getDeltaMovement().x * 0.80D, vy, getDeltaMovement().z * 0.80D);
-            move(MoverType.SELF, getDeltaMovement());
+            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.12F, entityData.get(DATA_HULL_PITCH), 0.0F));
+            entityData.set(DATA_HULL_ROLL, Mth.lerp(0.12F, entityData.get(DATA_HULL_ROLL), 0.0F));
         }
+        prevServerX = getX();
+        prevServerY = getY();
+        prevServerZ = getZ();
     }
 
     @Override

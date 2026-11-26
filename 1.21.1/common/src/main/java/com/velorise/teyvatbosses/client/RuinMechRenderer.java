@@ -167,13 +167,13 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 shroudOpen = 1.0F - easeInOutCubic((animTicksF - 42.0F) / 10.0F);
             }
 
-            // 3. Rear reactor hatch hinges WIDE DOWNWARD & BACKWARD like an armored drawbridge door (12..23 open, 39..48 slam shut)
-            if (animTicksF >= 12.0F && animTicksF < 23.0F) {
-                hatchOpen = easeOutBack((animTicksF - 12.0F) / 11.0F);
-            } else if (animTicksF >= 23.0F && animTicksF < 39.0F) {
+            // 3. Rear reactor hatch hinges WIDE UPWARD out of the battery path BEFORE the Redstone Block approaches (8..18 open, 40..49 slam shut)
+            if (animTicksF >= 8.0F && animTicksF < 18.0F) {
+                hatchOpen = easeOutBack((animTicksF - 8.0F) / 10.0F);
+            } else if (animTicksF >= 18.0F && animTicksF < 40.0F) {
                 hatchOpen = 1.0F;
-            } else if (animTicksF >= 39.0F && animTicksF < 48.0F) {
-                hatchOpen = 1.0F - easeOutExpo((animTicksF - 39.0F) / 9.0F);
+            } else if (animTicksF >= 40.0F && animTicksF < 49.0F) {
+                hatchOpen = 1.0F - easeOutExpo((animTicksF - 40.0F) / 9.0F);
             }
 
             // 4. Crisp mechanical recoil jolts at cartridge lock-in (t=36) and hatch seal (t=47)
@@ -214,19 +214,19 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 podR.zRot += shroudOpen * 0.48F;
                 podR.yRot -= shroudOpen * 0.25F;
             }
-            // Negative xRot in Mojang space rotates +Z (back) DOWNWARD & BACKWARD like a true armored hatch!
+            // Swing hatch UPWARD (+112 deg) and tuck above the rear bay so it NEVER collides with the incoming Redstone Block!
             if (reactor != null) {
-                reactor.xRot -= hatchOpen * 1.18F;
-                reactor.z += hatchOpen * 3.8F;
-                reactor.y += hatchOpen * 2.4F;
+                reactor.xRot += hatchOpen * 1.95F;
+                reactor.y -= hatchOpen * 4.8F;
+                reactor.z += hatchOpen * 1.4F;
             }
 
-            // 5. Large textured 3D Redstone Core Cartridge sliding horizontally along magnetic tractor rail (t=17..39)
+            // 5. Large textured 3D Redstone Core Cartridge sliding horizontally into the hollowed wired chamber (t=20..38)
             socketGlow = Mth.clamp(hatchOpen, 0.0F, 1.0F);
-            if (animTicksF >= 17.0F && animTicksF <= 39.0F) {
+            if (animTicksF >= 20.0F && animTicksF <= 38.0F) {
                 cellVisible = 1.0F;
-                if (animTicksF < 26.0F) {
-                    float p = easeInOutCubic((animTicksF - 17.0F) / 9.0F);
+                if (animTicksF < 27.0F) {
+                    float p = easeInOutCubic((animTicksF - 20.0F) / 7.0F);
                     cellSlideZ = Mth.lerp(p, 20.0F, 8.5F);
                     cellScale = Mth.lerp(p, 0.25F, 0.56F);
                     beamAlpha = p;
@@ -349,7 +349,9 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
             if (socketGlow > 0.05F) {
                 poseStack.pushPose();
                 poseStack.translate(0.0D, 0.0D, -0.02D);
-                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.30F * socketGlow);
+                // Recessed hollowed dark battery chamber + internal copper power cables + brass contact coils
+                drawRecessedBatteryBay(bufferSource.getBuffer(RenderType.debugQuads()), poseStack.last().pose(), socketGlow);
+                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.28F * socketGlow);
                 poseStack.popPose();
             }
 
@@ -403,6 +405,46 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
     private void setBoneVisible(String name, boolean vis) {
         ModelPart part = model.getBone(name);
         if (part != null) part.visible = vis;
+    }
+
+    /**
+     * Renders a recessed hollowed dark battery chamber inside the rear reactor bay,
+     * complete with dark inner cavity walls, 4 braided copper/redstone power cables,
+     * and glowing brass terminal rails so the bay visibly looks hollowed out.
+     */
+    private static void drawRecessedBatteryBay(VertexConsumer vc, Matrix4f m, float openAlpha) {
+        int a = (int) (Mth.clamp(openAlpha, 0.0F, 1.0F) * 245.0F);
+        float r = 0.28F;
+        float depth = -0.22F;
+        // 1. Deep dark recessed backplate (gives strong hollowed-hole depth illusion)
+        vc.addVertex(m, -r, -r, 0.03F).setColor(10, 12, 16, a);
+        vc.addVertex(m,  r, -r, 0.03F).setColor(10, 12, 16, a);
+        vc.addVertex(m,  r,  r, 0.03F).setColor(16, 18, 24, a);
+        vc.addVertex(m, -r,  r, 0.03F).setColor(16, 18, 24, a);
+
+        // 2. Inner recessed metallic frame border (top, bottom, left, right walls)
+        float b = 0.045F;
+        // Top & bottom brass contact rails
+        drawBayQuad(vc, m, -r, -r, r, -r + b, 0.04F, 168, 124, 58, a);
+        drawBayQuad(vc, m, -r, r - b, r, r, 0.04F, 168, 124, 58, a);
+        // Left & right dark iron socket guides
+        drawBayQuad(vc, m, -r, -r, -r + b, r, 0.04F, 52, 56, 64, a);
+        drawBayQuad(vc, m, r - b, -r, r, r, 0.04F, 52, 56, 64, a);
+
+        // 3. 4 Internal Copper & Redstone Power Cables running from corners into the center core
+        drawBayQuad(vc, m, -r + b, -0.14F, -0.06F, -0.10F, 0.045F, 186, 98, 56, a);
+        drawBayQuad(vc, m,  0.06F, -0.14F,  r - b, -0.10F, 0.045F, 186, 98, 56, a);
+        drawBayQuad(vc, m, -r + b,  0.10F, -0.06F,  0.14F, 0.045F, 210, 48, 42, a);
+        drawBayQuad(vc, m,  0.06F,  0.10F,  r - b,  0.14F, 0.045F, 210, 48, 42, a);
+        // Vertical central power conduit busbar
+        drawBayQuad(vc, m, -0.025F, -r + b, 0.025F, r - b, 0.042F, 130, 82, 42, a);
+    }
+
+    private static void drawBayQuad(VertexConsumer vc, Matrix4f m, float x0, float y0, float x1, float y1, float z, int r, int g, int b, int a) {
+        vc.addVertex(m, x0, y0, z).setColor(r, g, b, a);
+        vc.addVertex(m, x1, y0, z).setColor(r, g, b, a);
+        vc.addVertex(m, x1, y1, z).setColor(r, g, b, a);
+        vc.addVertex(m, x0, y1, z).setColor(r, g, b, a);
     }
 
     private static void drawSocketGlow(VertexConsumer vc, Matrix4f m, float s) {
