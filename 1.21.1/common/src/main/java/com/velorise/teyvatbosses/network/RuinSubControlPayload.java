@@ -10,15 +10,26 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * C2S network payload carrying pilot depth controls, combat/utility actions, and aim vector
- * for {@link RuinSubmersibleEntity}.
+ * C2S network payload carrying full 6-DoF movement inputs (forward, strafe, vertical),
+ * combat/utility actions, and aim vector for {@link RuinSubmersibleEntity}.
  */
-public record RuinSubControlPayload(int verticalInput, int action, float aimX, float aimY, float aimZ) implements CustomPacketPayload {
+public record RuinSubControlPayload(
+        float forwardInput,
+        float strafeInput,
+        int verticalInput,
+        int action,
+        float aimX,
+        float aimY,
+        float aimZ
+) implements CustomPacketPayload {
+
     public static final Type<RuinSubControlPayload> TYPE =
             new Type<>(TeyvatBossesConstants.id("ruin_sub_control"));
 
     public static final StreamCodec<FriendlyByteBuf, RuinSubControlPayload> STREAM_CODEC = StreamCodec.of(
             (buf, msg) -> {
+                buf.writeFloat(msg.forwardInput);
+                buf.writeFloat(msg.strafeInput);
                 buf.writeVarInt(msg.verticalInput);
                 buf.writeVarInt(msg.action);
                 buf.writeFloat(msg.aimX);
@@ -26,6 +37,8 @@ public record RuinSubControlPayload(int verticalInput, int action, float aimX, f
                 buf.writeFloat(msg.aimZ);
             },
             buf -> new RuinSubControlPayload(
+                    buf.readFloat(),
+                    buf.readFloat(),
                     buf.readVarInt(),
                     buf.readVarInt(),
                     buf.readFloat(),
@@ -42,7 +55,8 @@ public record RuinSubControlPayload(int verticalInput, int action, float aimX, f
     public static void handleOnServer(RuinSubControlPayload payload, ServerPlayer player) {
         if (player != null && player.getVehicle() instanceof RuinSubmersibleEntity sub
                 && player.level() instanceof ServerLevel sl) {
-            sub.handlePilotControl(sl, player, payload.verticalInput, payload.action,
+            sub.handlePilotControl(sl, player, payload.forwardInput, payload.strafeInput,
+                    payload.verticalInput, payload.action,
                     new Vec3(payload.aimX, payload.aimY, payload.aimZ));
         }
     }

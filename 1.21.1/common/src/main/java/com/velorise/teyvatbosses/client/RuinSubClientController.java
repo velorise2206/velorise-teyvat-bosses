@@ -15,12 +15,17 @@ import java.util.function.Consumer;
  * flanking the vanilla hotbar (Left: Hull HP, Energy, Depth Y; Right: 6 Torpedo pips, Sonar/Headlight/Dash).
  */
 public final class RuinSubClientController {
+    public static final float THIRD_PERSON_ZOOM = 7.5F;
+
     private static Consumer<RuinSubControlPayload> packetSender = p -> {};
     private static boolean prevLmb = false;
     private static boolean prevRmb = false;
     private static boolean prevF = false;
     private static boolean prevR = false;
+    private static float lastFwd = 0.0F;
+    private static float lastStrafe = 0.0F;
     private static int lastVert = 0;
+    private static int heartbeat = 0;
 
     private RuinSubClientController() {}
 
@@ -28,13 +33,23 @@ public final class RuinSubClientController {
         packetSender = sender != null ? sender : p -> {};
     }
 
+    public static boolean isPilotingSubmersible() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && mc.player.getVehicle() instanceof RuinSubmersibleEntity;
+    }
+
     public static void tick(Minecraft mc) {
-        if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity sub)) {
+        if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity)) {
             prevLmb = prevRmb = prevF = prevR = false;
+            lastFwd = 0.0F;
+            lastStrafe = 0.0F;
             lastVert = 0;
+            heartbeat = 0;
             return;
         }
         long win = mc.getWindow().getWindow();
+        float fwd = (mc.options.keyUp.isDown() ? 1.0F : 0.0F) - (mc.options.keyDown.isDown() ? 1.0F : 0.0F);
+        float strafe = (mc.options.keyLeft.isDown() ? 1.0F : 0.0F) - (mc.options.keyRight.isDown() ? 1.0F : 0.0F);
         boolean space = mc.options.keyJump.isDown();
         boolean ctrl = mc.options.keySprint.isDown();
         int vert = (space ? 1 : 0) - (ctrl ? 1 : 0);
@@ -55,10 +70,17 @@ public final class RuinSubClientController {
         prevF = keyF;
         prevR = keyR;
 
-        if (vert != lastVert || action != RuinSubmersibleEntity.ACTION_NONE) {
+        boolean inputChanged = (fwd != lastFwd || strafe != lastStrafe || vert != lastVert);
+        boolean moving = (fwd != 0.0F || strafe != 0.0F || vert != 0);
+        heartbeat++;
+
+        if (inputChanged || action != RuinSubmersibleEntity.ACTION_NONE || (moving && heartbeat >= 4)) {
+            lastFwd = fwd;
+            lastStrafe = strafe;
             lastVert = vert;
+            heartbeat = 0;
             Vec3 aim = mc.player.getLookAngle();
-            packetSender.accept(new RuinSubControlPayload(vert, action, (float) aim.x, (float) aim.y, (float) aim.z));
+            packetSender.accept(new RuinSubControlPayload(fwd, strafe, vert, action, (float) aim.x, (float) aim.y, (float) aim.z));
         }
     }
 

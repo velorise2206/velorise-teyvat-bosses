@@ -44,6 +44,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
     public static void onCameraDistance(CalculateDetachedCameraDistanceEvent event) {
         if (RuinMechCameraController.getPilotedMech() != null) {
             event.setDistance(RuinMechCameraController.THIRD_PERSON_ZOOM);
+        } else if (RuinSubClientController.isPilotingSubmersible()) {
+            event.setDistance(RuinSubClientController.THIRD_PERSON_ZOOM);
         }
     }
 }

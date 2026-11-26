@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
@@ -31,34 +32,54 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 /**
- * Hydro Underwater Boss Counterpart to {@link RuinGuardEntity}:
- * <b>Ruin Nautilus</b> — an ancient Khaenri'ah deep-sea combat submersible guarding ocean trenches.
+ * AAA 2-Phase Underwater Boss: <b>Ruin Nautilus — Abyssal Dreadnought</b>.
  *
- * <p>Features 12 synced underwater combat animations, 6-torpedo homing salvos, hydro-jet ramming,
- * sonar shockwaves, whirlpool vortex pull, sweeping abyssal hydro beam, and a core-overheat stun phase.
- * Defeating it spawns a {@link TrounceBlossomEntity} dropping modular submarine salvage parts.
+ * <p>Inspired by L_Ender's Cataclysm (The Leviathan) and Ace Combat 7 (Alicorn):
+ * <ul>
+ *   <li><b>Anti-cheese underwater combat</b>: 80% damage reduction out of water, 60% reduction beyond 36 blocks,
+ *       28-damage per-hit cap, and fair skill-based stun interrupts (no infinite bow stun-lock).</li>
+ *   <li><b>Phase 1 (100%-50% HP — Hunter-Killer)</b>: Distance-reactive Sonar Shockwave, Fin-Blade Sweep,
+ *       Interruptible Hydro-Jet Ram, 6-Torpedo Salvo, Floating Acoustic Depth Mines, Harpoon Tether Pull,
+ *       and Sweeping Abyssal Eye Beam.</li>
+ *   <li><b>Phase 2 (&lt;50% HP — Abyssal Dreadnought Overdrive)</b>: Uninterruptible 4s transformation deploying
+ *       the hidden <b>Dorsal Hydro-Railgun</b>, unlocking Dorsal Railgun Overcharge (with 3.5s thermal vent
+ *       overheat punish window), Sonar Blackout Breach Ambush, and Trench Whirlpool.</li>
+ * </ul>
  */
 public class RuinNautilusEntity extends Mob {
 
-    public static final int STATE_DORMANT = 0;
-    public static final int STATE_AWAKEN  = 1;
-    public static final int STATE_COMBAT  = 2;
-    public static final int STATE_STUNNED = 3;
-    public static final int STATE_DEATH   = 4;
+    public static final int STATE_DORMANT    = 0;
+    public static final int STATE_AWAKEN     = 1;
+    public static final int STATE_COMBAT     = 2;
+    public static final int STATE_STUNNED    = 3;
+    public static final int STATE_DEATH      = 4;
+    public static final int STATE_PHASE2_CIN = 5;
 
-    public static final int ANIM_DORMANT    = 0;
-    public static final int ANIM_AWAKEN     = 1;
-    public static final int ANIM_IDLE       = 2;
-    public static final int ANIM_SWIM       = 3;
-    public static final int ANIM_TORPEDO    = 4;
-    public static final int ANIM_JET_RAM    = 5;
-    public static final int ANIM_SONAR      = 6;
-    public static final int ANIM_WHIRLPOOL  = 7;
-    public static final int ANIM_BEAM       = 8;
-    public static final int ANIM_STUNNED    = 9;
-    public static final int ANIM_RECOVER    = 10;
-    public static final int ANIM_DEATH      = 11;
+    public static final int ANIM_DORMANT      = 0;
+    public static final int ANIM_AWAKEN       = 1;
+    public static final int ANIM_IDLE         = 2;
+    public static final int ANIM_SWIM         = 3;
+    public static final int ANIM_TORPEDO      = 4;
+    public static final int ANIM_JET_RAM      = 5;
+    public static final int ANIM_SONAR        = 6;
+    public static final int ANIM_WHIRLPOOL    = 7;
+    public static final int ANIM_BEAM         = 8;
+    public static final int ANIM_STUNNED      = 9;
+    public static final int ANIM_RECOVER      = 10;
+    public static final int ANIM_DEATH        = 11;
+    public static final int ANIM_FIN_SWEEP    = 12;
+    public static final int ANIM_HARPOON      = 13;
+    public static final int ANIM_DEPTH_MINES  = 14;
+    public static final int ANIM_PHASE2_TRANS = 15;
+    public static final int ANIM_RAILGUN      = 16;
+    public static final int ANIM_SONAR_BREACH = 17;
+
+    private static final float HIT_DAMAGE_CAP = 28.0F;
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.INT);
@@ -70,6 +91,19 @@ public class RuinNautilusEntity extends Mob {
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_HULL_PITCH =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> DATA_PHASE2 =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Float> DATA_RAILGUN_YAW =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_RAILGUN_PITCH =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
+
+    private static final class DepthMine {
+        Vec3 pos;
+        int age;
+        final int maxAge;
+        DepthMine(Vec3 pos, int maxAge) { this.pos = pos; this.maxAge = maxAge; }
+    }
 
     private final ServerBossEvent bossEvent = new ServerBossEvent(
             Component.translatable("entity.velorise_teyvat_bosses.ruin_nautilus"),
@@ -77,31 +111,32 @@ public class RuinNautilusEntity extends Mob {
             BossEvent.BossBarOverlay.NOTCHED_10
     );
 
+    private final List<DepthMine> activeMines = new ArrayList<>();
     private int serverAnimTick = 0;
     private int clientAnimTick = 0;
     private int lastSyncedAnimId = -1;
     private int lastSyncedEpoch = -1;
-    private int attackCooldown = 36;
-    private int attackCycle = 0;
-    private int eyeHitsAccumulated = 0;
+    private int attackCooldown = 34;
+    private int lastAttackId = -1;
+    private float overheatDamageAccum = 0.0F;
     private boolean blossomSpawned = false;
     private Vec3 ramDir = Vec3.ZERO;
 
     public RuinNautilusEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
-        this.xpReward = 140;
+        this.xpReward = 180;
         this.setPersistenceRequired();
         this.setNoGravity(true);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 460.0D)
-                .add(Attributes.ARMOR, 10.0D)
-                .add(Attributes.ARMOR_TOUGHNESS, 4.0D)
+                .add(Attributes.MAX_HEALTH, 520.0D)
+                .add(Attributes.ARMOR, 12.0D)
+                .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.32D)
-                .add(Attributes.FOLLOW_RANGE, 44.0D);
+                .add(Attributes.MOVEMENT_SPEED, 0.34D)
+                .add(Attributes.FOLLOW_RANGE, 48.0D);
     }
 
     @Override
@@ -112,6 +147,9 @@ public class RuinNautilusEntity extends Mob {
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_TORPEDO_FIRED_MASK, 0);
         builder.define(DATA_HULL_PITCH, 0.0F);
+        builder.define(DATA_PHASE2, false);
+        builder.define(DATA_RAILGUN_YAW, 0.0F);
+        builder.define(DATA_RAILGUN_PITCH, 0.0F);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -119,22 +157,31 @@ public class RuinNautilusEntity extends Mob {
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getTorpedoFiredMask() { return entityData.get(DATA_TORPEDO_FIRED_MASK); }
     public float getHullPitchDeg() { return entityData.get(DATA_HULL_PITCH); }
+    public boolean isPhase2() { return entityData.get(DATA_PHASE2); }
+    public float getRailgunYawDeg() { return entityData.get(DATA_RAILGUN_YAW); }
+    public float getRailgunPitchDeg() { return entityData.get(DATA_RAILGUN_PITCH); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : serverAnimTick; }
 
     public String getCurrentClipName() {
         return switch (getAnimId()) {
-            case ANIM_DORMANT   -> "dormant_sunken";
-            case ANIM_AWAKEN    -> "awaken_surface";
-            case ANIM_SWIM      -> "swim_patrol";
-            case ANIM_TORPEDO   -> "torpedo_salvo";
-            case ANIM_JET_RAM   -> "hydro_jet_ram";
-            case ANIM_SONAR     -> "sonar_shockwave";
-            case ANIM_WHIRLPOOL -> "whirlpool_vortex";
-            case ANIM_BEAM      -> "abyssal_beam";
-            case ANIM_STUNNED   -> "core_overheat_stun";
-            case ANIM_RECOVER   -> "recover_repressurize";
-            case ANIM_DEATH     -> "death_sink";
-            default             -> "idle_hover";
+            case ANIM_DORMANT      -> "dormant_sunken";
+            case ANIM_AWAKEN       -> "awaken_surface";
+            case ANIM_SWIM         -> "swim_patrol";
+            case ANIM_TORPEDO      -> "torpedo_salvo";
+            case ANIM_JET_RAM      -> "hydro_jet_ram";
+            case ANIM_SONAR        -> "sonar_shockwave";
+            case ANIM_WHIRLPOOL    -> "whirlpool_vortex";
+            case ANIM_BEAM         -> "abyssal_beam";
+            case ANIM_STUNNED      -> "core_overheat_stun";
+            case ANIM_RECOVER      -> "recover_repressurize";
+            case ANIM_DEATH        -> "death_sink";
+            case ANIM_FIN_SWEEP    -> "fin_blade_sweep";
+            case ANIM_HARPOON      -> "harpoon_tether";
+            case ANIM_DEPTH_MINES  -> "depth_mine_barrage";
+            case ANIM_PHASE2_TRANS -> "phase2_overdrive";
+            case ANIM_RAILGUN      -> "dorsal_railgun";
+            case ANIM_SONAR_BREACH -> "sonar_breach";
+            default                -> "idle_hover";
         };
     }
 
@@ -169,6 +216,10 @@ public class RuinNautilusEntity extends Mob {
     @Override public void knockback(double s, double x, double z) {}
     @Override protected int decreaseAirSupply(int currentAir) { return currentAir; }
 
+    private boolean isSubmergedOrWet() {
+        return isInWater() || isUnderWater() || level().getFluidState(blockPosition()).is(FluidTags.WATER);
+    }
+
     @Override
     public void startSeenByPlayer(ServerPlayer player) {
         super.startSeenByPlayer(player);
@@ -185,35 +236,74 @@ public class RuinNautilusEntity extends Mob {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (source.is(DamageTypes.DROWN) || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING) || source.is(DamageTypes.FALL)) {
+        if (source.is(DamageTypes.DROWN) || source.is(DamageTypes.IN_WALL)
+                || source.is(DamageTypes.CRAMMING) || source.is(DamageTypes.FALL)) {
             return false;
         }
         int st = getBossState();
-        if (st == STATE_DEATH || st == STATE_AWAKEN) return false;
+        if (st == STATE_DEATH || st == STATE_AWAKEN || st == STATE_PHASE2_CIN) return false;
         if (st == STATE_DORMANT) {
-            if (source.getEntity() instanceof Player) {
-                startAwaken();
-            }
+            if (source.getEntity() instanceof Player) startAwaken();
             return false;
         }
+
+        float dmg = Math.min(amount, HIT_DAMAGE_CAP);
+
+        // Anti-cheese: 80% armor resistance out of water, 60% reduction from >36 blocks away
+        if (!isSubmergedOrWet()) {
+            dmg *= 0.20F;
+        }
+        Entity attacker = source.getEntity();
+        if (attacker != null && attacker.distanceToSqr(this) > 36.0D * 36.0D) {
+            dmg *= 0.40F;
+        }
+
         // Stunned overheat takes 1.5x damage
-        float finalAmt = (st == STATE_STUNNED) ? amount * 1.5F : amount;
-        // Projectile hit to eye-core while charging beam or attacking can stun
-        if (st == STATE_COMBAT && !source.isDirect()) {
-            eyeHitsAccumulated++;
-            if (eyeHitsAccumulated >= 3 || (getAnimId() == ANIM_BEAM && serverAnimTick < 24)) {
-                eyeHitsAccumulated = 0;
-                transitionTo(STATE_STUNNED, ANIM_STUNNED);
-                playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.GUARDIAN_HURT, 1.4F, 0.72F);
+        if (st == STATE_STUNNED) {
+            dmg *= 1.5F;
+        }
+
+        // Fair skill-based interrupts (replaces broken 3-arrow bow stun-lock!):
+        // 1. Interrupting Hydro-Jet Ram during its telegraph windup (t=4..20)
+        if (st == STATE_COMBAT && getAnimId() == ANIM_JET_RAM && serverAnimTick >= 4 && serverAnimTick <= 20 && dmg >= 8.0F) {
+            triggerOverheatStun();
+        }
+        // 2. Punishing Thermal Vent Overheat window right after Dorsal Railgun fires (t=64..108)
+        if (st == STATE_COMBAT && getAnimId() == ANIM_RAILGUN && serverAnimTick >= 64) {
+            overheatDamageAccum += dmg;
+            if (overheatDamageAccum >= 32.0F) {
+                overheatDamageAccum = 0.0F;
+                triggerOverheatStun();
             }
         }
-        return super.hurt(source, finalAmt);
+
+        boolean ok = super.hurt(source, dmg);
+
+        // Trigger Phase 2 Overdrive transformation at <= 50% HP
+        if (ok && !isPhase2() && getBossState() == STATE_COMBAT && getHealth() <= getMaxHealth() * 0.5F && getHealth() > 1.0F) {
+            startPhase2Transformation();
+        }
+        return ok;
+    }
+
+    private void triggerOverheatStun() {
+        transitionTo(STATE_STUNNED, ANIM_STUNNED);
+        playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.GUARDIAN_HURT, 1.5F, 0.70F);
+    }
+
+    private void startPhase2Transformation() {
+        entityData.set(DATA_PHASE2, true);
+        transitionTo(STATE_PHASE2_CIN, ANIM_PHASE2_TRANS);
+        bossEvent.setColor(BossEvent.BossBarColor.PURPLE);
+        playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.ELDER_GUARDIAN_CURSE, 1.6F, 0.72F);
+        playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.BEACON_ACTIVATE, 1.5F, 0.85F);
     }
 
     @Override
     public void die(DamageSource cause) {
         if (getBossState() != STATE_DEATH) {
             setHealth(1.0F);
+            activeMines.clear();
             transitionTo(STATE_DEATH, ANIM_DEATH);
             bossEvent.removeAllPlayers();
             playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.ELDER_GUARDIAN_DEATH, 1.5F, 0.65F);
@@ -262,6 +352,7 @@ public class RuinNautilusEntity extends Mob {
         int t = serverAnimTick;
 
         bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
+        tickDepthMines(sl);
 
         if (st == STATE_DEATH) {
             setDeltaMovement(0.0D, -0.04D, 0.0D);
@@ -280,7 +371,7 @@ public class RuinNautilusEntity extends Mob {
 
         if (st == STATE_DORMANT) {
             setDeltaMovement(Vec3.ZERO);
-            Player near = sl.getNearestPlayer(this, 16.0D);
+            Player near = sl.getNearestPlayer(this, 18.0D);
             if (near != null && !near.isSpectator() && !near.isCreative()) {
                 startAwaken();
             }
@@ -294,7 +385,25 @@ public class RuinNautilusEntity extends Mob {
             }
             if (t >= 56) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 28;
+                attackCooldown = 26;
+            }
+            return;
+        }
+
+        if (st == STATE_PHASE2_CIN) {
+            setDeltaMovement(getDeltaMovement().scale(0.85D));
+            if (t % 4 == 0) {
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.4D, getZ(), 8, 1.4D, 0.6D, 1.4D, 0.05D);
+                sl.sendParticles(ParticleTypes.BUBBLE_POP, getX(), getY() + 2.0D, getZ(), 10, 2.0D, 1.0D, 2.0D, 0.08D);
+            }
+            if (t == 56) {
+                // Deploy a protective ring of 6 floating Acoustic Depth Mines
+                spawnMineRing(6, 7.5D);
+                playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.5F, 0.90F);
+            }
+            if (t >= 80) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+                attackCooldown = 22;
             }
             return;
         }
@@ -302,62 +411,64 @@ public class RuinNautilusEntity extends Mob {
         if (st == STATE_STUNNED) {
             setDeltaMovement(getDeltaMovement().scale(0.85D));
             if (anim == ANIM_STUNNED) {
-                if (t % 6 == 0) {
-                    sl.sendParticles(ParticleTypes.SMOKE, getX(), getY() + 1.8D, getZ(), 6, 1.0D, 0.5D, 1.0D, 0.04D);
+                if (t % 5 == 0) {
+                    sl.sendParticles(ParticleTypes.SMOKE, getX(), getY() + 2.2D, getZ(), 8, 1.2D, 0.6D, 1.2D, 0.05D);
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.0D, getZ(), 5, 1.0D, 0.5D, 1.0D, 0.06D);
                 }
-                if (t >= 100) {
+                if (t >= 90) {
                     setAnim(ANIM_RECOVER);
                     playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.IRON_DOOR_CLOSE, 1.2F, 0.85F);
                 }
             } else if (anim == ANIM_RECOVER && t >= 34) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
-                attackCooldown = 30;
+                attackCooldown = 24;
             }
             return;
         }
 
         // STATE_COMBAT
-        Player target = findTarget(sl, 40.0D);
+        Player target = findTarget(sl, 46.0D);
         if (target == null) {
             setDeltaMovement(getDeltaMovement().scale(0.88D));
             if (anim != ANIM_IDLE) setAnim(ANIM_IDLE);
             return;
         }
 
-        // Sync BossBar to nearby players
         if (tickCount % 20 == 0) {
             for (ServerPlayer sp : sl.players()) {
-                if (sp.distanceToSqr(this) <= 44.0D * 44.0D) bossEvent.addPlayer(sp);
+                if (sp.distanceToSqr(this) <= 48.0D * 48.0D) bossEvent.addPlayer(sp);
                 else bossEvent.removePlayer(sp);
             }
         }
 
-        // Smooth 3D tracking (yaw + pitch) except during locked ram/beam
-        Vec3 toTarget = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D).subtract(position().add(0.0D, 1.6D, 0.0D));
+        Vec3 toTarget = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D).subtract(position().add(0.0D, 1.8D, 0.0D));
         double dist = toTarget.length();
-        if (anim != ANIM_JET_RAM && anim != ANIM_BEAM) {
+        boolean lockAim = (anim == ANIM_JET_RAM || anim == ANIM_BEAM || anim == ANIM_FIN_SWEEP
+                || (anim == ANIM_RAILGUN && t >= 32));
+        if (!lockAim) {
             float desiredYaw = (float) (Mth.atan2(toTarget.z, toTarget.x) * Mth.RAD_TO_DEG) - 90.0F;
-            float nextYaw = getYRot() + Mth.clamp(Mth.wrapDegrees(desiredYaw - getYRot()), -6.5F, 6.5F);
+            float turnRate = isPhase2() ? 8.0F : 6.5F;
+            float nextYaw = getYRot() + Mth.clamp(Mth.wrapDegrees(desiredYaw - getYRot()), -turnRate, turnRate);
             setYRot(nextYaw);
             this.yBodyRot = nextYaw;
             this.yHeadRot = nextYaw;
 
-            float desiredPitch = Mth.clamp((float) (-Mth.atan2(toTarget.y, Math.max(0.1D, toTarget.horizontalDistance())) * Mth.RAD_TO_DEG), -36.0F, 36.0F);
-            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.14F, getHullPitchDeg(), desiredPitch));
+            float desiredPitch = Mth.clamp((float) (-Mth.atan2(toTarget.y, Math.max(0.1D, toTarget.horizontalDistance())) * Mth.RAD_TO_DEG), -34.0F, 34.0F);
+            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.15F, getHullPitchDeg(), desiredPitch));
         }
 
         if (anim == ANIM_IDLE || anim == ANIM_SWIM) {
-            // Maintain optimal underwater combat range (9..16 blocks)
-            Vec3 desiredVel = Vec3.ZERO;
+            Vec3 desiredVel;
+            double strafeSign = ((tickCount / 80) % 2 == 0) ? 1.0D : -1.0D;
+            Vec3 perp = new Vec3(-toTarget.z, 0.0D, toTarget.x).normalize().scale(0.14D * strafeSign);
             if (dist > 15.0D) {
-                desiredVel = toTarget.normalize().scale(0.24D);
+                desiredVel = toTarget.normalize().scale(isPhase2() ? 0.30D : 0.25D).add(perp.scale(0.5D));
                 if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
             } else if (dist < 6.5D) {
-                desiredVel = toTarget.normalize().scale(-0.14D);
+                desiredVel = toTarget.normalize().scale(-0.15D).add(perp);
                 if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
             } else {
-                // Gentle vertical hover alignment
-                desiredVel = new Vec3(0.0D, Mth.clamp(toTarget.y * 0.08D, -0.10D, 0.10D), 0.0D);
+                desiredVel = perp.add(0.0D, Mth.clamp(toTarget.y * 0.09D, -0.11D, 0.11D), 0.0D);
                 if (anim != ANIM_IDLE) setAnim(ANIM_IDLE);
             }
             setDeltaMovement(getDeltaMovement().lerp(desiredVel, 0.16D));
@@ -365,7 +476,6 @@ public class RuinNautilusEntity extends Mob {
             if (tickCount % 30 == 0) {
                 playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 0.55F, 0.90F);
             }
-
             if (attackCooldown > 0) {
                 attackCooldown--;
             } else {
@@ -373,7 +483,7 @@ public class RuinNautilusEntity extends Mob {
             }
         } else if (anim == ANIM_TORPEDO) {
             setDeltaMovement(getDeltaMovement().scale(0.88D));
-            int[] fireTicks = {18, 23, 28, 33, 38, 43};
+            int[] fireTicks = {16, 21, 26, 31, 36, 41};
             for (int i = 0; i < fireTicks.length; i++) {
                 if (t == fireTicks[i]) {
                     entityData.set(DATA_TORPEDO_FIRED_MASK, getTorpedoFiredMask() | (1 << i));
@@ -381,129 +491,246 @@ public class RuinNautilusEntity extends Mob {
                     float yawRad = getYRot() * Mth.DEG_TO_RAD;
                     Vec3 fwd = new Vec3(-Mth.sin(yawRad), 0.0D, Mth.cos(yawRad));
                     Vec3 right = new Vec3(-Mth.cos(yawRad), 0.0D, -Mth.sin(yawRad));
-                    double sideOff = leftSide ? -1.45D : 1.45D;
-                    double yOff = 1.4D + ((i % 3) - 1) * 0.35D;
-                    Vec3 origin = position().add(right.scale(sideOff)).add(fwd.scale(1.1D)).add(0.0D, yOff, 0.0D);
-                    Vec3 initVel = fwd.scale(0.65D).add(right.scale(sideOff * 0.12D)).add(0.0D, 0.12D, 0.0D);
-                    RuinTorpedoProjectile.launchHoming(sl, this, target, origin, initVel, 16.0F, false);
+                    double sideOff = leftSide ? -1.85D : 1.85D;
+                    double yOff = 1.6D + ((i % 3) - 1) * 0.4D;
+                    Vec3 origin = position().add(right.scale(sideOff)).add(fwd.scale(1.4D)).add(0.0D, yOff, 0.0D);
+                    Vec3 initVel = fwd.scale(0.72D).add(right.scale(sideOff * 0.14D)).add(0.0D, 0.12D, 0.0D);
+                    RuinTorpedoProjectile.launchHoming(sl, this, target, origin, initVel, isPhase2() ? 18.0F : 15.0F, false);
                     playSfx(TeyvatBossesSounds.subTorpedoLaunch(), SoundEvents.CROSSBOW_SHOOT, 1.1F, 0.85F + i * 0.05F);
                 }
             }
-            if (t >= 64) {
+            if (t >= 62) {
                 entityData.set(DATA_TORPEDO_FIRED_MASK, 0);
-                attackCooldown = 48;
-                setAnim(ANIM_IDLE);
+                finishAttack(isPhase2() ? 36 : 44);
             }
         } else if (anim == ANIM_JET_RAM) {
-            if (t < 18) {
+            if (t < 20) {
                 ramDir = toTarget.normalize();
-                setDeltaMovement(ramDir.scale(-0.12D));
-                if (t == 1) playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.2F, 1.35F);
-            } else if (t <= 44) {
-                setDeltaMovement(ramDir.scale(0.72D));
-                if (t % 2 == 0) {
-                    sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.5D, getZ(), 6, 0.6D, 0.6D, 0.6D, 0.08D);
-                }
-                AABB hitBox = getBoundingBox().inflate(0.85D);
-                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, hitBox, le -> le.isAlive() && le != this && le instanceof Player)) {
-                    StavesElementBridge.dealElementalDamage(e, this, "HYDRO", 26.0F, 1.0F, false, 0.25F);
-                    e.push(ramDir.x * 1.4D, 0.45D, ramDir.z * 1.4D);
+                setDeltaMovement(ramDir.scale(-0.14D));
+                if (t == 1) playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.3F, 1.35F);
+                if (t % 3 == 0) sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 1.8D, getZ(), 6, 1.2D, 0.8D, 1.2D, 0.04D);
+            } else if (t <= 46) {
+                setDeltaMovement(ramDir.scale(isPhase2() ? 0.88D : 0.76D));
+                if (t % 2 == 0) sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.6D, getZ(), 8, 0.8D, 0.8D, 0.8D, 0.10D);
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(1.0D), le -> le.isAlive() && !le.isSpectator())) {
+                    StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 26.0F, 1.0F, false, 0.25F);
+                    p.push(ramDir.x * 1.5D, 0.45D, ramDir.z * 1.5D);
                 }
                 if (horizontalCollision) {
-                    // Crashed into arena pillar -> stunned!
-                    transitionTo(STATE_STUNNED, ANIM_STUNNED);
+                    triggerOverheatStun();
                     playSfx(TeyvatBossesSounds.mechMetalClank(), SoundEvents.STONE_BREAK, 1.4F, 0.65F);
                     return;
                 }
             } else {
                 setDeltaMovement(getDeltaMovement().scale(0.82D));
             }
-            if (t >= 58) {
-                attackCooldown = 44;
-                setAnim(ANIM_IDLE);
-            }
+            if (t >= 60) finishAttack(38);
         } else if (anim == ANIM_SONAR) {
             setDeltaMovement(getDeltaMovement().scale(0.85D));
             if (t == 18 || t == 26 || t == 34) {
                 playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.3F, 1.15F);
-                AABB box = getBoundingBox().inflate(9.5D);
-                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box, le -> le.isAlive() && le != this && le instanceof Player)) {
-                    if (e.distanceToSqr(this) <= 9.5D * 9.5D) {
-                        StavesElementBridge.dealElementalDamage(e, this, "HYDRO", 12.0F, 1.0F, false, 0.15F);
-                        e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
-                        Vec3 push = e.position().subtract(position()).normalize();
-                        e.push(push.x * 1.1D, 0.25D, push.z * 1.1D);
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(10.0D), le -> le.isAlive() && !le.isSpectator())) {
+                    if (p.distanceToSqr(this) <= 10.0D * 10.0D) {
+                        StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 12.0F, 1.0F, false, 0.15F);
+                        p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
+                        Vec3 push = p.position().subtract(position()).normalize();
+                        p.push(push.x * 1.25D, 0.28D, push.z * 1.25D);
                     }
                 }
-                sl.sendParticles(ParticleTypes.SONIC_BOOM, getX(), getY() + 1.6D, getZ(), 1, 0, 0, 0, 0);
+                sl.sendParticles(ParticleTypes.SONIC_BOOM, getX(), getY() + 1.8D, getZ(), 1, 0, 0, 0, 0);
             }
-            if (t >= 46) {
-                attackCooldown = 40;
-                setAnim(ANIM_IDLE);
+            if (t >= 46) finishAttack(34);
+        } else if (anim == ANIM_FIN_SWEEP) {
+            setDeltaMovement(getDeltaMovement().scale(0.88D));
+            if (t == 16 || t == 24 || t == 32) {
+                playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.PLAYER_ATTACK_SWEEP, 1.3F, 0.85F);
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(7.5D), le -> le.isAlive() && !le.isSpectator())) {
+                    if (p.distanceToSqr(this) <= 7.5D * 7.5D) {
+                        StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 16.0F, 1.0F, false, 0.20F);
+                        Vec3 push = p.position().subtract(position()).normalize();
+                        p.push(push.x * 1.15D, 0.45D, push.z * 1.15D);
+                    }
+                }
+                sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.5D, getZ(), 6, 3.0D, 0.6D, 3.0D, 0.0D);
             }
+            if (t >= 44) finishAttack(30);
+        } else if (anim == ANIM_HARPOON) {
+            setDeltaMovement(getDeltaMovement().scale(0.85D));
+            if (t == 16) {
+                playSfx(TeyvatBossesSounds.subTorpedoLaunch(), SoundEvents.FISHING_BOBBER_THROW, 1.3F, 0.70F);
+            }
+            if (t >= 18 && t <= 40) {
+                Vec3 pull = position().add(0.0D, 1.6D, 0.0D).subtract(target.position());
+                double d = pull.length();
+                if (d > 4.5D && d < 32.0D) {
+                    target.setDeltaMovement(target.getDeltaMovement().add(pull.normalize().scale(0.18D)));
+                    target.hurtMarked = true;
+                }
+                if (t == 22) {
+                    StavesElementBridge.dealElementalDamage(target, this, "HYDRO", 10.0F, 1.0F, false, 0.15F);
+                }
+            }
+            if (t >= 52) finishAttack(28);
+        } else if (anim == ANIM_DEPTH_MINES) {
+            setDeltaMovement(getDeltaMovement().scale(0.90D));
+            if (t == 22) {
+                spawnMineRing(isPhase2() ? 7 : 5, 6.0D);
+                playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DISPENSER_LAUNCH, 1.3F, 0.75F);
+            }
+            if (t >= 48) finishAttack(34);
         } else if (anim == ANIM_WHIRLPOOL) {
             setDeltaMovement(Vec3.ZERO);
-            if (t >= 16 && t <= 76) {
-                AABB box = getBoundingBox().inflate(13.0D);
-                for (Player p : sl.getEntitiesOfClass(Player.class, box, le -> le.isAlive() && !le.isSpectator() && !le.isCreative())) {
-                    Vec3 pull = position().add(0.0D, 1.5D, 0.0D).subtract(p.position());
+            if (t >= 16 && t <= 74) {
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(14.0D), le -> le.isAlive() && !le.isSpectator() && !le.isCreative())) {
+                    // Horizontal suction with vertical escape corridor (swimming up/down escapes pull!)
+                    double dyAbs = Math.abs(p.getY() - (getY() + 1.6D));
+                    Vec3 pull = position().add(0.0D, 1.6D, 0.0D).subtract(p.position());
                     double d = pull.length();
-                    if (d > 2.2D && d < 13.0D) {
-                        p.setDeltaMovement(p.getDeltaMovement().add(pull.normalize().scale(0.085D)));
+                    if (d > 2.4D && d < 14.0D && dyAbs < 5.5D) {
+                        p.setDeltaMovement(p.getDeltaMovement().add(pull.normalize().scale(0.08D)));
                         p.hurtMarked = true;
                     }
-                    if (d <= 4.2D && t % 10 == 0) {
-                        StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 11.0F, 1.0F, false, 0.15F);
+                    if (d <= 4.5D && t % 10 == 0) {
+                        StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 12.0F, 1.0F, false, 0.15F);
                     }
                 }
-                if (t % 3 == 0) {
-                    sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.5D, getZ(), 12, 3.5D, 1.5D, 3.5D, 0.12D);
-                }
+                if (t % 3 == 0) sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.6D, getZ(), 14, 4.0D, 1.5D, 4.0D, 0.12D);
             }
-            if (t >= 92) {
-                attackCooldown = 50;
-                setAnim(ANIM_IDLE);
-            }
+            if (t >= 88) finishAttack(42);
         } else if (anim == ANIM_BEAM) {
             setDeltaMovement(getDeltaMovement().scale(0.85D));
-            if (t == 24) {
-                playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.BEACON_ACTIVATE, 1.4F, 0.72F);
-            }
+            if (t == 24) playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.BEACON_ACTIVATE, 1.4F, 0.72F);
             if (t >= 24 && t <= 58 && t % 4 == 0) {
                 float prog = Mth.clamp((t - 24.0F) / 34.0F, 0.0F, 1.0F);
-                float sweepYaw = (getYRot() + Mth.lerp(prog, -45.0F, 45.0F)) * Mth.DEG_TO_RAD;
+                float sweepYaw = (getYRot() + Mth.lerp(prog, -42.0F, 42.0F)) * Mth.DEG_TO_RAD;
                 float pitchRad = getHullPitchDeg() * Mth.DEG_TO_RAD;
-                Vec3 dir = new Vec3(-Mth.sin(sweepYaw) * Mth.cos(pitchRad), -Mth.sin(pitchRad), Mth.cos(sweepYaw) * Mth.cos(pitchRad)).normalize();
-                Vec3 start = position().add(0.0D, 1.6D, 0.0D).add(dir.scale(2.2D));
-                for (int step = 1; step <= 18; step++) {
-                    Vec3 pt = start.add(dir.scale(step));
-                    if (step % 2 == 0) {
-                        sl.sendParticles(ParticleTypes.BUBBLE_POP, pt.x, pt.y, pt.z, 2, 0.15D, 0.15D, 0.15D, 0.02D);
-                    }
-                    for (Player p : sl.getEntitiesOfClass(Player.class, new AABB(pt, pt).inflate(1.3D), le -> le.isAlive() && !le.isSpectator())) {
-                        StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 14.0F, 1.0F, false, 0.20F);
-                    }
+                fireBeamDamage(sl, sweepYaw, pitchRad, 22.0D, 15.0F, 1.8D);
+            }
+            if (t >= 74) finishAttack(42);
+        } else if (anim == ANIM_RAILGUN) {
+            // Phase 2 Dorsal Hydro-Railgun: t=0..34 lock-on laser, t=36..62 piercing superbeam, t=64..108 overheat window!
+            setDeltaMovement(getDeltaMovement().scale(0.85D));
+            if (t < 32) {
+                entityData.set(DATA_RAILGUN_YAW, getYRot());
+                entityData.set(DATA_RAILGUN_PITCH, getHullPitchDeg());
+                if (t == 1) {
+                    overheatDamageAccum = 0.0F;
+                    playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.BEACON_POWER_SELECT, 1.5F, 1.45F);
+                }
+            } else if (t == 36) {
+                playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.8F, 0.58F);
+            }
+            if (t >= 36 && t <= 62 && t % 3 == 0) {
+                float rYaw = getRailgunYawDeg() * Mth.DEG_TO_RAD;
+                float rPitch = getRailgunPitchDeg() * Mth.DEG_TO_RAD;
+                fireBeamDamage(sl, rYaw, rPitch, 32.0D, 22.0F, 3.8D);
+            }
+            if (t >= 64 && t % 5 == 0) {
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 3.4D, getZ(), 6, 1.1D, 0.4D, 1.1D, 0.03D);
+            }
+            if (t >= 108) finishAttack(38);
+        } else if (anim == ANIM_SONAR_BREACH) {
+            if (t == 1) {
+                playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.5F, 0.65F);
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(28.0D), le -> le.isAlive() && !le.isSpectator())) {
+                    p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 45, 0));
                 }
             }
-            if (t >= 74) {
-                attackCooldown = 52;
-                setAnim(ANIM_IDLE);
+            if (t < 24) {
+                setDeltaMovement(0.0D, -0.35D, 0.0D);
+            } else if (t == 24) {
+                ramDir = toTarget.normalize();
+                playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DOLPHIN_SPLASH, 1.5F, 0.70F);
+            } else if (t <= 54) {
+                setDeltaMovement(ramDir.scale(0.92D));
+                if (t % 2 == 0) sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.8D, getZ(), 10, 1.0D, 1.0D, 1.0D, 0.12D);
+                for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(1.2D), le -> le.isAlive() && !le.isSpectator())) {
+                    StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 24.0F, 1.0F, false, 0.25F);
+                    p.push(ramDir.x * 1.4D, 0.65D, ramDir.z * 1.4D);
+                }
+            } else {
+                setDeltaMovement(getDeltaMovement().scale(0.82D));
+            }
+            if (t >= 68) finishAttack(36);
+        }
+    }
+
+    private void fireBeamDamage(ServerLevel sl, float yawRad, float pitchRad, double range, float dmg, double yOffset) {
+        Vec3 dir = new Vec3(-Mth.sin(yawRad) * Mth.cos(pitchRad), -Mth.sin(pitchRad), Mth.cos(yawRad) * Mth.cos(pitchRad)).normalize();
+        Vec3 start = position().add(0.0D, yOffset, 0.0D).add(dir.scale(3.0D));
+        for (int step = 1; step <= (int) range; step++) {
+            Vec3 pt = start.add(dir.scale(step));
+            if (step % 2 == 0) {
+                sl.sendParticles(ParticleTypes.BUBBLE_POP, pt.x, pt.y, pt.z, 2, 0.18D, 0.18D, 0.18D, 0.02D);
+            }
+            for (Player p : sl.getEntitiesOfClass(Player.class, new AABB(pt, pt).inflate(1.45D), le -> le.isAlive() && !le.isSpectator())) {
+                StavesElementBridge.dealElementalDamage(p, this, "HYDRO", dmg, 1.0F, false, 0.20F);
             }
         }
     }
 
+    private void spawnMineRing(int count, double radius) {
+        for (int i = 0; i < count; i++) {
+            double ang = (Math.PI * 2.0D * i) / count;
+            double dy = (random.nextDouble() - 0.5D) * 3.0D;
+            activeMines.add(new DepthMine(position().add(Math.cos(ang) * radius, 1.8D + dy, Math.sin(ang) * radius), 220));
+        }
+    }
+
+    private void tickDepthMines(ServerLevel sl) {
+        Iterator<DepthMine> it = activeMines.iterator();
+        while (it.hasNext()) {
+            DepthMine m = it.next();
+            m.age++;
+            if (m.age % 4 == 0) {
+                sl.sendParticles(ParticleTypes.GLOW, m.pos.x, m.pos.y, m.pos.z, 2, 0.15D, 0.15D, 0.15D, 0.01D);
+                sl.sendParticles(ParticleTypes.BUBBLE, m.pos.x, m.pos.y, m.pos.z, 1, 0.1D, 0.1D, 0.1D, 0.02D);
+            }
+            boolean triggered = false;
+            if (m.age >= 24) {
+                for (Player p : sl.getEntitiesOfClass(Player.class, new AABB(m.pos, m.pos).inflate(2.4D), le -> le.isAlive() && !le.isSpectator())) {
+                    StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 16.0F, 1.0F, false, 0.25F);
+                    p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 1));
+                    triggered = true;
+                }
+            }
+            if (triggered || m.age >= m.maxAge) {
+                if (triggered) {
+                    sl.sendParticles(ParticleTypes.EXPLOSION, m.pos.x, m.pos.y, m.pos.z, 1, 0, 0, 0, 0);
+                    sl.playSound(null, m.pos.x, m.pos.y, m.pos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 0.9F, 1.15F);
+                }
+                it.remove();
+            }
+        }
+    }
+
+    private void finishAttack(int cd) {
+        attackCooldown = cd;
+        setAnim(ANIM_IDLE);
+    }
+
     private void chooseNextAttack(double dist) {
-        if (dist <= 7.0D) {
-            setAnim(ANIM_SONAR);
-            return;
+        int next;
+        if (dist < 7.5D) {
+            next = (lastAttackId == ANIM_SONAR) ? ANIM_FIN_SWEEP : ANIM_SONAR;
+        } else if (dist > 20.0D) {
+            next = (lastAttackId == ANIM_HARPOON) ? ANIM_TORPEDO : ANIM_HARPOON;
+        } else if (isPhase2()) {
+            int[] pool = {ANIM_RAILGUN, ANIM_SONAR_BREACH, ANIM_TORPEDO, ANIM_WHIRLPOOL, ANIM_JET_RAM, ANIM_DEPTH_MINES};
+            next = pickNonRepeat(pool);
+        } else {
+            int[] pool = {ANIM_TORPEDO, ANIM_JET_RAM, ANIM_BEAM, ANIM_DEPTH_MINES, ANIM_WHIRLPOOL};
+            next = pickNonRepeat(pool);
         }
-        int pick = attackCycle++ % 4;
-        switch (pick) {
-            case 0 -> { entityData.set(DATA_TORPEDO_FIRED_MASK, 0); setAnim(ANIM_TORPEDO); }
-            case 1 -> setAnim(ANIM_JET_RAM);
-            case 2 -> setAnim(ANIM_BEAM);
-            default -> setAnim(ANIM_WHIRLPOOL);
-        }
+        lastAttackId = next;
+        if (next == ANIM_TORPEDO) entityData.set(DATA_TORPEDO_FIRED_MASK, 0);
+        setAnim(next);
+    }
+
+    private int pickNonRepeat(int[] pool) {
+        int pick = pool[random.nextInt(pool.length)];
+        if (pick == lastAttackId) pick = pool[(random.nextInt(pool.length - 1) + 1) % pool.length];
+        return pick;
     }
 
     private Player findTarget(ServerLevel sl, double range) {
@@ -512,10 +739,7 @@ public class RuinNautilusEntity extends Mob {
         for (Player p : sl.players()) {
             if (!p.isAlive() || p.isSpectator() || p.isCreative()) continue;
             double d = p.distanceToSqr(this);
-            if (d < bestSq) {
-                bestSq = d;
-                best = p;
-            }
+            if (d < bestSq) { bestSq = d; best = p; }
         }
         return best;
     }
@@ -524,6 +748,7 @@ public class RuinNautilusEntity extends Mob {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putInt("BossState", getBossState());
+        tag.putBoolean("Phase2", isPhase2());
     }
 
     @Override
@@ -533,6 +758,11 @@ public class RuinNautilusEntity extends Mob {
             int st = tag.getInt("BossState");
             entityData.set(DATA_STATE, st);
             if (st == STATE_DORMANT) entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
+        }
+        if (tag.contains("Phase2")) {
+            boolean p2 = tag.getBoolean("Phase2");
+            entityData.set(DATA_PHASE2, p2);
+            if (p2) bossEvent.setColor(BossEvent.BossBarColor.PURPLE);
         }
     }
 }

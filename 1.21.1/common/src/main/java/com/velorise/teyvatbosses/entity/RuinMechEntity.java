@@ -575,7 +575,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         ServerLevel sl = (ServerLevel) level();
         serverAnimTick++;
         // Auto-unstuck if giant mech chassis ever clips into solid terrain walls
-        if (tickCount % 5 == 0 && getAnimId() != ANIM_LEAP_SLAM && getAnimId() != ANIM_BOOST_LEAP && getAnimId() != ANIM_SUPER_LEAP && isInWall()) {
+        if (tickCount % 5 == 0 && getAnimId() != ANIM_LEAP_SLAM && getAnimId() != ANIM_BOOST_LEAP && getAnimId() != ANIM_SUPER_LEAP && !(getAnimId() == ANIM_MELEE_3HIT && serverAnimTick >= 78 && serverAnimTick <= 99) && isInWall()) {
             tryUnstuckFromTerrain(sl);
         }
         if (actionCooldown > 0) {
@@ -778,12 +778,48 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.PLAYERS, 1.5F, 0.55F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.8D, 1.00F, 0.85F);
                 sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.8D, getZ(), 4, 1.5D, 0.4D, 1.5D, 0.01D);
+            } else if (t == 79) {
+                // Compute synced parabolic leap arc for Hit 3 Finisher Jump Slam (identical to ANIM_LEAP_SLAM!)
+                LivingEntity locked = getHardLockedEntity();
+                float aimYaw;
+                leapStart = position();
+                if (locked != null && locked.distanceToSqr(this) <= 10.0D * 10.0D) {
+                    double dx = locked.getX() - getX();
+                    double dz = locked.getZ() - getZ();
+                    aimYaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+                    leapTarget = locked.position();
+                } else {
+                    aimYaw = (getControllingPassenger() instanceof Player p) ? p.getYRot() : getYRot();
+                    leapTarget = findExplorationLanding(aimYaw, 5.5D);
+                }
+                this.setYRot(aimYaw);
+                this.yBodyRot = aimYaw;
+                this.yHeadRot = aimYaw;
+                entityData.set(DATA_LEAP_SX, (float) leapStart.x);
+                entityData.set(DATA_LEAP_SY, (float) leapStart.y);
+                entityData.set(DATA_LEAP_SZ, (float) leapStart.z);
+                entityData.set(DATA_LEAP_TX, (float) leapTarget.x);
+                entityData.set(DATA_LEAP_TY, (float) leapTarget.y);
+                entityData.set(DATA_LEAP_TZ, (float) leapTarget.z);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.5F, 0.48F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.5D, 1.05F, 0.92F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 14, 0.85D, 0.1D, 0.85D, 0.05D);
+            } else if (t >= 80 && t <= 97) {
+                float f = (t - 80) / 17.0F;
+                float sf = f * f * (3.0F - 2.0F * f);
+                double arcY = Math.sin(f * Math.PI) * 3.1D;
+                setPos(Mth.lerp(sf, leapStart.x, leapTarget.x), Mth.lerp(f, leapStart.y, leapTarget.y) + arcY, Mth.lerp(sf, leapStart.z, leapTarget.z));
+                this.fallDistance = 0.0F;
             } else if (t == 98) {
+                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
+                setOnGround(true);
+                this.fallDistance = 0.0F;
                 if (dealFrontAoE(sl, 6.4D, 38.0F, 1.55D)) rechargeMissileAmmo(sl, 1);
                 sl.playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.6F, 0.60F);
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.0D, 1.20F, 0.72F);
                 playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 1.0D, 0.95F, 0.85F);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1.0D, getZ(), 1, 0.6D, 0.2D, 0.6D, 0.01D);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.25D, getZ(), 24, 2.2D, 0.2D, 2.2D, 0.08D);
             }
             if (t >= 128) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_STOMP) {
@@ -971,7 +1007,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public void travel(Vec3 travelVector) {
         int anim = getAnimId();
         // Controlling client must execute the exact same parabolic leap arc so vehicle position sync never rubber-bands!
-        if ((anim == ANIM_LEAP_SLAM || anim == ANIM_BOOST_LEAP || anim == ANIM_SUPER_LEAP) && level().isClientSide() && isVehicle()) {
+        if ((anim == ANIM_LEAP_SLAM || anim == ANIM_BOOST_LEAP || anim == ANIM_SUPER_LEAP || (anim == ANIM_MELEE_3HIT && getAnimTick() >= 80 && getAnimTick() <= 98)) && level().isClientSide() && isVehicle()) {
             int t = getAnimTick();
             double sx = entityData.get(DATA_LEAP_SX);
             double sy = entityData.get(DATA_LEAP_SY);
@@ -979,7 +1015,20 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             double tx = entityData.get(DATA_LEAP_TX);
             double ty = entityData.get(DATA_LEAP_TY);
             double tz = entityData.get(DATA_LEAP_TZ);
-            if (anim == ANIM_LEAP_SLAM) {
+            if (anim == ANIM_MELEE_3HIT) {
+                if (t >= 80 && t <= 97) {
+                    float f = (t - 80) / 17.0F;
+                    float sf = f * f * (3.0F - 2.0F * f);
+                    double arcY = Math.sin(f * Math.PI) * 3.1D;
+                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                } else if (t == 98) {
+                    setPos(tx, ty, tz);
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                }
+            } else if (anim == ANIM_LEAP_SLAM) {
                 if (t >= 17 && t <= 35) {
                     float f = (t - 17) / 18.0F;
                     float sf = f * f * (3.0F - 2.0F * f);

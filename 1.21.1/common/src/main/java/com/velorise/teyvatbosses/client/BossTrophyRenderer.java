@@ -68,7 +68,8 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         anemoModel.resetPose();
         RuinGuardAnimations.apply(ruinModel, "idle_combat", 0.0F);
         AstralionAnimations.apply(astralionModel, "animation.astralion.idle", 0.0F);
-        RuinNautilusAnimations.apply(nautilusModel, "idle_hover", 0.0F);
+        RuinNautilusAnimations.apply(nautilusModel, "idle_hover", 0.0F, false);
+        if (nautilusModel.getBone("sub_cockpit_glass") != null) nautilusModel.getBone("sub_cockpit_glass").visible = false;
     }
 
     @Override

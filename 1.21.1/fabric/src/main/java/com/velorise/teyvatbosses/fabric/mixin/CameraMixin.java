@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.fabric.mixin;
 
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
+import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -23,9 +24,13 @@ public abstract class CameraMixin {
             index = 0
     )
     private float velorise$extendMechThirdPersonZoom(float originalDistance) {
-        return RuinMechCameraController.getPilotedMech() != null
-                ? RuinMechCameraController.THIRD_PERSON_ZOOM
-                : originalDistance;
+        if (RuinMechCameraController.getPilotedMech() != null) {
+            return RuinMechCameraController.THIRD_PERSON_ZOOM;
+        }
+        if (RuinSubClientController.isPilotingSubmersible()) {
+            return RuinSubClientController.THIRD_PERSON_ZOOM;
+        }
+        return originalDistance;
     }
 
     @Inject(method = "setup", at = @At("TAIL"))
