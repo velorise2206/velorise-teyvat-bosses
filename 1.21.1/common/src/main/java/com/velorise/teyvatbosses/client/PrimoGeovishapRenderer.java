@@ -51,6 +51,8 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         double lastX = 0.0D;
         double lastZ = 0.0D;
         boolean hasPos = false;
+        float ikFL = 0.0F, ikFR = 0.0F, ikBL = 0.0F, ikBR = 0.0F;
+        float ikBodyDrop = 0.0F;
     }
 
     public PrimoGeovishapRenderer(EntityRendererProvider.Context ctx) {
@@ -103,6 +105,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         PrimoGeovishapAnimations.BlendState blend = blendStates.computeIfAbsent(
                 entity, k -> new PrimoGeovishapAnimations.BlendState());
         PrimoGeovishapAnimations.applyBlended(model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch);
+        applyQuadrupedFootIK(entity, ws, animId, bodyYaw, partialTicks);
         emissiveModel.copyPoseFrom(model);
 
         int[] rgb = entity.getInfusionRgb();
@@ -116,16 +119,21 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 ? OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(true))
                 : OverlayTexture.NO_OVERLAY;
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), packedLight, overlay, 0xFFFFFFFF);
-        // Full-bright fierce golden-amber eyes in all 4 elemental forms (day & night!)
-        model.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+        boolean sleeping = (bossState == PrimoGeovishapEntity.STATE_DORMANT);
+        if (!sleeping) {
+            // Full-bright fierce golden-amber eyes when awake (dimmed when sleeping dormant!)
+            model.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+        }
 
         boolean chargingUltimate = (animId == PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER
                 || animId == PrimoGeovishapEntity.ANIM_ELEMENTAL_BREATH
                 || animId == PrimoGeovishapEntity.ANIM_PRIMEVAL_SPRING
                 || animId == PrimoGeovishapEntity.ANIM_SCATTERED_ROCKS);
-        float glowPulse = chargingUltimate
-                ? (0.90F + 0.10F * Mth.sin(clientSec * 14.0F))
-                : (0.80F + 0.20F * Mth.sin(clientSec * 2.8F));
+        float glowPulse = sleeping
+                ? (0.34F + 0.08F * Mth.sin(clientSec * 1.4F))
+                : (chargingUltimate
+                    ? (0.90F + 0.10F * Mth.sin(clientSec * 14.0F))
+                    : (0.80F + 0.20F * Mth.sin(clientSec * 2.8F)));
         int er = Mth.clamp((int) (rgb[0] * glowPulse), 0, 255);
         int eg = Mth.clamp((int) (rgb[1] * glowPulse), 0, 255);
         int eb = Mth.clamp((int) (rgb[2] * glowPulse), 0, 255);
@@ -177,6 +185,59 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         // 7. Infused Stones are now real independent 3D PrimoInfusedStoneEntity instances
 
         super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
+    }
+
+    /**
+     * 4-Limb 2-Bone Analytical Quadruped Foot IK: bends each forelimb and hind leg onto uneven
+     * terrain steps/slabs/craters so Primo Geovishap's massive paws never clip into blocks.
+     */
+    private void applyQuadrupedFootIK(PrimoGeovishapEntity entity, WalkStrideState ws, int animId, float bodyYaw, float partialTicks) {
+        boolean allowIK = entity.onGround()
+                && animId != PrimoGeovishapEntity.ANIM_BURROW
+                && animId != PrimoGeovishapEntity.ANIM_SCATTERED_ROCKS
+                && animId != PrimoGeovishapEntity.ANIM_DORMANT
+                && animId != PrimoGeovishapEntity.ANIM_DEATH;
+        float tFL = 0.0F, tFR = 0.0F, tBL = 0.0F, tBR = 0.0F;
+        if (allowIK) {
+            double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
+            double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            tFL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.15D,  1.25D, 1.05F, 0.70F);
+            tFR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.15D,  1.25D, 1.05F, 0.70F);
+            tBL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.05D, -1.25D, 1.05F, 0.70F);
+            tBR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.05D, -1.25D, 1.05F, 0.70F);
+        }
+        ws.ikFL = Mth.lerp(0.26F, ws.ikFL, tFL);
+        ws.ikFR = Mth.lerp(0.26F, ws.ikFR, tFR);
+        ws.ikBL = Mth.lerp(0.26F, ws.ikBL, tBL);
+        ws.ikBR = Mth.lerp(0.26F, ws.ikBR, tBR);
+        float minFoot = Math.min(Math.min(ws.ikFL, ws.ikFR), Math.min(ws.ikBL, ws.ikBR));
+        ws.ikBodyDrop = Mth.lerp(0.26F, ws.ikBodyDrop, Math.min(0.0F, minFoot * 0.55F));
+
+        if (Math.abs(ws.ikFL) < 0.01F && Math.abs(ws.ikFR) < 0.01F
+                && Math.abs(ws.ikBL) < 0.01F && Math.abs(ws.ikBR) < 0.01F) {
+            return;
+        }
+
+        net.minecraft.client.model.geom.ModelPart body = model.getBone("body");
+        if (body != null) {
+            body.y += (-ws.ikBodyDrop) * (16.0F / BOSS_SCALE);
+        }
+
+        float[] solve = new float[2];
+        applyLimbIK("arm_left", "forearm_left", Math.max(0.0F, ws.ikFL - ws.ikBodyDrop), 0.92F, 0.85F, solve);
+        applyLimbIK("arm_right", "forearm_right", Math.max(0.0F, ws.ikFR - ws.ikBodyDrop), 0.92F, 0.85F, solve);
+        applyLimbIK("leg_left", "shin_left", Math.max(0.0F, ws.ikBL - ws.ikBodyDrop), 0.84F, 0.78F, solve);
+        applyLimbIK("leg_right", "shin_right", Math.max(0.0F, ws.ikBR - ws.ikBodyDrop), 0.84F, 0.78F, solve);
+    }
+
+    private void applyLimbIK(String upperName, String lowerName, float liftBlocks, float upperLen, float lowerLen, float[] solve) {
+        if (liftBlocks <= 0.015F) return;
+        BossFootIK.solveTwoBoneLift(liftBlocks, upperLen, lowerLen, solve);
+        net.minecraft.client.model.geom.ModelPart upper = model.getBone(upperName);
+        net.minecraft.client.model.geom.ModelPart lower = model.getBone(lowerName);
+        if (upper != null) upper.xRot -= solve[0];
+        if (lower != null) lower.xRot += solve[1];
     }
 
     private static void renderGoldenSlashVfx(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, float bodyYaw) {

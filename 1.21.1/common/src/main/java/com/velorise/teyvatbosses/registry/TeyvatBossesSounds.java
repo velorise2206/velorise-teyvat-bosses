@@ -23,6 +23,16 @@ public final class TeyvatBossesSounds {
     private static Supplier<SoundEvent> drillBoreSpin;
     private static Supplier<SoundEvent> ruinGuardSpeech;
     private static Supplier<SoundEvent> ruinGuardPowerDown;
+    private static Supplier<SoundEvent> primoRoar;
+    private static Supplier<SoundEvent> primoStep;
+    private static Supplier<SoundEvent> primoClawSwipe;
+    private static Supplier<SoundEvent> primoSlam;
+    private static Supplier<SoundEvent> primoBurrow;
+    private static Supplier<SoundEvent> primoEmerge;
+    private static Supplier<SoundEvent> primoShowerCharge;
+    private static Supplier<SoundEvent> primoShowerBlast;
+    private static Supplier<SoundEvent> primoShieldReflect;
+    private static Supplier<SoundEvent> primoDeath;
 
     private TeyvatBossesSounds() {}
 
@@ -41,7 +51,17 @@ public final class TeyvatBossesSounds {
             Supplier<SoundEvent> drillEngineIdleSupplier,
             Supplier<SoundEvent> drillBoreSpinSupplier,
             Supplier<SoundEvent> ruinGuardSpeechSupplier,
-            Supplier<SoundEvent> ruinGuardPowerDownSupplier
+            Supplier<SoundEvent> ruinGuardPowerDownSupplier,
+            Supplier<SoundEvent> primoRoarSupplier,
+            Supplier<SoundEvent> primoStepSupplier,
+            Supplier<SoundEvent> primoClawSwipeSupplier,
+            Supplier<SoundEvent> primoSlamSupplier,
+            Supplier<SoundEvent> primoBurrowSupplier,
+            Supplier<SoundEvent> primoEmergeSupplier,
+            Supplier<SoundEvent> primoShowerChargeSupplier,
+            Supplier<SoundEvent> primoShowerBlastSupplier,
+            Supplier<SoundEvent> primoShieldReflectSupplier,
+            Supplier<SoundEvent> primoDeathSupplier
     ) {
         mechEngineHum = engineHumSupplier;
         mechLockonBeep = lockonBeepSupplier;
@@ -58,6 +78,16 @@ public final class TeyvatBossesSounds {
         drillBoreSpin = drillBoreSpinSupplier;
         ruinGuardSpeech = ruinGuardSpeechSupplier;
         ruinGuardPowerDown = ruinGuardPowerDownSupplier;
+        primoRoar = primoRoarSupplier;
+        primoStep = primoStepSupplier;
+        primoClawSwipe = primoClawSwipeSupplier;
+        primoSlam = primoSlamSupplier;
+        primoBurrow = primoBurrowSupplier;
+        primoEmerge = primoEmergeSupplier;
+        primoShowerCharge = primoShowerChargeSupplier;
+        primoShowerBlast = primoShowerBlastSupplier;
+        primoShieldReflect = primoShieldReflectSupplier;
+        primoDeath = primoDeathSupplier;
     }
 
     public static SoundEvent mechEngineHum() { return mechEngineHum != null ? mechEngineHum.get() : null; }
@@ -75,4 +105,14 @@ public final class TeyvatBossesSounds {
     public static SoundEvent drillBoreSpin() { return drillBoreSpin != null ? drillBoreSpin.get() : null; }
     public static SoundEvent ruinGuardSpeech() { return ruinGuardSpeech != null ? ruinGuardSpeech.get() : null; }
     public static SoundEvent ruinGuardPowerDown() { return ruinGuardPowerDown != null ? ruinGuardPowerDown.get() : null; }
+    public static SoundEvent primoRoar() { return primoRoar != null ? primoRoar.get() : null; }
+    public static SoundEvent primoStep() { return primoStep != null ? primoStep.get() : null; }
+    public static SoundEvent primoClawSwipe() { return primoClawSwipe != null ? primoClawSwipe.get() : null; }
+    public static SoundEvent primoSlam() { return primoSlam != null ? primoSlam.get() : null; }
+    public static SoundEvent primoBurrow() { return primoBurrow != null ? primoBurrow.get() : null; }
+    public static SoundEvent primoEmerge() { return primoEmerge != null ? primoEmerge.get() : null; }
+    public static SoundEvent primoShowerCharge() { return primoShowerCharge != null ? primoShowerCharge.get() : null; }
+    public static SoundEvent primoShowerBlast() { return primoShowerBlast != null ? primoShowerBlast.get() : null; }
+    public static SoundEvent primoShieldReflect() { return primoShieldReflect != null ? primoShieldReflect.get() : null; }
+    public static SoundEvent primoDeath() { return primoDeath != null ? primoDeath.get() : null; }
 }

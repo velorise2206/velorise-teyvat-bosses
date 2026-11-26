@@ -42,6 +42,7 @@ public final class PrimoGeovishapAnimations {
         CLIPS.put("attack_primeval_spring", build_attack_primeval_spring());
         CLIPS.put("countered_stagger", build_countered_stagger());
         CLIPS.put("death", build_death());
+        CLIPS.put("dormant_sleep", build_dormant_sleep());
     }
 
     private PrimoGeovishapAnimations() {}
@@ -180,7 +181,7 @@ public final class PrimoGeovishapAnimations {
      * and heavy S-curved lotus tail resting low near the ground.
      */
     private static void applyPredatoryBaseStance(PrimoGeovishapModel<?> model, String clipName) {
-        if ("death".equals(clipName)) return;
+        if ("death".equals(clipName) || "dormant_sleep".equals(clipName)) return;
         boolean isBurrow = "attack_burrow".equals(clipName);
 
         ModelPart body = model.getBone("body");
@@ -352,41 +353,45 @@ public final class PrimoGeovishapAnimations {
     }
 
     // =========================================================================
-    // 2. WALK (1.60s C1-periodic): Heavy grounded quadruped diagonal stride
+    // 2. WALK (1.60s C1-periodic): Fluid whole-body predatory quadruped diagonal stride
     // =========================================================================
     private static Clip build_walk() {
         Clip c = new Clip("walk", 1.60F, true);
         float[] t = f(0.0F, 0.2F, 0.4F, 0.6F, 0.8F, 1.0F, 1.2F, 1.4F, 1.6F);
+        // Weighty lateral shoulder-hip transfer + clean double-bounce per cycle
         c.pos("body", t,
-                f(0.0F, 0.7F, 1.1F, 0.6F, 0.0F, -0.7F, -1.1F, -0.6F, 0.0F),
-                f(-0.4F, 0.1F, -0.7F, -1.1F, -0.4F, 0.1F, -0.7F, -1.1F, -0.4F),
-                f(0.0F, 0.4F, 0.0F, -0.4F, 0.0F, 0.4F, 0.0F, -0.4F, 0.0F));
+                f(0.0F, 1.1F, 1.5F, 0.8F, 0.0F, -1.1F, -1.5F, -0.8F, 0.0F),
+                f(-0.5F, 0.35F, -0.65F, -1.45F, -0.5F, 0.35F, -0.65F, -1.45F, -0.5F),
+                f(0.0F, 0.5F, 0.1F, -0.5F, 0.0F, 0.5F, 0.1F, -0.5F, 0.0F));
+        // Coupled spine yaw + shoulder roll transferring weight cleanly onto each planted forepaw
         c.rot("torso", t,
-                f(1.5F, 3.0F, 0.0F, -2.5F, 1.5F, 3.0F, 0.0F, -2.5F, 1.5F),
-                f(0.0F, 4.0F, 6.5F, 3.5F, 0.0F, -4.0F, -6.5F, -3.5F, 0.0F),
-                f(-2.0F, 1.5F, 4.5F, 3.5F, 2.0F, -1.5F, -4.5F, -3.5F, -2.0F));
+                f(1.5F, 3.2F, 0.0F, -2.8F, 1.5F, 3.2F, 0.0F, -2.8F, 1.5F),
+                f(0.0F, 6.0F, 9.0F, 5.0F, 0.0F, -6.0F, -9.0F, -5.0F, 0.0F),
+                f(-2.5F, 2.0F, 5.5F, 4.0F, 2.5F, -2.0F, -5.5F, -4.0F, -2.5F));
+        // Head & neck counter-stabilized like a real apex predator stalking forward
         c.rot("neck", t,
-                f(0.0F, -3.0F, -1.0F, 2.5F, 0.0F, -3.0F, -1.0F, 2.5F, 0.0F),
-                f(1.0F, -3.0F, -5.0F, -2.5F, -1.0F, 3.0F, 5.0F, 2.5F, 1.0F),
-                f(0, 0, 0, 0, 0, 0, 0, 0, 0));
+                f(-1.0F, -2.8F, -0.5F, 2.2F, -1.0F, -2.8F, -0.5F, 2.2F, -1.0F),
+                f(0.5F, -4.5F, -6.5F, -3.5F, -0.5F, 4.5F, 6.5F, 3.5F, 0.5F),
+                f(1.5F, -1.2F, -3.2F, -2.2F, -1.5F, 1.2F, 3.2F, 2.2F, 1.5F));
         c.rot("head", t,
-                f(-1.5F, 2.0F, 1.0F, -2.0F, -1.5F, 2.0F, 1.0F, -2.0F, -1.5F),
-                f(1.0F, -2.0F, -3.5F, -2.0F, -1.0F, 2.0F, 3.5F, 2.0F, 1.0F),
-                f(0, 0, 0, 0, 0, 0, 0, 0, 0));
-        c.rot("jaw", t, f(3.0F, 7.0F, 8.5F, 4.5F, 3.0F, 7.0F, 8.5F, 4.5F, 3.0F), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Diagonal gait: arm_left + leg_right swing forward together
-        c.rot("arm_left", t, f(-10, -26, -28, -14, 2, 16, 24, 10, -10), f(0,0,0,0,0,0,0,0,0), f(5, 4, 1, 0, 0, 0, 0, 3, 5));
-        c.rot("forearm_left", t, f(-28, -12, 8, 6, 2, 0, -6, -22, -28), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("arm_right", t, f(2, 16, 24, 10, -10, -26, -28, -14, 2), f(0,0,0,0,0,0,0,0,0), f(0, 0, 0, -3, -5, -4, -1, 0, 0));
-        c.rot("forearm_right", t, f(2, 0, -6, -22, -28, -12, 8, 6, 2), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(4, -14, -22, -16, -6, 10, 20, 14, 4), f(0,0,0,0,0,0,0,0,0), f(-3, -3, -1, 0, 0, 0, 0, -2, -3));
-        c.rot("shin_right", t, f(20, 24, 12, 2, 0, -4, -8, 10, 20), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_left", t, f(-6, 10, 20, 14, 4, -14, -22, -16, -6), f(0,0,0,0,0,0,0,0,0), f(0, 0, 0, 2, 3, 3, 1, 0, 0));
-        c.rot("shin_left", t, f(0, -4, -8, 10, 20, 24, 12, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_1", t, f(0, 2, 0, -2, 0, 2, 0, -2, 0), f(3, -5, -9, -6, -3, 5, 9, 6, 3), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(-2, 2, 2, -2, -2, 2, 2, -2, -2), f(10, 1, -9, -13, -10, -1, 9, 13, 10), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(-3, 0, 3, 0, -3, 0, 3, 0, -3), f(16, 10, -3, -14, -16, -10, 3, 14, 16), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(-4, -2, 4, 2, -4, -2, 4, 2, -4), f(18, 17, 7, -8, -18, -17, -7, 8, 18), f(0,0,0,0,0,0,0,0,0));
+                f(-0.5F, 1.8F, 0.5F, -1.6F, -0.5F, 1.8F, 0.5F, -1.6F, -0.5F),
+                f(0.5F, -2.5F, -3.5F, -2.0F, -0.5F, 2.5F, 3.5F, 2.0F, 0.5F),
+                f(1.0F, -0.8F, -2.2F, -1.5F, -1.0F, 0.8F, 2.2F, 1.5F, 1.0F));
+        c.rot("jaw", t, f(3.0F, 6.5F, 8.0F, 4.5F, 3.0F, 6.5F, 8.0F, 4.5F, 3.0F), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Diagonal gait (+vx = swing FORWARD, -vx = push BACKWARD): deeper muscular strides + clean elbow/knee fold!
+        c.rot("arm_left", t, f(10, 32, 34, 14, -4, -22, -28, -10, 10), f(0,0,0,0,0,0,0,0,0), f(6, 5, 2, 0, 0, 0, 0, 4, 6));
+        c.rot("forearm_left", t, f(-22, -8, 12, 8, 4, 0, -10, -26, -22), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("arm_right", t, f(-4, -22, -28, -10, 10, 32, 34, 14, -4), f(0,0,0,0,0,0,0,0,0), f(0, 0, 0, -4, -6, -5, -2, 0, 0));
+        c.rot("forearm_right", t, f(4, 0, -10, -26, -22, -8, 12, 8, 4), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(6, 26, 30, 16, -2, -18, -26, -12, 6), f(0,0,0,0,0,0,0,0,0), f(-4, -3, -1, 0, 0, 0, 0, -2, -4));
+        c.rot("shin_right", t, f(-24, -14, 6, 4, 2, -2, -12, -22, -24), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("leg_left", t, f(-2, -18, -26, -12, 6, 26, 30, 16, -2), f(0,0,0,0,0,0,0,0,0), f(0, 0, 0, 2, 4, 3, 1, 0, 0));
+        c.rot("shin_left", t, f(2, -2, -12, -22, -24, -14, 6, 4, 2), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Fluid phase-lagged S-wave lotus tail counterbalance
+        c.rot("tail_1", t, f(0, 2, 0, -2, 0, 2, 0, -2, 0), f(4, -6, -11, -7, -4, 6, 11, 7, 4), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(-2, 2, 2, -2, -2, 2, 2, -2, -2), f(12, 2, -11, -15, -12, -2, 11, 15, 12), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(-3, 0, 3, 0, -3, 0, 3, 0, -3), f(18, 12, -4, -16, -18, -12, 4, 16, 18), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(-4, -2, 4, 2, -4, -2, 4, 2, -4), f(22, 19, 8, -10, -22, -19, -8, 10, 22), f(0,0,0,0,0,0,0,0,0));
         return c;
     }
 
@@ -538,8 +543,8 @@ public final class PrimoGeovishapAnimations {
         float[] t = f(0.0F, 0.45F, 1.05F, 1.55F, 2.05F, 2.55F, 2.90F, 3.22F, 3.45F, 4.40F);
         c.pos("body", t,
                 f(0, 0, 0, 1.2F, -1.2F, 1.0F, 0, 0, 0, 0),
-                // Sinks to -21px so dorsal crystal mane protrudes visibly above ground while traveling!
-                f(0, -2.0F, -21.5F, -20.5F, -22.0F, -20.5F, 1.2F, -4.2F, -3.6F, 0.0F),
+                // Sinks deep to -36.5px so torso/head/legs submerge completely & ONLY dorsal crystal-mane fins slice above ground!
+                f(0, -3.0F, -36.0F, -35.5F, -37.0F, -35.5F, 2.5F, -4.5F, -3.6F, 0.0F),
                 f(0, -2.5F, -5.0F, -2.0F, -2.0F, -2.0F, -1.0F, -4.5F, -3.5F, 0.0F));
         // Nose-dive DOWN (-44 deg) into earth -> dorsal mane plowing -> burst UP (+36 deg) -> heavy Geo slam (-18 deg)!
         c.rot("torso", t, f(0, -44, -8, -6, -6, -8, 36, -18, -12, 0), f(0, 0, 0, 8, -8, 6, 0, 0, 0, 0), f(0, 0, 0, 9, -9, 7, 0, 0, 0, 0));
@@ -568,7 +573,8 @@ public final class PrimoGeovishapAnimations {
     private static Clip build_attack_scattered_rocks() {
         Clip c = new Clip("attack_scattered_rocks", 3.20F, false);
         float[] t = f(0.0F, 0.50F, 0.95F, 1.25F, 1.70F, 2.15F, 2.65F, 3.20F);
-        c.pos("body", t, f(0,0,0,0,0,0,0,0), f(0, -2.6F, -1.8F, -2.2F, -1.8F, -2.4F, -2.8F, 0), f(0, -1.5F, -3.0F, -2.4F, -3.0F, -2.2F, -1.0F, 0));
+        // Lift body +4.2px during handstand so head/forelimbs brace cleanly above floor while hips & tail soar overhead!
+        c.pos("body", t, f(0,0,0,0,0,0,0,0), f(0, -1.8F, 4.2F, 3.6F, 4.2F, 3.4F, -2.6F, 0), f(0, -1.5F, -3.5F, -2.6F, -3.5F, -2.4F, -1.0F, 0));
         // True Genshin Handstand! Negative torso vx (-52 deg -> xRot +52) pitches front DOWN & hoists hips/tail HIGH UP!
         c.rot("torso", t, f(0, -20, -52, -44, -52, -42, -10, 0), f(0, 0, -8, 12, 10, -14, 0, 0), f(0, 0, -5, 6, 5, -6, 0, 0));
         c.rot("neck", t, f(0, 12, 34, 28, 34, 26, 6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
@@ -584,11 +590,11 @@ public final class PrimoGeovishapAnimations {
         c.rot("shin_left", t, f(0, -12, -28, -24, -28, -22, -8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
         c.rot("leg_right", t, f(0, -8, -32, -28, -32, -26, 8, 0), f(0,0,0,0,0,0,0,0), f(0,-4,-10,-8,-10,-8,-4,0));
         c.rot("shin_right", t, f(0, -12, -28, -24, -28, -22, -8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        // Overhead lotus tail snaps forward twice (1.25s & 2.15s) scattering Elemental-Infused Stones!
-        c.rot("tail_1", t, f(0, -14, -34, 18, -32, 20, -6, 0), f(0, 0, -16, 22, 16, -24, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -16, -32, 22, -30, 24, -4, 0), f(0, 0, -20, 28, 20, -30, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0, -14, -26, 24, -24, 26, -2, 0), f(0, 0, -24, 32, 24, -34, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0, -12, -22, 26, -20, 28, 0, 0), f(0, 0, -28, 36, 28, -38, 0, 0), f(0,0,0,0,0,0,0,0));
+        // Overhead scorpion tail coils UP & snaps FORWARD twice (1.25s & 2.15s) scattering Elemental-Infused Stones!
+        c.rot("tail_1", t, f(0, 14, 32, -22, 30, -24, 6, 0), f(0, 0, -18, 24, 18, -26, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, 16, 30, -24, 28, -26, 4, 0), f(0, 0, -22, 30, 22, -32, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0, 14, 24, -26, 22, -28, 2, 0), f(0, 0, -26, 34, 26, -36, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0, 12, 20, -28, 18, -30, 0, 0), f(0, 0, -30, 38, 30, -40, 0, 0), f(0,0,0,0,0,0,0,0));
         return c;
     }
 
@@ -624,9 +630,9 @@ public final class PrimoGeovishapAnimations {
         Clip c = new Clip("attack_primordial_shower", 4.60F, false);
         float[] t = f(0.0F, 0.70F, 1.30F, 1.75F, 2.15F, 2.38F, 2.95F, 3.65F, 4.60F);
         c.pos("body", t,
-                f(0, 0, 0.8F, -0.8F, 0.9F, 0, 0, 0, 0),
-                f(0, -4.4F, -4.8F, -5.0F, -5.2F, -1.4F, -1.8F, -2.6F, 0),
-                f(0, 2.2F, 2.8F, 3.0F, 3.2F, -1.5F, -0.5F, 0.5F, 0));
+                f(0, 0, 0.9F, -0.9F, 1.0F, 0, 0, 0, 0),
+                f(0, -5.8F, -6.4F, -6.8F, -7.0F, 1.6F, 0.6F, -2.2F, 0),
+                f(0, 2.4F, 3.0F, 3.2F, 3.4F, -1.8F, -0.8F, 0.4F, 0));
         // True Genshin Primordial Shower: ultra-low trembling crouch (-20 deg) -> explosive sky-roar rear-up (+34 deg)!
         c.rot("torso", t, f(0, -16, -20, -22, -22, 34, 26, -6, 0), f(0, 0, 3, -3, 4, 0, 0, 0, 0), f(0, 0, 3, -3, 3, 0, 0, 0, 0));
         c.rot("neck", t, f(0, -18, -22, -24, -24, 26, 20, -8, 0), f(0,0,4,-4,4,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
@@ -724,6 +730,37 @@ public final class PrimoGeovishapAnimations {
         c.rot("tail_2", t, f(0, 12, 2, -2, -4), f(0, 0, 20, 30, 32), f(0,0,0,0,0));
         c.rot("tail_3", t, f(0, 8, 0, -2, -2), f(0, 0, 24, 34, 36), f(0,0,0,0,0));
         c.rot("tail_4", t, f(0, 6, 0, -2, -2), f(0, 0, 26, 38, 40), f(0,0,0,0,0));
+        return c;
+    }
+
+    // =========================================================================
+    // 15. DORMANT SLEEP (4.40s C1-periodic — Genshin 1.mp4 00:00–00:03):
+    //     Curled flat on the arena stone, head resting on folded forepaws, slow rhythmic breathing!
+    // =========================================================================
+    private static Clip build_dormant_sleep() {
+        Clip c = new Clip("dormant_sleep", 4.40F, true);
+        float[] t = f(0.0F, 1.10F, 2.20F, 3.30F, 4.40F);
+        // Belly & chest resting flat on the floor (-11.6px) with gentle deep breathing rise/fall
+        c.pos("body", t, f(0, 0, 0, 0, 0), f(-11.8F, -10.9F, -10.5F, -11.3F, -11.8F), f(0, 0, 0, 0, 0));
+        c.rot("torso", t, f(-10.0F, -8.0F, -7.0F, -9.0F, -10.0F), f(6.0F, 6.0F, 6.0F, 6.0F, 6.0F), f(2.0F, 2.0F, 2.0F, 2.0F, 2.0F));
+        c.rot("neck", t, f(-16.0F, -14.5F, -13.5F, -15.0F, -16.0F), f(14.0F, 14.0F, 14.0F, 14.0F, 14.0F), f(4.0F, 4.0F, 4.0F, 4.0F, 4.0F));
+        c.rot("head", t, f(-10.0F, -9.0F, -8.5F, -9.5F, -10.0F), f(16.0F, 16.0F, 16.0F, 16.0F, 16.0F), f(8.0F, 8.0F, 8.0F, 8.0F, 8.0F));
+        c.rot("jaw", t, f(1.0F, 3.5F, 5.0F, 2.5F, 1.0F), f(0,0,0,0,0), f(0,0,0,0,0));
+        // Forelimbs folded forward & tucked flat under chin
+        c.rot("arm_left", t, f(46.0F, 44.0F, 43.0F, 45.0F, 46.0F), f(-18.0F, -18.0F, -18.0F, -18.0F, -18.0F), f(24.0F, 24.0F, 24.0F, 24.0F, 24.0F));
+        c.rot("forearm_left", t, f(26.0F, 25.0F, 24.0F, 25.0F, 26.0F), f(0,0,0,0,0), f(-22.0F, -22.0F, -22.0F, -22.0F, -22.0F));
+        c.rot("arm_right", t, f(46.0F, 44.0F, 43.0F, 45.0F, 46.0F), f(18.0F, 18.0F, 18.0F, 18.0F, 18.0F), f(-24.0F, -24.0F, -24.0F, -24.0F, -24.0F));
+        c.rot("forearm_right", t, f(26.0F, 25.0F, 24.0F, 25.0F, 26.0F), f(0,0,0,0,0), f(22.0F, 22.0F, 22.0F, 22.0F, 22.0F));
+        // Hind legs tucked tightly beside flanks
+        c.rot("leg_left", t, f(34.0F, 33.0F, 32.0F, 33.0F, 34.0F), f(0,0,0,0,0), f(18.0F, 18.0F, 18.0F, 18.0F, 18.0F));
+        c.rot("shin_left", t, f(-38.0F, -37.0F, -36.0F, -37.0F, -38.0F), f(0,0,0,0,0), f(-10.0F, -10.0F, -10.0F, -10.0F, -10.0F));
+        c.rot("leg_right", t, f(34.0F, 33.0F, 32.0F, 33.0F, 34.0F), f(0,0,0,0,0), f(-18.0F, -18.0F, -18.0F, -18.0F, -18.0F));
+        c.rot("shin_right", t, f(-38.0F, -37.0F, -36.0F, -37.0F, -38.0F), f(0,0,0,0,0), f(10.0F, 10.0F, 10.0F, 10.0F, 10.0F));
+        // Heavy lotus tail curled smoothly around the side on the stone floor
+        c.rot("tail_1", t, f(6.0F, 7.0F, 7.5F, 6.5F, 6.0F), f(-20.0F, -20.0F, -20.0F, -20.0F, -20.0F), f(0,0,0,0,0));
+        c.rot("tail_2", t, f(4.0F, 4.5F, 5.0F, 4.5F, 4.0F), f(-26.0F, -25.0F, -24.0F, -25.0F, -26.0F), f(0,0,0,0,0));
+        c.rot("tail_3", t, f(2.0F, 2.5F, 3.0F, 2.5F, 2.0F), f(-30.0F, -29.0F, -28.0F, -29.0F, -30.0F), f(0,0,0,0,0));
+        c.rot("tail_4", t, f(0.0F, 1.0F, 1.5F, 0.5F, 0.0F), f(-32.0F, -30.0F, -29.0F, -31.0F, -32.0F), f(0,0,0,0,0));
         return c;
     }
 }

@@ -4,6 +4,7 @@ import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.BossMusicManager;
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -83,6 +84,7 @@ public class PrimoGeovishapEntity extends Monster {
     public static final int ANIM_PRIMEVAL_SPRING   = 11;
     public static final int ANIM_COUNTERED_STAGGER = 12;
     public static final int ANIM_DEATH             = 13;
+    public static final int ANIM_DORMANT           = 14;
 
     // Elemental infusions (matches Genshin Primo Geovishap variants)
     public static final int INFUSION_PYRO    = 0;
@@ -180,7 +182,7 @@ public class PrimoGeovishapEntity extends Monster {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_STATE, STATE_DORMANT);
-        builder.define(DATA_ANIM, ANIM_IDLE);
+        builder.define(DATA_ANIM, ANIM_DORMANT);
         builder.define(DATA_ANIM_TICK, 0);
         builder.define(DATA_INFUSION, INFUSION_PYRO);
         builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
@@ -251,6 +253,7 @@ public class PrimoGeovishapEntity extends Monster {
             case ANIM_PRIMEVAL_SPRING -> "attack_primeval_spring";
             case ANIM_COUNTERED_STAGGER -> "countered_stagger";
             case ANIM_DEATH -> "death";
+            case ANIM_DORMANT -> "dormant_sleep";
             default -> "idle";
         };
     }
@@ -426,7 +429,7 @@ public class PrimoGeovishapEntity extends Monster {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             bossEvent.setVisible(false);
             if (stateTick == 26 || stateTick == 48) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.50F);
+                sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoDeath(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 1.6F, 0.95F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.8D, getZ(), 32, 3.0D, 0.4D, 3.0D, 0.07D);
             }
             if (stateTick >= 72) {
@@ -442,6 +445,9 @@ public class PrimoGeovishapEntity extends Monster {
         LivingEntity target = findCombatTarget(sl);
         if (st == STATE_DORMANT) {
             bossEvent.setVisible(false);
+            if (getAnimId() != ANIM_DORMANT) {
+                entityData.set(DATA_ANIM, ANIM_DORMANT);
+            }
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             if (target != null && target.distanceToSqr(this) <= 18.0D * 18.0D) {
                 setTarget(target);
@@ -458,7 +464,7 @@ public class PrimoGeovishapEntity extends Monster {
             setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             if (target != null) faceTargetSmooth(target, 4.5F);
             if (stateTick == 36) {
-                sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.0F, 0.58F);
+                sl.playSound(null, getX(), getY() + 3.0D, getZ(), sfx(TeyvatBossesSounds.primoRoar(), SoundEvents.ENDER_DRAGON_GROWL), SoundSource.HOSTILE, 2.0F, 0.95F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 2.2D, getZ(), 42, 3.0D, 1.5D, 3.0D, 0.09D);
             } else if (stateTick == 59) {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.5F, 0.55F);
@@ -736,8 +742,9 @@ public class PrimoGeovishapEntity extends Monster {
             faceTargetSmooth(target, dist > 7.5D ? 10.5F : 8.5F);
             if (attackCooldown > 0) attackCooldown--;
 
-            // Clean rest & pursuit cadence (scaled for 1.60x canonical body size)
-            if (dist > 6.2D) {
+            // Smooth hysteresis walk cadence (no walk<->idle jitter, weighty acceleration & coast-stop)
+            boolean shouldWalk = (anim == ANIM_WALK) ? (dist > 5.4D) : (dist > 6.6D);
+            if (shouldWalk) {
                 if (anim != ANIM_WALK) {
                     entityData.set(DATA_ANIM, ANIM_WALK);
                     entityData.set(DATA_ANIM_TICK, 0);
@@ -751,13 +758,13 @@ public class PrimoGeovishapEntity extends Monster {
                 Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
                         ? bnav.getSteerDirection(target.position())
                         : new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ()).normalize();
-                double speed = dist > 15.0D ? 0.195D : 0.165D;
+                double speed = dist > 15.0D ? 0.19D : 0.16D;
                 double jumpY = (this.horizontalCollision && this.onGround()) ? 0.48D : getDeltaMovement().y;
-                setDeltaMovement(Mth.lerp(0.28D, getDeltaMovement().x, dir.x * speed),
+                setDeltaMovement(Mth.lerp(0.18D, getDeltaMovement().x, dir.x * speed),
                         jumpY,
-                        Mth.lerp(0.28D, getDeltaMovement().z, dir.z * speed));
+                        Mth.lerp(0.18D, getDeltaMovement().z, dir.z * speed));
                 if (stateTick % 18 == 9) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.35F, 0.58F);
+                    sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoStep(), SoundEvents.RAVAGER_STEP), SoundSource.HOSTILE, 1.35F, 0.95F);
                 }
             } else {
                 if (anim != ANIM_IDLE) {
@@ -765,7 +772,7 @@ public class PrimoGeovishapEntity extends Monster {
                     entityData.set(DATA_ANIM_TICK, 0);
                     stateTick = 0;
                 }
-                setDeltaMovement(getDeltaMovement().x * 0.55D, getDeltaMovement().y, getDeltaMovement().z * 0.55D);
+                setDeltaMovement(getDeltaMovement().x * 0.78D, getDeltaMovement().y, getDeltaMovement().z * 0.78D);
             }
 
             if (attackCooldown <= 0) {
@@ -871,7 +878,7 @@ public class PrimoGeovishapEntity extends Monster {
 
         if (chosen == ANIM_PRIMORDIAL_SHOWER) {
             entityData.set(DATA_TELEGRAPH_RADIUS, 16.0F);
-            sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 1.5F, 0.70F);
+            sl.playSound(null, getX(), getY() + 2.8D, getZ(), sfx(TeyvatBossesSounds.primoShowerCharge(), SoundEvents.WITHER_SPAWN), SoundSource.HOSTILE, 1.7F, 1.0F);
             for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(36.0D))) {
                 p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.shower_warn")
                         .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
@@ -912,7 +919,7 @@ public class PrimoGeovishapEntity extends Monster {
             setDeltaMovement(lunge.x, getDeltaMovement().y, lunge.z);
         }
         if (stateTick == 14) {
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.8F, 0.52F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), sfx(TeyvatBossesSounds.primoClawSwipe(), SoundEvents.PLAYER_ATTACK_SWEEP), SoundSource.HOSTILE, 1.8F, 0.95F);
             dealConeDamage(sl, 7.2D, 80.0D, left ? 16.0F : 19.5F, 1.25D, false);
             Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(4.2D);
             sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
@@ -942,13 +949,13 @@ public class PrimoGeovishapEntity extends Monster {
             setDeltaMovement(lunge.x, getDeltaMovement().y, lunge.z);
         }
         if (stateTick == 14) {
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.60F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), sfx(TeyvatBossesSounds.primoClawSwipe(), SoundEvents.PLAYER_ATTACK_SWEEP), SoundSource.HOSTILE, 1.7F, 1.0F);
             dealConeDamage(sl, 7.4D, 82.0D, 16.5F, 1.00D, false);
         } else if (stateTick == 29) {
-            sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6F, 0.54F);
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), sfx(TeyvatBossesSounds.primoClawSwipe(), SoundEvents.PLAYER_ATTACK_SWEEP), SoundSource.HOSTILE, 1.7F, 0.92F);
             dealConeDamage(sl, 7.6D, 82.0D, 19.0F, 1.10D, false);
         } else if (stateTick == 48) {
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.0F, 0.50F);
+            sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 2.0F, 0.95F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.8F, 0.45F);
             dealRadialDamage(sl, 8.6D, 27.5F, 1.55D, 0.70D, false);
             spawnGroundRing(sl, 7.6D, 48, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()));
@@ -985,7 +992,7 @@ public class PrimoGeovishapEntity extends Monster {
             faceTargetSmooth(target, 7.0F);
         } else if (stateTick == 21) {
             burrowStart = position();
-            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 2.0F, 0.50F);
+            sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoBurrow(), SoundEvents.STONE_BREAK), SoundSource.HOSTILE, 1.9F, 1.0F);
             spawnGroundRing(sl, 4.2D, 30, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
         } else if (stateTick >= 22 && stateTick <= 55) {
             // Continuous physical subterranean pursuit toward predicted target!
@@ -1031,7 +1038,7 @@ public class PrimoGeovishapEntity extends Monster {
         } else if (stateTick >= 56 && stateTick < 64) {
             setDeltaMovement(getDeltaMovement().x * 0.5D, getDeltaMovement().y, getDeltaMovement().z * 0.5D);
             if (stateTick == 57) {
-                sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.6F, 0.60F);
+                sl.playSound(null, getX(), getY() + 1.5D, getZ(), sfx(TeyvatBossesSounds.primoEmerge(), SoundEvents.RAVAGER_ROAR), SoundSource.HOSTILE, 1.8F, 1.0F);
             }
         } else if (stateTick == 64) {
             entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
@@ -1112,7 +1119,7 @@ public class PrimoGeovishapEntity extends Monster {
         }
         if (stateTick == 47) {
             entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
-            sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.4F, 0.44F);
+            sl.playSound(null, getX(), getY() + 1.5D, getZ(), sfx(TeyvatBossesSounds.primoShowerBlast(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 2.2F, 1.0F);
             sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 2.2F, 0.50F);
             spawnGroundRing(sl, 16.0D, 76, infusionParticle());
             spawnGroundRing(sl, 11.5D, 52, ParticleTypes.EXPLOSION);
@@ -1142,7 +1149,7 @@ public class PrimoGeovishapEntity extends Monster {
                 float reflectDmg = getMaxHealth() * (counterUsedElemShield ? 0.15F : 0.10F);
                 super.hurt(sl.damageSources().thorns(counterSource), reflectDmg);
                 sl.playSound(null, counterSource.getX(), counterSource.getY() + 1.2D, counterSource.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 2.2F, 0.85F);
-                sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 2.0F, 0.52F);
+                sl.playSound(null, getX(), getY() + 2.2D, getZ(), sfx(TeyvatBossesSounds.primoShieldReflect(), SoundEvents.ANVIL_LAND), SoundSource.HOSTILE, 2.0F, 1.0F);
                 sl.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.4D, getZ(), 3, 0.7D, 0.7D, 0.7D, 0.0D);
                 if (counterSource instanceof Player p) {
                     p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.countered")
@@ -1242,6 +1249,10 @@ public class PrimoGeovishapEntity extends Monster {
         } else {
             target.hurt(sl.damageSources().mobAttack(this), dmg);
         }
+    }
+
+    private static net.minecraft.sounds.SoundEvent sfx(net.minecraft.sounds.SoundEvent custom, net.minecraft.sounds.SoundEvent fallback) {
+        return custom != null ? custom : fallback;
     }
 
     private ParticleOptions infusionParticle() {

@@ -68,6 +68,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         double lastWalkX = 0.0D;
         double lastWalkZ = 0.0D;
         boolean hasWalkPos = false;
+        float ikDyR = 0.0F;
+        float ikDyL = 0.0F;
+        float ikPelvisDrop = 0.0F;
 
         void reset() {
             currClip = null;
@@ -190,8 +193,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         }
         RuinGuardAnimations.apply(model, clip, evalSec);
 
-        // 2. Procedural secondary motion layer
+        // 2. Procedural secondary motion layer + 2-Bone Analytical Foot IK (prevents feet clipping into steps/craters!)
         applyProceduralSecondaryMotion(entity, animId, liveTick, currSec);
+        applyFootIK(entity, sm, animId, bodyYaw, partialTicks, evalSec);
 
         // 3. Shortest-arc pose-snapshot cross-fade across all 28 bones
         float blendElapsed = liveTick - sm.blendStartTick;
@@ -234,6 +238,71 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
         poseStack.popPose();
         super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
+    }
+
+    /**
+     * 2-Bone Analytical Bipedal Foot IK: adapts pelvis height and hip/knee/foot angles to uneven
+     * 1-block grass steps, stairs, slabs, and shallow craters without clipping or floating.
+     */
+    private void applyFootIK(RuinGuardEntity entity, AnimSM sm, int animId, float bodyYaw, float partialTicks, float evalSec) {
+        boolean allowIK = entity.onGround()
+                && animId != RuinGuardEntity.ANIM_LEAP_SLAM
+                && animId != RuinGuardEntity.ANIM_DORMANT
+                && animId != RuinGuardEntity.ANIM_STUNNED
+                && animId != RuinGuardEntity.ANIM_DEATH;
+        float targetDyR = 0.0F;
+        float targetDyL = 0.0F;
+        if (allowIK) {
+            double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
+            double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            targetDyR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, 0.625D, 0.0D, 0.95F, 0.75F);
+            targetDyL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -0.625D, 0.0D, 0.95F, 0.75F);
+        }
+        sm.ikDyR = Mth.lerp(0.28F, sm.ikDyR, targetDyR);
+        sm.ikDyL = Mth.lerp(0.28F, sm.ikDyL, targetDyL);
+        float targetDrop = Math.min(0.0F, Math.min(sm.ikDyR, sm.ikDyL));
+        sm.ikPelvisDrop = Mth.lerp(0.28F, sm.ikPelvisDrop, targetDrop);
+
+        if (Math.abs(sm.ikDyR) < 0.01F && Math.abs(sm.ikDyL) < 0.01F && Math.abs(sm.ikPelvisDrop) < 0.01F) {
+            return;
+        }
+
+        float wR = 1.0F;
+        float wL = 1.0F;
+        if (animId == RuinGuardEntity.ANIM_WALK) {
+            float cyc = ((evalSec % 2.40F) + 2.40F) % 2.40F;
+            wR = (cyc < 0.55F) ? 0.30F : 1.0F;
+            wL = (cyc >= 1.20F && cyc < 1.75F) ? 0.30F : 1.0F;
+        }
+
+        ModelPart pelvis = model.getBone("pelvis");
+        if (pelvis != null) {
+            pelvis.y += (-sm.ikPelvisDrop) * 16.0F;
+        }
+
+        float[] solve = new float[2];
+        float liftR = Math.max(0.0F, sm.ikDyR - sm.ikPelvisDrop) * wR;
+        if (liftR > 0.015F) {
+            BossFootIK.solveTwoBoneLift(liftR, 0.6875F, 0.6250F, solve);
+            ModelPart hipR = model.getBone("hip_r");
+            ModelPart kneeR = model.getBone("knee_r");
+            ModelPart footR = model.getBone("foot_r");
+            if (hipR != null) hipR.xRot -= solve[0];
+            if (kneeR != null) kneeR.xRot += solve[1];
+            if (footR != null) footR.xRot -= (solve[1] - solve[0]) * 0.80F;
+        }
+
+        float liftL = Math.max(0.0F, sm.ikDyL - sm.ikPelvisDrop) * wL;
+        if (liftL > 0.015F) {
+            BossFootIK.solveTwoBoneLift(liftL, 0.6875F, 0.6250F, solve);
+            ModelPart hipL = model.getBone("hip_l");
+            ModelPart kneeL = model.getBone("knee_l");
+            ModelPart footL = model.getBone("foot_l");
+            if (hipL != null) hipL.xRot -= solve[0];
+            if (kneeL != null) kneeL.xRot += solve[1];
+            if (footL != null) footL.xRot -= (solve[1] - solve[0]) * 0.80F;
+        }
     }
 
     private void applyProceduralSecondaryMotion(RuinGuardEntity entity, int animId, float liveTick, float currSec) {

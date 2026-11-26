@@ -132,5 +132,55 @@
     "sounds": [
       "velorise_teyvat_bosses:sfx/ruin_guard_power_down"
     ]
+  },
+  "sfx.primo_geovishap_roar": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_roar"
+    ]
+  },
+  "sfx.primo_geovishap_step": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_step"
+    ]
+  },
+  "sfx.primo_geovishap_claw_swipe": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_claw_swipe"
+    ]
+  },
+  "sfx.primo_geovishap_slam": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_slam"
+    ]
+  },
+  "sfx.primo_geovishap_burrow": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_burrow"
+    ]
+  },
+  "sfx.primo_geovishap_emerge": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_emerge"
+    ]
+  },
+  "sfx.primo_geovishap_shower_charge": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_shower_charge"
+    ]
+  },
+  "sfx.primo_geovishap_shower_blast": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_shower_blast"
+    ]
+  },
+  "sfx.primo_geovishap_shield_reflect": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_shield_reflect"
+    ]
+  },
+  "sfx.primo_geovishap_death": {
+    "sounds": [
+      "velorise_teyvat_bosses:sfx/primo_geovishap_death"
+    ]
   }
 }

@@ -308,6 +308,36 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_RUIN_GUARD_POWER_DOWN = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.ruin_guard_power_down"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_power_down")));
+    public static final SoundEvent SOUND_PRIMO_ROAR = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_roar"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_roar")));
+    public static final SoundEvent SOUND_PRIMO_STEP = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_step"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_step")));
+    public static final SoundEvent SOUND_PRIMO_CLAW_SWIPE = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_claw_swipe"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_claw_swipe")));
+    public static final SoundEvent SOUND_PRIMO_SLAM = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_slam"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_slam")));
+    public static final SoundEvent SOUND_PRIMO_BURROW = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_burrow"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_burrow")));
+    public static final SoundEvent SOUND_PRIMO_EMERGE = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_emerge"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_emerge")));
+    public static final SoundEvent SOUND_PRIMO_SHOWER_CHARGE = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_shower_charge"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shower_charge")));
+    public static final SoundEvent SOUND_PRIMO_SHOWER_BLAST = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_shower_blast"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shower_blast")));
+    public static final SoundEvent SOUND_PRIMO_SHIELD_REFLECT = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_shield_reflect"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shield_reflect")));
+    public static final SoundEvent SOUND_PRIMO_DEATH = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.primo_geovishap_death"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_death")));
 
     // 5 Music Discs
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
@@ -397,7 +427,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS,
                 () -> SOUND_SUB_PROPELLER_HUM, () -> SOUND_SUB_SONAR_PING, () -> SOUND_SUB_TORPEDO_LAUNCH, () -> SOUND_SUB_BALLAST_HISS,
                 () -> SOUND_DRILL_ENGINE_IDLE, () -> SOUND_DRILL_BORE_SPIN,
-                () -> SOUND_RUIN_GUARD_SPEECH, () -> SOUND_RUIN_GUARD_POWER_DOWN
+                () -> SOUND_RUIN_GUARD_SPEECH, () -> SOUND_RUIN_GUARD_POWER_DOWN,
+                () -> SOUND_PRIMO_ROAR, () -> SOUND_PRIMO_STEP, () -> SOUND_PRIMO_CLAW_SWIPE, () -> SOUND_PRIMO_SLAM, () -> SOUND_PRIMO_BURROW, () -> SOUND_PRIMO_EMERGE, () -> SOUND_PRIMO_SHOWER_CHARGE, () -> SOUND_PRIMO_SHOWER_BLAST, () -> SOUND_PRIMO_SHIELD_REFLECT, () -> SOUND_PRIMO_DEATH
         );
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE, () -> MUSIC_DISC_ANEMO_HYPOSTASIS, () -> MUSIC_DISC_RUIN_GUARD,

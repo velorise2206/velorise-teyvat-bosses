@@ -283,6 +283,26 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("sfx.ruin_guard_speech", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_speech")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_GUARD_POWER_DOWN =
             SOUNDS.register("sfx.ruin_guard_power_down", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.ruin_guard_power_down")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_ROAR =
+            SOUNDS.register("sfx.primo_geovishap_roar", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_roar")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_STEP =
+            SOUNDS.register("sfx.primo_geovishap_step", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_step")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_CLAW_SWIPE =
+            SOUNDS.register("sfx.primo_geovishap_claw_swipe", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_claw_swipe")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_SLAM =
+            SOUNDS.register("sfx.primo_geovishap_slam", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_slam")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_BURROW =
+            SOUNDS.register("sfx.primo_geovishap_burrow", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_burrow")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_EMERGE =
+            SOUNDS.register("sfx.primo_geovishap_emerge", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_emerge")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_SHOWER_CHARGE =
+            SOUNDS.register("sfx.primo_geovishap_shower_charge", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shower_charge")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_SHOWER_BLAST =
+            SOUNDS.register("sfx.primo_geovishap_shower_blast", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shower_blast")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_SHIELD_REFLECT =
+            SOUNDS.register("sfx.primo_geovishap_shield_reflect", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_shield_reflect")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_DEATH =
+            SOUNDS.register("sfx.primo_geovishap_death", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.primo_geovishap_death")));
 
     // 5 Music Discs
     public static final DeferredHolder<Item, Item> MUSIC_DISC_CRYO_REGISVINE =
@@ -355,7 +375,8 @@ public class VeloriseTeyvatBossesNeoForge {
                 SOUND_MECH_SERVO_WHIR, SOUND_MECH_JOINT_CREAK, SOUND_MECH_METAL_CLANK, SOUND_MECH_HYDRAULIC_HISS,
                 SOUND_SUB_PROPELLER_HUM, SOUND_SUB_SONAR_PING, SOUND_SUB_TORPEDO_LAUNCH, SOUND_SUB_BALLAST_HISS,
                 SOUND_DRILL_ENGINE_IDLE, SOUND_DRILL_BORE_SPIN,
-                SOUND_RUIN_GUARD_SPEECH, SOUND_RUIN_GUARD_POWER_DOWN
+                SOUND_RUIN_GUARD_SPEECH, SOUND_RUIN_GUARD_POWER_DOWN,
+                SOUND_PRIMO_ROAR, SOUND_PRIMO_STEP, SOUND_PRIMO_CLAW_SWIPE, SOUND_PRIMO_SLAM, SOUND_PRIMO_BURROW, SOUND_PRIMO_EMERGE, SOUND_PRIMO_SHOWER_CHARGE, SOUND_PRIMO_SHOWER_BLAST, SOUND_PRIMO_SHIELD_REFLECT, SOUND_PRIMO_DEATH
         );
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, BOSS_RESPAWN_ANCHOR,
