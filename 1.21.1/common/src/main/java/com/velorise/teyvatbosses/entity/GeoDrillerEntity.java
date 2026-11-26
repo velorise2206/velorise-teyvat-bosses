@@ -138,7 +138,7 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, net.minecraft.world.entity.EntityDimensions dims, float partialTick) {
-        return new Vec3(0.0D, 1.05D, 0.22D);
+        return new Vec3(0.0D, 0.50D, -0.25D);
     }
 
     @Override
@@ -225,7 +225,17 @@ public class GeoDrillerEntity extends Mob {
             return InteractionResult.sidedSuccess(level().isClientSide());
         }
 
-        // 5. Mount & pilot
+        // 5. Mount & pilot (ignore while holding Shift so player doesn't instantly dismount)
+        if (player.isSecondaryUseActive()) {
+            if (stack.getItem() instanceof PickaxeItem && !isVehicle()) {
+                if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+                    dropPartsAndCargo(sl);
+                    discard();
+                }
+                return InteractionResult.sidedSuccess(level().isClientSide());
+            }
+            return InteractionResult.PASS;
+        }
         if (!level().isClientSide() && !isVehicle()) {
             player.startRiding(this);
         }
@@ -271,10 +281,33 @@ public class GeoDrillerEntity extends Mob {
         if (level().isClientSide()) {
             double hSpeed = getDeltaMovement().horizontalDistance();
             wheelSpin += (float) (hSpeed * 4.2D) * (getThrottleInput() < -0.05F ? -1.0F : 1.0F);
-            drillSpin += isDrilling() ? 0.62F : (isVehicle() && getFuel() > 0 ? 0.10F : 0.0F);
+            drillSpin += isDrilling() ? 0.68F : (isVehicle() && getFuel() > 0 ? 0.10F : 0.0F);
             return;
         }
         if (mineCooldown > 0) mineCooldown--;
+
+        // Server-side pilot input handling (ServerPlayer.zza/xxa is synced via ServerboundPlayerInputPacket)
+        if (isAlive() && isFullyAssembled() && getControllingPassenger() instanceof Player pilot && level() instanceof ServerLevel sl) {
+            float fwd = pilot.zza;
+            float side = pilot.xxa;
+            boolean hasFuel = getFuel() > 0;
+            boolean movingFwd = fwd > 0.05F && hasFuel;
+            entityData.set(DATA_THROTTLE, fwd);
+            entityData.set(DATA_STEER, side);
+            entityData.set(DATA_DRILLING, movingFwd);
+
+            if (movingFwd && mineCooldown <= 0) {
+                mineTunnel3x3(sl, pilot);
+                mineCooldown = 4;
+            }
+            if (hasFuel && Math.abs(fwd) > 0.05F && tickCount % 40 == 0) {
+                entityData.set(DATA_FUEL, Math.max(0, getFuel() - 1));
+            }
+        } else {
+            if (isDrilling()) entityData.set(DATA_DRILLING, false);
+            if (getThrottleInput() != 0.0F) entityData.set(DATA_THROTTLE, 0.0F);
+            if (getSteerInput() != 0.0F) entityData.set(DATA_STEER, 0.0F);
+        }
     }
 
     @Override
@@ -282,10 +315,6 @@ public class GeoDrillerEntity extends Mob {
         if (isAlive() && isFullyAssembled() && getControllingPassenger() instanceof Player pilot) {
             float fwd = pilot.zza;
             float side = pilot.xxa;
-            if (!level().isClientSide()) {
-                entityData.set(DATA_THROTTLE, fwd);
-                entityData.set(DATA_STEER, side);
-            }
             if (Math.abs(side) > 0.05F) {
                 float turn = -side * 3.8F;
                 this.setYRot(this.getYRot() + turn);
@@ -294,30 +323,14 @@ public class GeoDrillerEntity extends Mob {
                 this.yHeadRot = this.getYRot();
             }
             boolean hasFuel = getFuel() > 0;
-            boolean movingFwd = fwd > 0.05F && hasFuel;
-            if (!level().isClientSide()) {
-                entityData.set(DATA_DRILLING, movingFwd);
-                if (movingFwd && level() instanceof ServerLevel sl && mineCooldown <= 0) {
-                    mineTunnel3x3(sl, pilot);
-                    mineCooldown = 4;
-                }
-            }
             if (hasFuel && Math.abs(fwd) > 0.05F) {
                 this.setSpeed(fwd > 0 ? 0.22F : 0.13F);
                 super.travel(new Vec3(0.0D, travelVector.y, fwd));
-                if (!level().isClientSide() && tickCount % 40 == 0) {
-                    entityData.set(DATA_FUEL, Math.max(0, getFuel() - 1));
-                }
             } else {
                 setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
                 super.travel(Vec3.ZERO);
             }
             return;
-        }
-        if (!level().isClientSide()) {
-            entityData.set(DATA_DRILLING, false);
-            entityData.set(DATA_THROTTLE, 0.0F);
-            entityData.set(DATA_STEER, 0.0F);
         }
         super.travel(travelVector);
     }
@@ -325,16 +338,19 @@ public class GeoDrillerEntity extends Mob {
     private void mineTunnel3x3(ServerLevel sl, Player pilot) {
         Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
         Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
-        Vec3 frontCenter = position().add(fwd.scale(2.35D));
+        Vec3 frontCenter = position().add(fwd.scale(2.2D));
 
         boolean minedAny = false;
-        for (int dy = 0; dy <= 2; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                BlockPos bp = BlockPos.containing(
-                        frontCenter.x + right.x * dx,
-                        getY() + dy + 0.1D,
-                        frontCenter.z + right.z * dx
-                );
+        double[] depths = {1.75D, 2.45D};
+        for (double depth : depths) {
+            Vec3 sliceCenter = position().add(fwd.scale(depth));
+            for (int dy = 0; dy <= 2; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    BlockPos bp = BlockPos.containing(
+                            sliceCenter.x + right.x * dx,
+                            getY() + dy + 0.1D,
+                            sliceCenter.z + right.z * dx
+                    );
                 BlockState state = sl.getBlockState(bp);
                 if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
                 float hardness = state.getDestroySpeed(sl, bp);
@@ -347,7 +363,8 @@ public class GeoDrillerEntity extends Mob {
                 for (ItemStack drop : drops) {
                     storeOrDrop(sl, drop);
                 }
-                minedAny = true;
+                    minedAny = true;
+                }
             }
         }
         if (minedAny) {

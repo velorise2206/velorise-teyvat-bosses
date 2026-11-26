@@ -538,7 +538,7 @@ public class RuinSubmersibleEntity extends Mob {
             return InteractionResult.CONSUME;
         }
 
-        if (!isVehicle()) {
+        if (!isVehicle() && !player.isSecondaryUseActive()) {
             player.startRiding(this);
             playSfx(TeyvatBossesSounds.mechVisorSeal(), SoundEvents.IRON_TRAPDOOR_CLOSE, 1.0F, 0.90F);
             return InteractionResult.CONSUME;

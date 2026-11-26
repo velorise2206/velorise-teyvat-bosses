@@ -33,6 +33,7 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -255,6 +256,12 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (!level().isClientSide() && !isVehicle() && source.getEntity() instanceof Player p
+                && p.isSecondaryUseActive() && p.getMainHandItem().getItem() instanceof PickaxeItem
+                && level() instanceof ServerLevel sl) {
+            dismantleAndDropParts(sl);
+            return true;
+        }
         if (source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)) {
             return false;
         }
@@ -487,8 +494,15 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        // Shift + Right-click with Pickaxe dismantles the mech cleanly (partial or full) and returns all welded parts
+        if (player.isSecondaryUseActive() && stack.getItem() instanceof PickaxeItem && !isVehicle()) {
+            if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+                dismantleAndDropParts(sl);
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide());
+        }
         if (level().isClientSide()) {
-            return InteractionResult.SUCCESS;
+            return player.isSecondaryUseActive() ? InteractionResult.PASS : InteractionResult.SUCCESS;
         }
         ServerLevel sl = (ServerLevel) level();
 
@@ -539,8 +553,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
         }
 
-        // 4. Mount cockpit (requires energy > 0)
-        if (!isVehicle()) {
+        // 4. Mount cockpit (requires energy > 0; never mount while holding Shift to avoid instant dismount glitch)
+        if (!isVehicle() && !player.isSecondaryUseActive()) {
             if (getEnergy() <= 0.1F) {
                 sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, 0.65F);
                 return InteractionResult.CONSUME;
@@ -555,6 +569,24 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
         }
         return InteractionResult.PASS;
+    }
+
+
+    private void dismantleAndDropParts(ServerLevel sl) {
+        if (hasPart(PART_CORE) && TeyvatBossesItems.mechCore() != null)
+            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechCore()));
+        if (hasPart(PART_LEFT_ARM) && TeyvatBossesItems.mechLeftArm() != null)
+            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechLeftArm()));
+        if (hasPart(PART_RIGHT_ARM) && TeyvatBossesItems.mechRightArm() != null)
+            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechRightArm()));
+        if (hasPart(PART_LEFT_LEG) && TeyvatBossesItems.mechLeftLeg() != null)
+            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechLeftLeg()));
+        if (hasPart(PART_RIGHT_LEG) && TeyvatBossesItems.mechRightLeg() != null)
+            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechRightLeg()));
+        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.ANVIL_BREAK, SoundSource.PLAYERS, 1.15F, 0.85F);
+        sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 1.6D, getZ(), 24, 1.0D, 1.2D, 1.0D, 0.06D);
+        sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.6D, getZ(), 18, 0.9D, 1.0D, 0.9D, 0.12D);
+        discard();
     }
 
     @Override

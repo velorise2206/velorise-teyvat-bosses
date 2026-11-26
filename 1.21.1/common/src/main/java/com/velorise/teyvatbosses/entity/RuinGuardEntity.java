@@ -553,7 +553,55 @@ public class RuinGuardEntity extends Monster {
         yHeadRot = newYaw;
     }
 
+
+    private int destroyBlocksTick = 0;
+
+    /**
+     * Anti-trap block breaking (Wither/Cataclysm style): after a 1-second (20-tick) delay
+     * when pinned against walls or attacked while obstructed, shatters obstructing blocks
+     * intersecting the boss's hitbox (respecting mobGriefing, preserving chests/BlockEntities,
+     * Obsidian, Bedrock, and the floor underneath).
+     */
+    private void tickAntiTrapBlockBreak(ServerLevel sl) {
+        if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
+            destroyBlocksTick = 20;
+        }
+        if (destroyBlocksTick <= 0) return;
+        destroyBlocksTick--;
+        if (destroyBlocksTick != 0) return;
+        if (!sl.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)) return;
+
+        AABB box = getBoundingBox().inflate(0.28D, 0.05D, 0.28D);
+        int minX = Mth.floor(box.minX);
+        int minY = Mth.floor(getY());
+        int minZ = Mth.floor(box.minZ);
+        int maxX = Mth.floor(box.maxX);
+        int maxY = Mth.floor(box.maxY);
+        int maxZ = Mth.floor(box.maxZ);
+
+        boolean brokeAny = false;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    pos.set(x, y, z);
+                    BlockState state = sl.getBlockState(pos);
+                    if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
+                    float hardness = state.getDestroySpeed(sl, pos);
+                    if (hardness < 0.0F || hardness >= 50.0F) continue; // Preserve Bedrock, Obsidian, Ancient Debris
+                    if (sl.destroyBlock(pos, true, this)) {
+                        brokeAny = true;
+                    }
+                }
+            }
+        }
+        if (brokeAny) {
+            sl.levelEvent(null, 1022, blockPosition(), 0);
+        }
+    }
+
     private void tickCombat(ServerLevel sl, LivingEntity target) {
+        tickAntiTrapBlockBreak(sl);
         int anim = getAnimId();
         double dist = Math.hypot(target.getX() - getX(), target.getZ() - getZ());
 
