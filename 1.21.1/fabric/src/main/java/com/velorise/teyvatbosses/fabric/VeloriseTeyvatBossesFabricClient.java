@@ -2,8 +2,6 @@ package com.velorise.teyvatbosses.fabric;
 
 import com.velorise.teyvatbosses.client.AnemoCompanionRenderer;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
-import com.velorise.teyvatbosses.client.AnemoJetpackController;
-import com.velorise.teyvatbosses.client.AnemoJetpackLayer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
@@ -29,7 +27,6 @@ import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
-import com.velorise.teyvatbosses.client.model.AnemoJetpackModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
@@ -38,7 +35,6 @@ import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
 import com.velorise.teyvatbosses.client.model.TrounceBlossomModel;
-import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -46,9 +42,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 
 public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
     @Override
@@ -57,7 +51,6 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
-        EntityModelLayerRegistry.registerModelLayer(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
@@ -88,16 +81,10 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GEO_DRILLER, GeoDrillerRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
-        LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {
-            if (entityRenderer instanceof PlayerRenderer playerRenderer) {
-                registrationHelper.register(new AnemoJetpackLayer<>(playerRenderer, context.getModelSet()));
-            }
-        });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             RuinMechCameraController.clientTick();
             RuinMechInputController.tickAndDispatch(skillId -> ClientPlayNetworking.send(new RuinMechSkillPayload(skillId)));
-            AnemoJetpackController.clientTick(boosting -> ClientPlayNetworking.send(new AnemoJetpackPayload(boosting)));
             RuinSubClientController.setPacketSender(ClientPlayNetworking::send);
             RuinSubClientController.tick(client);
             GeoDrillerClientController.setPacketSender(ClientPlayNetworking::send);

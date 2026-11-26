@@ -26,6 +26,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -214,6 +215,25 @@ public class PrimoGeovishapEntity extends Monster {
         showerCountered = false;
     }
 
+    private boolean isValidCombatTarget(LivingEntity le) {
+        if (le == null || !le.isAlive() || le == this || le instanceof PrimoGeovishapEntity) return false;
+        if (le instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        return le.distanceToSqr(this) <= 40.0D * 40.0D;
+    }
+
+    private LivingEntity resolveAttacker(DamageSource source) {
+        Entity direct = source.getEntity();
+        if (direct instanceof LivingEntity le) {
+            if (isValidCombatTarget(le)) return le;
+            if (le.getVehicle() instanceof LivingEntity veh && isValidCombatTarget(veh)) return veh;
+        }
+        Entity immediate = source.getDirectEntity();
+        if (immediate instanceof LivingEntity le && isValidCombatTarget(le)) {
+            return le;
+        }
+        return null;
+    }
+
     @Override
     public boolean hurt(DamageSource source, float amount) {
         int st = getBossState();
@@ -222,10 +242,17 @@ public class PrimoGeovishapEntity extends Monster {
         if (st == STATE_COMBAT && getAnimId() == ANIM_BURROW && stateTick >= 26 && stateTick <= 56) {
             return false;
         }
-        if (st == STATE_DORMANT && level() instanceof ServerLevel sl) {
-            if (source.getEntity() instanceof LivingEntity attacker) {
-                setTarget(attacker);
+        if (!level().isClientSide()) {
+            LivingEntity attacker = resolveAttacker(source);
+            if (attacker != null) {
+                setLastHurtByMob(attacker);
+                noTargetTicks = 0;
+                if (st == STATE_DORMANT || !isValidCombatTarget(getTarget())) {
+                    setTarget(attacker);
+                }
             }
+        }
+        if (st == STATE_DORMANT && level() instanceof ServerLevel sl) {
             awaken(sl);
             amount *= 0.5F;
         }
@@ -339,7 +366,7 @@ public class PrimoGeovishapEntity extends Monster {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.4F, 0.58F);
             }
             if (stateTick >= 68) {
-                attackCooldown = 44; // Clean 2.2s breather before first attack
+                attackCooldown = 20; // Responsive 1.0s breather before first attack
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
             }
             return;
@@ -789,16 +816,44 @@ public class PrimoGeovishapEntity extends Monster {
     private LivingEntity findCombatTarget(ServerLevel sl) {
         List<Player> players = sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(36.0D),
                 p -> p.isAlive() && !p.isCreative() && !p.isSpectator());
-        Player closest = null;
+        Player closestPlayer = null;
         double best = Double.MAX_VALUE;
         for (Player p : players) {
             double d = p.distanceToSqr(this);
             if (d < best) {
                 best = d;
-                closest = p;
+                closestPlayer = p;
             }
         }
-        return closest;
+        if (closestPlayer != null) {
+            return closestPlayer;
+        }
+
+        LivingEntity cur = getTarget();
+        if (isValidCombatTarget(cur)) {
+            return cur;
+        }
+
+        LivingEntity lastAttacker = getLastHurtByMob();
+        if (isValidCombatTarget(lastAttacker)) {
+            return lastAttacker;
+        }
+
+        List<Mob> aggroMobs = sl.getEntitiesOfClass(Mob.class, getBoundingBox().inflate(32.0D),
+                m -> isValidCombatTarget(m) && m.getTarget() == this);
+        if (!aggroMobs.isEmpty()) {
+            Mob closestMob = aggroMobs.get(0);
+            double bestMobDist = closestMob.distanceToSqr(this);
+            for (int i = 1; i < aggroMobs.size(); i++) {
+                double d = aggroMobs.get(i).distanceToSqr(this);
+                if (d < bestMobDist) {
+                    bestMobDist = d;
+                    closestMob = aggroMobs.get(i);
+                }
+            }
+            return closestMob;
+        }
+        return null;
     }
 
     @Override

@@ -23,7 +23,6 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> cryoTurretStem;
     private static Supplier<Item> cryoTurretCorolla;
     private static Supplier<Item> anemoPrismCube;
-    private static Supplier<Item> anemoJetpack;
     private static Supplier<Item> ruinSubHull;
     private static Supplier<Item> ruinSubCockpit;
     private static Supplier<Item> ruinSubPropeller;
@@ -49,7 +48,6 @@ public final class TeyvatBossesItems {
             Supplier<Item> cryoTurretStemSupplier,
             Supplier<Item> cryoTurretCorollaSupplier,
             Supplier<Item> anemoPrismCubeSupplier,
-            Supplier<Item> anemoJetpackSupplier,
             Supplier<Item> ruinSubHullSupplier,
             Supplier<Item> ruinSubCockpitSupplier,
             Supplier<Item> ruinSubPropellerSupplier,
@@ -72,7 +70,6 @@ public final class TeyvatBossesItems {
         cryoTurretStem = cryoTurretStemSupplier;
         cryoTurretCorolla = cryoTurretCorollaSupplier;
         anemoPrismCube = anemoPrismCubeSupplier;
-        anemoJetpack = anemoJetpackSupplier;
         ruinSubHull = ruinSubHullSupplier;
         ruinSubCockpit = ruinSubCockpitSupplier;
         ruinSubPropeller = ruinSubPropellerSupplier;
@@ -97,7 +94,6 @@ public final class TeyvatBossesItems {
     public static Item cryoTurretStem() { return cryoTurretStem != null ? cryoTurretStem.get() : null; }
     public static Item cryoTurretCorolla() { return cryoTurretCorolla != null ? cryoTurretCorolla.get() : null; }
     public static Item anemoPrismCube() { return anemoPrismCube != null ? anemoPrismCube.get() : null; }
-    public static Item anemoJetpack() { return anemoJetpack != null ? anemoJetpack.get() : null; }
     public static Item ruinSubHull() { return ruinSubHull != null ? ruinSubHull.get() : null; }
     public static Item ruinSubCockpit() { return ruinSubCockpit != null ? ruinSubCockpit.get() : null; }
     public static Item ruinSubPropeller() { return ruinSubPropeller != null ? ruinSubPropeller.get() : null; }

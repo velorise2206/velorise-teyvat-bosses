@@ -23,13 +23,11 @@ import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
-import com.velorise.teyvatbosses.item.AnemoJetpackItem;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
-import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
@@ -206,9 +204,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ANEMO_PRISM_CUBE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_prism_cube"),
             new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
-    public static final Item ANEMO_JETPACK = Registry.register(
-            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_jetpack"),
-            new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final Item RUIN_SUB_HULL = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_hull"),
             new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
@@ -350,7 +345,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(CRYO_TURRET_STEM);
                         output.accept(CRYO_TURRET_COROLLA);
                         output.accept(ANEMO_PRISM_CUBE);
-                        output.accept(ANEMO_JETPACK);
                         output.accept(RUIN_SUB_HULL);
                         output.accept(RUIN_SUB_COCKPIT);
                         output.accept(RUIN_SUB_PROPELLER);
@@ -391,7 +385,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> MUSIC_DISC_CRYO_REGISVINE, () -> MUSIC_DISC_ANEMO_HYPOSTASIS, () -> MUSIC_DISC_RUIN_GUARD,
                 () -> MUSIC_DISC_RUIN_NAUTILUS, () -> MUSIC_DISC_PRIMO_GEOVISHAP,
                 () -> RUIN_MECH_CORE, () -> RUIN_MECH_LEFT_ARM, () -> RUIN_MECH_RIGHT_ARM, () -> RUIN_MECH_LEFT_LEG, () -> RUIN_MECH_RIGHT_LEG,
-                () -> CRYO_TURRET_ROOT, () -> CRYO_TURRET_STEM, () -> CRYO_TURRET_COROLLA, () -> ANEMO_PRISM_CUBE, () -> ANEMO_JETPACK,
+                () -> CRYO_TURRET_ROOT, () -> CRYO_TURRET_STEM, () -> CRYO_TURRET_COROLLA, () -> ANEMO_PRISM_CUBE,
                 () -> RUIN_SUB_HULL, () -> RUIN_SUB_COCKPIT, () -> RUIN_SUB_PROPELLER, () -> RUIN_SUB_TORPEDO_POD,
                 () -> GEO_DRILLER_CHASSIS, () -> GEO_DRILLER_DRILL, () -> GEO_DRILLER_ENGINE
         );
@@ -407,15 +401,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(GEO_DRILLER, GeoDrillerEntity.createAttributes());
 
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
-        PayloadTypeRegistry.playC2S().register(AnemoJetpackPayload.TYPE, AnemoJetpackPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(RuinSubControlPayload.TYPE, RuinSubControlPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(GeoDrillerControlPayload.TYPE, GeoDrillerControlPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(RuinSubControlPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> RuinSubControlPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(GeoDrillerControlPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> GeoDrillerControlPayload.handleOnServer(payload, ctx.player())));
-        ServerPlayNetworking.registerGlobalReceiver(AnemoJetpackPayload.TYPE, (payload, ctx) ->
-                ctx.server().execute(() -> AnemoJetpackItem.setBoosting(ctx.player().getUUID(), payload.boosting())));
         ServerPlayNetworking.registerGlobalReceiver(RuinMechSkillPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> {
                     if (ctx.player().getVehicle() instanceof RuinMechEntity mech) {

@@ -3,7 +3,6 @@ package com.velorise.teyvatbosses.neoforge;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.AnemoCompanionRenderer;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
-import com.velorise.teyvatbosses.client.AnemoJetpackLayer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
@@ -27,7 +26,6 @@ import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
-import com.velorise.teyvatbosses.client.model.AnemoJetpackModel;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
@@ -36,8 +34,6 @@ import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
 import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
 import com.velorise.teyvatbosses.client.model.TrounceBlossomModel;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
-import net.minecraft.client.resources.PlayerSkin;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -55,7 +51,6 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         event.registerLayerDefinition(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
         event.registerLayerDefinition(RuinGuardModel.LAYER_LOCATION, RuinGuardModel::createBodyLayer);
-        event.registerLayerDefinition(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
         event.registerLayerDefinition(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
         event.registerLayerDefinition(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
         event.registerLayerDefinition(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
@@ -89,15 +84,6 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GEO_DRILLER.get(), GeoDrillerRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
-    }
-
-    @SubscribeEvent
-    public static void addPlayerLayers(EntityRenderersEvent.AddLayers event) {
-        for (PlayerSkin.Model skin : event.getSkins()) {
-            if (event.getSkin(skin) instanceof PlayerRenderer playerRenderer) {
-                playerRenderer.addLayer(new AnemoJetpackLayer<>(playerRenderer, event.getEntityModels()));
-            }
-        }
     }
 
     @SubscribeEvent
