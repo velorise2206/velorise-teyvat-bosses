@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.registry;
 
+import com.velorise.teyvatbosses.entity.AnemoCompanionEntity;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
 import com.velorise.teyvatbosses.entity.AstralionEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
@@ -52,6 +53,7 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<RuinNautilusEntity>> ruinNautilus;
     private static Supplier<EntityType<RuinTorpedoProjectile>> ruinTorpedo;
     private static Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersible;
+    private static Supplier<EntityType<AnemoCompanionEntity>> anemoCompanion;
 
     private TeyvatBossesEntities() {}
 
@@ -76,7 +78,8 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<CryoTurretEntity>> cryoTurretSupplier,
             Supplier<EntityType<RuinNautilusEntity>> ruinNautilusSupplier,
             Supplier<EntityType<RuinTorpedoProjectile>> ruinTorpedoSupplier,
-            Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersibleSupplier
+            Supplier<EntityType<RuinSubmersibleEntity>> ruinSubmersibleSupplier,
+            Supplier<EntityType<AnemoCompanionEntity>> anemoCompanionSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -99,6 +102,7 @@ public final class TeyvatBossesEntities {
         ruinNautilus = ruinNautilusSupplier;
         ruinTorpedo = ruinTorpedoSupplier;
         ruinSubmersible = ruinSubmersibleSupplier;
+        anemoCompanion = anemoCompanionSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -122,4 +126,5 @@ public final class TeyvatBossesEntities {
     public static EntityType<RuinNautilusEntity> ruinNautilus() { return ruinNautilus.get(); }
     public static EntityType<RuinTorpedoProjectile> ruinTorpedo() { return ruinTorpedo.get(); }
     public static EntityType<RuinSubmersibleEntity> ruinSubmersible() { return ruinSubmersible.get(); }
+    public static EntityType<AnemoCompanionEntity> anemoCompanion() { return anemoCompanion.get(); }
 }

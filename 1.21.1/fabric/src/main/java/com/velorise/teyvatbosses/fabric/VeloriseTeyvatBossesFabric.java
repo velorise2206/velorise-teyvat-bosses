@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.fabric;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.block.BossTrophyBlock;
 import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
+import com.velorise.teyvatbosses.entity.AnemoCompanionEntity;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
@@ -25,6 +26,7 @@ import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.item.AnemoJetpackItem;
+import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
@@ -152,6 +154,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<RuinSubmersibleEntity> RUIN_SUBMERSIBLE = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_submersible"),
             EntityType.Builder.of(RuinSubmersibleEntity::new, MobCategory.MISC).sized(3.4F, 2.6F).clientTrackingRange(14).build());
+    public static final EntityType<AnemoCompanionEntity> ANEMO_COMPANION = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("anemo_companion"),
+            EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC).sized(0.9F, 1.0F).clientTrackingRange(12).build());
 
     // 3D Miniature Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
@@ -227,7 +232,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final Item ANEMO_PRISM_CUBE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_prism_cube"),
-            new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+            new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
     public static final Item ANEMO_JETPACK = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_jetpack"),
             new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
@@ -379,7 +384,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(CRYO_TURRET_STEM);
                         output.accept(CRYO_TURRET_COROLLA);
                         output.accept(ANEMO_PRISM_CUBE);
-                        output.accept(ANEMO_JETPACK);
                         output.accept(RUIN_SUB_HULL);
                         output.accept(RUIN_SUB_COCKPIT);
                         output.accept(RUIN_SUB_PROPELLER);
@@ -419,7 +423,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> CRYO_TURRET,
                 () -> RUIN_NAUTILUS,
                 () -> RUIN_TORPEDO,
-                () -> RUIN_SUBMERSIBLE
+                () -> RUIN_SUBMERSIBLE,
+                () -> ANEMO_COMPANION
         );
 
         TeyvatBossesBlocks.bind(
@@ -470,6 +475,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(CRYO_TURRET, CryoTurretEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(RUIN_NAUTILUS, RuinNautilusEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(RUIN_SUBMERSIBLE, RuinSubmersibleEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(ANEMO_COMPANION, AnemoCompanionEntity.createAttributes());
 
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(AnemoJetpackPayload.TYPE, AnemoJetpackPayload.STREAM_CODEC);

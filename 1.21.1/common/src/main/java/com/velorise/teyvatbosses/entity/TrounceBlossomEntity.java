@@ -136,7 +136,7 @@ public class TrounceBlossomEntity extends Entity {
 
         if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
             if (TeyvatBossesItems.anemoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoDisc()));
-            if (TeyvatBossesItems.anemoPrismCube() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoPrismCube()));
+            if (TeyvatBossesItems.anemoPrismCube() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoPrismCube(), 2 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
             giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));

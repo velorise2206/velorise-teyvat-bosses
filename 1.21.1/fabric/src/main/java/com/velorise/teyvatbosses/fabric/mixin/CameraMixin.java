@@ -38,6 +38,9 @@ public abstract class CameraMixin {
         if (RuinMechCameraController.getPilotedMech() != null) {
             float[] off = RuinMechCameraController.computeOffsets(partialTick);
             this.setRotation(this.yRot + off[0], this.xRot + off[1]);
+        } else if (RuinSubClientController.isPilotingSubmersible()) {
+            float[] off = RuinSubClientController.computeCameraOffsets(partialTick);
+            this.setRotation(this.yRot + off[0], this.xRot + off[1]);
         }
     }
 }

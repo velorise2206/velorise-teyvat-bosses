@@ -4,36 +4,66 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 
 /**
- * Renders Anemo Hypostasis projectiles:
+ * Renders Anemo projectiles:
  * - KIND_ORB_BOLT (0): Glowing cyan Anemo energy sphere with trailing ring
  * - KIND_WIND_BLADE (1): Wide glowing turquoise crescent gust slash from Butterfly Sweep
+ * - KIND_PET_CUBE (2): Spinning miniature Anemo Hypostasis shell cube launched by AnemoCompanionEntity
  */
 public class AnemoMissileRenderer extends EntityRenderer<AnemoMissileProjectile> {
     private static final ResourceLocation TEX = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis.png");
+    private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/anemo_hypostasis_emissive.png");
+
+    private final AnemoHypostasisModel<AnemoMissileProjectile> cubeModel;
 
     public AnemoMissileRenderer(EntityRendererProvider.Context context) {
         super(context);
+        this.cubeModel = new AnemoHypostasisModel<>(context.bakeLayer(AnemoHypostasisModel.LAYER_LOCATION));
     }
 
     @Override
     public void render(AnemoMissileProjectile entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
         float t = entity.tickCount + partialTicks;
+        int kind = entity.getKind();
+
+        if (kind == AnemoMissileProjectile.KIND_PET_CUBE) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(t * 22.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(t * 16.0F));
+            poseStack.scale(-0.34F, -0.34F, 0.34F);
+
+            ModelPart shell = cubeModel.getBone("shell_0");
+            if (shell != null) {
+                shell.visible = true;
+                shell.setPos(0.0F, 0.0F, 0.0F);
+                shell.setRotation(0.0F, 0.0F, 0.0F);
+                VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEX));
+                shell.render(poseStack, vc, packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                VertexConsumer emVc = bufferSource.getBuffer(RenderType.eyes(EMISSIVE));
+                shell.render(poseStack, emVc, 0x00F000F0, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            }
+            poseStack.popPose();
+            super.render(entity, yaw, partialTicks, poseStack, bufferSource, packedLight);
+            return;
+        }
+
         VertexConsumer vc = bufferSource.getBuffer(RenderType.lightning());
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - entity.getYRot()));
 
-        if (entity.getKind() == AnemoMissileProjectile.KIND_WIND_BLADE) {
-            // Wide crescent wind slash arc
+        if (kind == AnemoMissileProjectile.KIND_WIND_BLADE) {
             Matrix4f m = poseStack.last().pose();
             int segs = 14;
             for (int i = 0; i < segs; i++) {
@@ -57,7 +87,6 @@ public class AnemoMissileRenderer extends EntityRenderer<AnemoMissileProjectile>
                 vc.addVertex(m, ix0, 0.0F, iz0).setColor(85, 245, 215, 75);
             }
         } else {
-            // Magic Circle glowing energy bolt
             poseStack.mulPose(Axis.ZP.rotationDegrees(t * 14.0F));
             Matrix4f m = poseStack.last().pose();
             float r = 0.42F;

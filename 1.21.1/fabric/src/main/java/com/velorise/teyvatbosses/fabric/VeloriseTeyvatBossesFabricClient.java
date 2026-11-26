@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.fabric;
 
+import com.velorise.teyvatbosses.client.AnemoCompanionRenderer;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
@@ -87,6 +88,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_NAUTILUS, RuinNautilusRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_TORPEDO, RuinTorpedoRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_SUBMERSIBLE, RuinSubmersibleRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ANEMO_COMPANION, AnemoCompanionRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
         LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {

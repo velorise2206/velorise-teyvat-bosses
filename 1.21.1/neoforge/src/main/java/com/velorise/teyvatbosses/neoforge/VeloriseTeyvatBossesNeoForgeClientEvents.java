@@ -13,6 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -31,9 +32,23 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
     }
 
     @SubscribeEvent
+    public static void onInteractionKey(InputEvent.InteractionKeyMappingTriggered event) {
+        // Prevent vanilla block placement / punching / hand swing while firing submarine torpedoes (LMB) or Sonar (RMB)
+        if (RuinSubClientController.isPilotingSubmersible() && (event.isAttack() || event.isUseItem())) {
+            event.setSwingHand(false);
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     public static void onCameraAngles(ViewportEvent.ComputeCameraAngles event) {
         if (RuinMechCameraController.getPilotedMech() != null) {
             float[] off = RuinMechCameraController.computeOffsets((float) event.getPartialTick());
+            event.setYaw(event.getYaw() + off[0]);
+            event.setPitch(event.getPitch() + off[1]);
+            event.setRoll(event.getRoll() + off[2]);
+        } else if (RuinSubClientController.isPilotingSubmersible()) {
+            float[] off = RuinSubClientController.computeCameraOffsets((float) event.getPartialTick());
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);

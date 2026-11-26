@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.neoforge;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.block.BossTrophyBlock;
 import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
+import com.velorise.teyvatbosses.entity.AnemoCompanionEntity;
 import com.velorise.teyvatbosses.entity.AnemoHypostasisEntity;
 import com.velorise.teyvatbosses.entity.AnemoMissileProjectile;
 import com.velorise.teyvatbosses.entity.AnemoTornadoEntity;
@@ -25,6 +26,7 @@ import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.item.AnemoJetpackItem;
+import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
@@ -172,6 +174,9 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<EntityType<?>, EntityType<RuinSubmersibleEntity>> RUIN_SUBMERSIBLE =
             ENTITIES.register("ruin_submersible", () -> EntityType.Builder.of(RuinSubmersibleEntity::new, MobCategory.MISC)
                     .sized(3.4F, 2.6F).clientTrackingRange(14).build("ruin_submersible"));
+    public static final DeferredHolder<EntityType<?>, EntityType<AnemoCompanionEntity>> ANEMO_COMPANION =
+            ENTITIES.register("anemo_companion", () -> EntityType.Builder.of(AnemoCompanionEntity::new, MobCategory.MISC)
+                    .sized(0.9F, 1.0F).clientTrackingRange(12).build("anemo_companion"));
 
     // 3D Miniature Boss Trophy Blocks
     public static final DeferredHolder<Block, BossTrophyBlock> CRYO_REGISVINE_TROPHY =
@@ -226,7 +231,7 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> CRYO_TURRET_COROLLA =
             ITEMS.register("cryo_turret_corolla", () -> new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> ANEMO_PRISM_CUBE =
-            ITEMS.register("anemo_prism_cube", () -> new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+            ITEMS.register("anemo_prism_cube", () -> new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> ANEMO_JETPACK =
             ITEMS.register("anemo_jetpack", () -> new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final DeferredHolder<Item, Item> RUIN_SUB_HULL =
@@ -344,7 +349,6 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(CRYO_TURRET_STEM.get());
                         output.accept(CRYO_TURRET_COROLLA.get());
                         output.accept(ANEMO_PRISM_CUBE.get());
-                        output.accept(ANEMO_JETPACK.get());
                         output.accept(RUIN_SUB_HULL.get());
                         output.accept(RUIN_SUB_COCKPIT.get());
                         output.accept(RUIN_SUB_PROPELLER.get());
@@ -379,7 +383,7 @@ public class VeloriseTeyvatBossesNeoForge {
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,
                 ANEMO_HYPOSTASIS, ANEMO_WIND_ORB, ANEMO_TORNADO, ANEMO_MISSILE, WIND_CURRENT, TROUNCE_BLOSSOM,
                 RUIN_GUARD, RUIN_MISSILE, ASTRALION, RUIN_MECH, CRYO_TURRET,
-                RUIN_NAUTILUS, RUIN_TORPEDO, RUIN_SUBMERSIBLE
+                RUIN_NAUTILUS, RUIN_TORPEDO, RUIN_SUBMERSIBLE, ANEMO_COMPANION
         );
 
         TeyvatBossesBlocks.bind(
@@ -432,5 +436,6 @@ public class VeloriseTeyvatBossesNeoForge {
         event.put(CRYO_TURRET.get(), CryoTurretEntity.createAttributes().build());
         event.put(RUIN_NAUTILUS.get(), RuinNautilusEntity.createAttributes().build());
         event.put(RUIN_SUBMERSIBLE.get(), RuinSubmersibleEntity.createAttributes().build());
+        event.put(ANEMO_COMPANION.get(), AnemoCompanionEntity.createAttributes().build());
     }
 }

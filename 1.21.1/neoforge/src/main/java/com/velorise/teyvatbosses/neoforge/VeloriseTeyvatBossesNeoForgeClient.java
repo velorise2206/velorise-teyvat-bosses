@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.client.AnemoCompanionRenderer;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
@@ -88,6 +89,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_NAUTILUS.get(), RuinNautilusRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_TORPEDO.get(), RuinTorpedoRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_SUBMERSIBLE.get(), RuinSubmersibleRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ANEMO_COMPANION.get(), AnemoCompanionRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }

@@ -20,10 +20,6 @@ import net.minecraft.util.Mth;
 /**
  * Renders the 4-part player-piloted {@link RuinSubmersibleEntity} with an Alex's Caves-style
  * panoramic crystal glass canopy dome ({@code sub_cockpit_glass}) rendered via {@link RenderType#entityTranslucent}.
- *
- * <p>In 3rd-person, the player is clearly visible seated inside the illuminated glass dome.
- * In 1st-person for the local pilot, opaque rear hull cubes are hidden so the view through the
- * crystal glass canopy is 100% unobstructed.
  */
 public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss.png");
@@ -46,7 +42,17 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
                 && entity.hasPassenger(mc.player)
                 && mc.options.getCameraType() == CameraType.FIRST_PERSON;
 
+        // 1st-person uses the clean 2D Fontaine brass/glass canopy visor overlay to avoid water Z-fighting
+        if (isLocalPilotFirstPerson) {
+            return;
+        }
+
         float yaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float pitchDeg = entity.getHullPitchDeg(partialTicks);
+        float rollDeg = entity.getHullRollDeg(partialTicks);
+        float spin = entity.getPropSpinAngle(partialTicks);
+        float rudderRad = entity.getRudderDeg(partialTicks) * Mth.DEG_TO_RAD;
+        float finPitchRad = entity.getFinPitchDeg(partialTicks) * Mth.DEG_TO_RAD;
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
@@ -56,10 +62,10 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
         model.resetPose();
         ModelPart hullPitch = model.getBone("hull_pitch");
         if (hullPitch != null) {
-            hullPitch.xRot += entity.getHullPitchDeg() * Mth.DEG_TO_RAD;
-            hullPitch.zRot += entity.getHullRollDeg() * Mth.DEG_TO_RAD;
+            hullPitch.xRot += pitchDeg * Mth.DEG_TO_RAD;
+            hullPitch.zRot += rollDeg * Mth.DEG_TO_RAD;
         }
-        float spin = entity.getPropSpinAngle();
+
         ModelPart prop = model.getBone("propeller_shaft");
         if (prop != null) prop.zRot += spin;
         ModelPart gearL = model.getBone("clockwork_gear_l");
@@ -71,15 +77,22 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
         if (bellyGear != null) bellyGear.xRot += spin * 0.35F;
         if (bellyGear2 != null) bellyGear2.xRot -= spin * 0.50F;
 
-        // Animate twin cockpit control levers live with pilot pitch/roll
+        ModelPart rudderTop = model.getBone("rudder_top");
+        ModelPart rudderBot = model.getBone("rudder_bot");
+        if (rudderTop != null) rudderTop.yRot += rudderRad;
+        if (rudderBot != null) rudderBot.yRot += rudderRad;
+        ModelPart finL = model.getBone("fin_pectoral_l");
+        ModelPart finR = model.getBone("fin_pectoral_r");
+        if (finL != null) finL.xRot += finPitchRad;
+        if (finR != null) finR.xRot += finPitchRad;
+
         ModelPart leverL = model.getBone("control_lever_l");
         ModelPart leverR = model.getBone("control_lever_r");
-        float pitchRad = entity.getHullPitchDeg() * Mth.DEG_TO_RAD;
-        float rollRad = entity.getHullRollDeg() * Mth.DEG_TO_RAD;
+        float pitchRad = pitchDeg * Mth.DEG_TO_RAD;
+        float rollRad = rollDeg * Mth.DEG_TO_RAD;
         if (leverL != null) leverL.xRot += Mth.clamp(pitchRad * 0.85F - rollRad * 0.65F, -0.55F, 0.55F);
         if (leverR != null) leverR.xRot += Mth.clamp(pitchRad * 0.85F + rollRad * 0.65F, -0.55F, 0.55F);
 
-        // Always hide Boss-only weapons/nose & Drowned Captain on the player submarine
         setVis("drowned_pilot", false);
         setVis("bow_dome", false);
         setVis("dorsal_railgun_base", false);
@@ -90,34 +103,34 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
         boolean hasProp = entity.hasPart(RuinSubmersibleEntity.PART_PROPELLER);
         boolean hasPods = entity.hasPart(RuinSubmersibleEntity.PART_TORPEDO_POD);
 
-        // Pass 1 & 2: Opaque metal hull + brass frame + emissive glow
-        // In 1st-person for the local pilot, skip opaque body so ZERO opaque walls block the camera!
-        if (!isLocalPilotFirstPerson) {
-            setVis("sub_cockpit_frame", hasCockpit);
-            setVis("sub_cockpit_glass", false); // Rendered in Pass 3 translucent pass
-            setVis("tail_cone", hasProp);
-            setVis("pod_left", hasPods);
-            setVis("pod_right", hasPods);
+        // Pass 1: Opaque metal hull + brass frame
+        setVis("sub_cockpit_frame", hasCockpit);
+        setVis("sub_cockpit_glass", false);
+        setVis("tail_cone", hasProp);
+        setVis("pod_left", hasPods);
+        setVis("pod_right", hasPods);
 
-            int ammo = entity.getTorpedoAmmo();
-            for (int i = 0; i < 6; i++) {
-                setVis("torpedo_tip_" + i, hasPods && i < ammo);
-            }
-
-            int overlay = OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(entity.hurtTime > 0 || entity.deathTime > 0));
-            VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-            model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
-
-            if (entity.isFullyAssembled() && entity.getEnergy() > 0.5F) {
-                VertexConsumer emVc = buffers.getBuffer(RenderType.eyes(EMISSIVE));
-                model.renderToBuffer(poseStack, emVc, 0x00F000F0, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-            }
+        int ammo = entity.getTorpedoAmmo();
+        for (int i = 0; i < 6; i++) {
+            setVis("torpedo_tip_" + i, hasPods && i < ammo);
         }
 
-        // Pass 3: Alex's Caves-style Panoramic Translucent Crystal Glass Canopy Dome!
+        int overlay = OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(entity.hurtTime > 0 || entity.deathTime > 0));
+        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
+
+        // Pass 2: Emissive glow with slight 1.003x scale bias to completely eliminate depth-buffer Z-fighting,
+        // and visibly dims when Headlight [F] is OFF!
+        if (entity.isFullyAssembled() && entity.getEnergy() > 0.5F && entity.isHeadlightOn()) {
+            poseStack.pushPose();
+            poseStack.scale(1.003F, 1.003F, 1.003F);
+            VertexConsumer emVc = buffers.getBuffer(RenderType.eyes(EMISSIVE));
+            model.renderToBuffer(poseStack, emVc, 0x00F000F0, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            poseStack.popPose();
+        }
+
+        // Pass 3: Panoramic Translucent Crystal Glass Canopy Dome (3rd-person)
         if (hasCockpit) {
-            // Render ONLY sub_cockpit_glass with entityTranslucent so the pilot is visible inside
-            // and 1st-person sees cleanly through the subtle crystal-tinted canopy!
             ModelPart glassBone = model.getBone("sub_cockpit_glass");
             if (glassBone != null && hullPitch != null) {
                 poseStack.pushPose();
@@ -127,14 +140,12 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
                 ModelPart hullMain = model.getBone("hull_main");
                 if (hullMain != null) hullMain.translateAndRotate(poseStack);
                 glassBone.visible = true;
-                int glassAlpha = isLocalPilotFirstPerson ? 0x66FFFFFF : 0xCCFFFFFF;
                 VertexConsumer glassVc = buffers.getBuffer(RenderType.entityTranslucent(GLASS_TEX));
-                glassBone.render(poseStack, glassVc, packedLight, OverlayTexture.NO_OVERLAY, glassAlpha);
+                glassBone.render(poseStack, glassVc, packedLight, OverlayTexture.NO_OVERLAY, 0xCCFFFFFF);
                 poseStack.popPose();
             }
         }
 
-        // Restore all visibility flags cleanly for shared model safety
         setVis("drowned_pilot", true);
         setVis("bow_dome", true);
         setVis("dorsal_railgun_base", true);
