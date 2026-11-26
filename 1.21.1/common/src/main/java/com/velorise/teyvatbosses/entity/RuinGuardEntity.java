@@ -121,6 +121,9 @@ public class RuinGuardEntity extends Monster {
     public RuinGuardEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
         this.xpReward = 700;
+        // Prevent Velorise's Staves from rolling random elemental mutations on this physical boss
+        this.addTag("VeloriseInnateChecked");
+        this.addTag("VeloriseInnate:NONE");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
