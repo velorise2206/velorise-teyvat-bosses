@@ -2,6 +2,7 @@ package com.velorise.teyvatbosses.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,12 +15,16 @@ import net.minecraft.world.BossEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Custom Cataclysm-inspired layered boss bar renderer for all 5 Teyvat Bosses.
  * Uses 214x23 ornamental background + overlay bezels centered cleanly around
- * vanilla's 182x5 progress bar slot, preserving crisp readability and row spacing.
+ * vanilla's 182x5 progress bar slot, preserving crisp readability and row spacing,
+ * with a Genshin/Souls-style delayed white-gold damage drain trail behind the HP fill.
  */
 public final class TeyvatBossBarRenderer {
 
@@ -32,11 +37,31 @@ public final class TeyvatBossBarRenderer {
     private static final int TOP_CLEARANCE = 6; // ensures y=3 spikes stay below title shadow
     private static final int ROW_INCREMENT = 33;
 
+    // Delayed damage trail timings (frame-rate independent via Util.getMillis())
+    private static final long TRAIL_HOLD_MS = 260L;
+    private static final long TRAIL_STALE_EVICT_MS = 10_000L;
+
     private static final String KEY_CRYO_REGISVINE = "entity.velorise_teyvat_bosses.cryo_regisvine";
     private static final String KEY_ANEMO_HYPOSTASIS = "entity.velorise_teyvat_bosses.anemo_hypostasis";
     private static final String KEY_RUIN_GUARD = "entity.velorise_teyvat_bosses.ruin_guard";
     private static final String KEY_RUIN_NAUTILUS = "entity.velorise_teyvat_bosses.ruin_nautilus";
     private static final String KEY_PRIMO_GEOVISHAP = "entity.velorise_teyvat_bosses.primo_geovishap";
+
+    private static final Map<UUID, DrainState> DRAIN_STATES = new HashMap<>();
+
+    private static final class DrainState {
+        float trailProgress;
+        float lastObservedProgress;
+        long holdUntilMs;
+        long lastUpdateMs;
+
+        DrainState(float initialProgress, long nowMs) {
+            this.trailProgress = initialProgress;
+            this.lastObservedProgress = initialProgress;
+            this.holdUntilMs = nowMs;
+            this.lastUpdateMs = nowMs;
+        }
+    }
 
     private static final BossBarStyle PRIMO_GEO_STYLE = new BossBarStyle(
             tex("primo_geovishap_geo_bg.png"),
@@ -120,7 +145,7 @@ public final class TeyvatBossBarRenderer {
     /**
      * Renders the custom boss bar if {@code event} belongs to one of the 5 Teyvat Bosses.
      *
-     * @return the vertical Y increment to advance to the next bar (30), or {@code 0} if not a Teyvat Boss.
+     * @return the vertical Y increment to advance to the next bar (33), or {@code 0} if not a Teyvat Boss.
      */
     public static int tryRender(GuiGraphics gui, LerpingBossEvent event, int vanillaBarX, int vanillaBarY) {
         String key = findBossKey(event.getName());
@@ -136,11 +161,27 @@ public final class TeyvatBossBarRenderer {
         int frameX = vanillaBarX - FRAME_PAD_X;
         int frameY = barY - FRAME_PAD_Y;
 
+        float currentProgress = Mth.clamp(event.getProgress(), 0.0F, 1.0F);
+        float trailProgress = updateDelayedTrail(event.getId(), currentProgress);
+
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         gui.blit(style.bgTex(), frameX, frameY, 0, 0, FRAME_WIDTH, FRAME_HEIGHT, FRAME_WIDTH, FRAME_HEIGHT);
 
-        int fillW = Mth.clamp(Mth.lerpDiscrete(event.getProgress(), 0, BAR_WIDTH), 0, BAR_WIDTH);
+        int fillW = Mth.clamp(Mth.lerpDiscrete(currentProgress, 0, BAR_WIDTH), 0, BAR_WIDTH);
+        int trailW = Mth.clamp(Mth.lerpDiscrete(trailProgress, 0, BAR_WIDTH), 0, BAR_WIDTH);
+
+        // Delayed damage trail (warm white-gold highlight + amber body behind the active HP fill)
+        if (trailW > fillW) {
+            int tx0 = vanillaBarX + fillW;
+            int tx1 = vanillaBarX + trailW;
+            gui.fill(tx0, barY, tx1, barY + 2, 0xFFFFF6D6);
+            gui.fill(tx0, barY + 2, tx1, barY + BAR_HEIGHT, 0xFFE8B054);
+            if (tx1 - tx0 >= 2) {
+                gui.fill(tx1 - 1, barY, tx1, barY + BAR_HEIGHT, 0xFFFFFFFF);
+            }
+        }
+
         if (fillW > 0) {
             gui.blit(style.fillTex(), vanillaBarX, barY, 0, 0, fillW, BAR_HEIGHT, BAR_WIDTH, BAR_HEIGHT);
         }
@@ -154,6 +195,47 @@ public final class TeyvatBossBarRenderer {
         gui.drawString(font, name, textX, titleY, style.titleColor());
 
         return ROW_INCREMENT;
+    }
+
+    private static float updateDelayedTrail(UUID bossId, float currentProgress) {
+        long now = Util.getMillis();
+        DrainState state = DRAIN_STATES.get(bossId);
+        if (state == null) {
+            state = new DrainState(currentProgress, now);
+            DRAIN_STATES.put(bossId, state);
+            pruneStaleTrails(now);
+            return currentProgress;
+        }
+
+        float dtSec = Mth.clamp((now - state.lastUpdateMs) / 1000.0F, 0.0F, 0.12F);
+        state.lastUpdateMs = now;
+
+        if (currentProgress < state.lastObservedProgress - 0.001F) {
+            // Boss just took damage: latch the trail at the higher previous HP and hold briefly
+            state.trailProgress = Math.max(state.trailProgress, state.lastObservedProgress);
+            state.holdUntilMs = now + TRAIL_HOLD_MS;
+        } else if (currentProgress > state.trailProgress) {
+            // Boss healed or reset to full: snap trail cleanly up to current HP
+            state.trailProgress = currentProgress;
+            state.holdUntilMs = now;
+        } else if (state.trailProgress > currentProgress && now >= state.holdUntilMs) {
+            float diff = state.trailProgress - currentProgress;
+            float drainStep = Math.max(0.14F, diff * 2.8F) * dtSec;
+            state.trailProgress = Math.max(currentProgress, state.trailProgress - drainStep);
+        }
+
+        state.lastObservedProgress = currentProgress;
+        return state.trailProgress;
+    }
+
+    private static void pruneStaleTrails(long now) {
+        if (DRAIN_STATES.size() <= 16) return;
+        Iterator<Map.Entry<UUID, DrainState>> it = DRAIN_STATES.entrySet().iterator();
+        while (it.hasNext()) {
+            if (now - it.next().getValue().lastUpdateMs > TRAIL_STALE_EVICT_MS) {
+                it.remove();
+            }
+        }
     }
 
     private static BossBarStyle resolveStyle(String key, BossBarStyle baseStyle, BossEvent.BossBarColor color) {

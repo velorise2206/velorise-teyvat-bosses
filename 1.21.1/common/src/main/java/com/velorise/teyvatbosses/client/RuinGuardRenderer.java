@@ -71,6 +71,10 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         float ikDyR = 0.0F;
         float ikDyL = 0.0F;
         float ikPelvisDrop = 0.0F;
+        int lastHitstopEpoch = -1;
+        int lastSlamHitstopEpoch = -1;
+        float frozenEvalSec = 0.0F;
+        boolean wasHitstop = false;
 
         void reset() {
             currClip = null;
@@ -113,7 +117,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                  RuinGuardEntity.ANIM_STOMP_SHOCKWAVE,
                  RuinGuardEntity.ANIM_LEAP_SLAM -> 3.5F;
             case RuinGuardEntity.ANIM_WALK -> 3.0F;
-            case RuinGuardEntity.ANIM_CYCLONE_ACTIVE,
+            case RuinGuardEntity.ANIM_WEAKPOINT_FLINCH,
+                 RuinGuardEntity.ANIM_CYCLONE_ACTIVE,
                  RuinGuardEntity.ANIM_CYCLONE_RECOVER -> 1.5F;
             default -> 6.5F;
         };
@@ -149,12 +154,34 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         sm.currClip = clip;
         sm.lastEpoch = epoch;
 
+        // Trigger tactile client-side hitstop + camera punch on weakpoint breaks & heavy slams
+        int animTick = entity.getAnimTick();
+        if ((animId == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH || animId == RuinGuardEntity.ANIM_STUNNED)
+                && animTick <= 2 && sm.lastHitstopEpoch != epoch) {
+            sm.lastHitstopEpoch = epoch;
+            boolean paralyze = (animId == RuinGuardEntity.ANIM_STUNNED);
+            BossCameraShake.triggerHitstop(
+                    entity.position().add(0.0D, 2.8D, 0.0D),
+                    paralyze ? 4 : 3,
+                    paralyze ? 0.52F : 0.34F,
+                    44.0D
+            );
+        } else if (((animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.78F && currSec <= 1.88F)
+                || (animId == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && currSec >= 1.23F && currSec <= 1.33F))
+                && sm.lastSlamHitstopEpoch != epoch) {
+            sm.lastSlamHitstopEpoch = epoch;
+            BossCameraShake.triggerHitstop(entity.position(), 2, 0.44F, 40.0D);
+        }
+
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
 
         renderCombatVFX(entity, bodyYaw, partialTicks, liveTick, currSec, poseStack, bufferSource);
 
         poseStack.pushPose();
         float shudder = computeImpactShudder(animId, currSec);
+        if (BossCameraShake.isHitstopActive()) {
+            shudder = Math.max(shudder, 0.085F * BossCameraShake.getHitstopIntensity());
+        }
         if (shudder > 0.001F) {
             float sx = Mth.sin(liveTick * 31.0F) * shudder;
             float sz = Mth.cos(liveTick * 27.0F) * shudder;
@@ -190,6 +217,15 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             evalSec = sm.walkAnimSec;
         } else {
             sm.hasWalkPos = false;
+        }
+        if (BossCameraShake.isHitstopActive()) {
+            if (!sm.wasHitstop) {
+                sm.frozenEvalSec = evalSec;
+                sm.wasHitstop = true;
+            }
+            evalSec = sm.frozenEvalSec;
+        } else {
+            sm.wasHitstop = false;
         }
         RuinGuardAnimations.apply(model, clip, evalSec);
 
@@ -231,9 +267,25 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
         model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
 
-        if (entity.getBossState() != RuinGuardEntity.STATE_DORMANT && entity.getBossState() != RuinGuardEntity.STATE_DEATH) {
+        // Genshin Wiki faithful: weakpoints (eye & back core) are extinguished/closed while paralyzed!
+        int bossSt = entity.getBossState();
+        float emissiveAlpha = 1.0F;
+        if (bossSt == RuinGuardEntity.STATE_DORMANT || bossSt == RuinGuardEntity.STATE_DEATH) {
+            emissiveAlpha = 0.0F;
+        } else if (bossSt == RuinGuardEntity.STATE_STUNNED) {
+            if (animId == RuinGuardEntity.ANIM_STUNNED) {
+                emissiveAlpha = (currSec < 0.45F) ? Mth.clamp(1.0F - currSec / 0.45F, 0.0F, 1.0F) : 0.0F;
+            } else if (animId == RuinGuardEntity.ANIM_STUN_RECOVERY) {
+                emissiveAlpha = Mth.clamp((currSec - 0.30F) / 0.80F, 0.0F, 1.0F);
+            } else {
+                emissiveAlpha = 0.0F;
+            }
+        }
+        if (emissiveAlpha > 0.02F) {
+            int ec = Mth.clamp((int) (255.0F * emissiveAlpha), 0, 255);
+            int emColor = (0xFF << 24) | (ec << 16) | (ec << 8) | ec;
             VertexConsumer evc = bufferSource.getBuffer(RenderType.eyes(EMISSIVE));
-            model.renderToBuffer(poseStack, evc, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+            model.renderToBuffer(poseStack, evc, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, emColor);
         }
 
         poseStack.popPose();
@@ -356,6 +408,12 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         if (animId == RuinGuardEntity.ANIM_DOUBLE_CLAP && sec >= 1.13F && sec <= 1.34F) {
             return 0.08F * (1.0F - (sec - 1.13F) / 0.21F);
         }
+        if (animId == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && sec <= 0.28F) {
+            return 0.11F * (1.0F - sec / 0.28F);
+        }
+        if (animId == RuinGuardEntity.ANIM_STUNNED && sec <= 0.35F) {
+            return 0.13F * (1.0F - sec / 0.35F);
+        }
         return 0.0F;
     }
 
@@ -442,6 +500,50 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             float rIn = Math.max(0.1F, rOut - 0.65F * (1.0F - p * 0.6F));
             int alpha = (int) (220 * (1.0F - p));
             drawHorizontalRing(vc, m, rIn, rOut, 24, 255, 230, 165, alpha);
+            poseStack.popPose();
+        }
+
+        // Weakpoint Hit-1 crisp golden-white impact burst around eye/core height
+        if (anim == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && currSec <= 0.36F) {
+            float p = Mth.clamp(currSec / 0.36F, 0.0F, 1.0F);
+            poseStack.pushPose();
+            poseStack.translate(0.0D, 3.05D, 0.0D);
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            float rOut = 0.45F + p * 1.95F;
+            float rIn = Math.max(0.08F, rOut - 0.35F * (1.0F - p * 0.65F));
+            int alpha = (int) (235 * (1.0F - p));
+            drawHorizontalRing(vc, poseStack.last().pose(), rIn, rOut, 24, 255, 242, 170, alpha);
+            poseStack.popPose();
+        }
+
+        // Paralyzed state: crackling blue-white electric arcs around shoulders & core (matches Genshin wiki)
+        if (entity.getBossState() == RuinGuardEntity.STATE_STUNNED && anim == RuinGuardEntity.ANIM_STUNNED) {
+            int arcSeed = (int) (liveTick * 0.55F);
+            poseStack.pushPose();
+            poseStack.translate(0.0D, 2.25D, 0.0D);
+            Matrix4f arcMat = poseStack.last().pose();
+            for (int b = 0; b < 3; b++) {
+                float baseAng = (arcSeed * 1.7F + b * 2.1F);
+                float ox = Mth.cos(baseAng) * 0.95F;
+                float oz = Mth.sin(baseAng) * 0.95F;
+                float oy = 0.25F + 0.35F * Mth.sin(liveTick * 0.9F + b * 1.9F);
+                float ex = ox + Mth.cos(baseAng + 1.1F) * 0.65F;
+                float ez = oz + Mth.sin(baseAng + 1.1F) * 0.65F;
+                float ey = oy + 0.45F * Mth.cos(liveTick * 1.3F + b);
+                float mx = (ox + ex) * 0.5F + 0.22F * Mth.sin(liveTick * 4.5F + b * 2.3F);
+                float my = (oy + ey) * 0.5F + 0.20F * Mth.cos(liveTick * 3.8F + b);
+                float mz = (oz + ez) * 0.5F + 0.22F * Mth.cos(liveTick * 4.1F + b * 1.7F);
+                float w = 0.045F;
+                vc.addVertex(arcMat, ox - w, oy, oz).setColor(160, 225, 255, 220);
+                vc.addVertex(arcMat, ox + w, oy, oz).setColor(230, 248, 255, 220);
+                vc.addVertex(arcMat, mx + w, my, mz).setColor(230, 248, 255, 240);
+                vc.addVertex(arcMat, mx - w, my, mz).setColor(160, 225, 255, 240);
+                vc.addVertex(arcMat, mx - w, my, mz).setColor(160, 225, 255, 240);
+                vc.addVertex(arcMat, mx + w, my, mz).setColor(230, 248, 255, 240);
+                vc.addVertex(arcMat, ex + w, ey, ez).setColor(230, 248, 255, 180);
+                vc.addVertex(arcMat, ex - w, ey, ez).setColor(160, 225, 255, 180);
+            }
             poseStack.popPose();
         }
 

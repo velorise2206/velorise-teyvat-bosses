@@ -70,10 +70,12 @@ public class RuinGuardEntity extends Monster {
     public static final int ANIM_DEATH              = 14;
     public static final int ANIM_STUN_RECOVERY      = 15;
     public static final int ANIM_OVERDRIVE_FINISHER = 16;
+    public static final int ANIM_WEAKPOINT_FLINCH   = 17;
 
     private static final int DEATH_DURATION_TICKS    = 58;
     private static final int STUN_COLLAPSE_TICKS     = 122;
     private static final int STUN_RECOVERY_TICKS     = 28;
+    private static final int WEAKPOINT_FLINCH_TICKS  = 19;
     private static final int WEAKPOINT_IMMUNE_TICKS  = 80;
     private static final double ARENA_SOFT_LEASH_RADIUS = 56.0D;
 
@@ -113,6 +115,8 @@ public class RuinGuardEntity extends Monster {
     private int eyeHits = 0;
     private int eyeResetTimer = 0;
     private int weakpointImmuneTicks = 0;
+    private boolean weakpointRearHit = false;
+    private float weakpointSwivelTargetYaw = 0.0F;
     private boolean pendingPhase2 = false;
     private boolean customDeathHandled = false;
     private Vec3 leapStart = Vec3.ZERO;
@@ -210,6 +214,7 @@ public class RuinGuardEntity extends Monster {
             case ANIM_DEATH -> "death_shutdown";
             case ANIM_STUN_RECOVERY -> "stunned_recovery";
             case ANIM_OVERDRIVE_FINISHER -> "overdrive_finisher";
+            case ANIM_WEAKPOINT_FLINCH -> "weakpoint_flinch";
             default -> "idle_combat";
         };
     }
@@ -313,27 +318,44 @@ public class RuinGuardEntity extends Monster {
             return false;
         }
 
-        // Eye & Back-Reactor Weakpoint Detection (respects Genshin post-stun rune immunity)
+        // Eye & Back-Reactor Weakpoint Detection (Genshin-accurate: front eye + rear core, not exposed while paralyzed)
         if (st == STATE_COMBAT && weakpointImmuneTicks <= 0 && !level().isClientSide()
                 && source.getDirectEntity() instanceof Projectile proj) {
-            if (proj.getY() >= getY() + 2.35D && proj.getY() <= getY() + 4.15D) {
+            if (proj.getY() >= getY() + 2.25D && proj.getY() <= getY() + 4.15D) {
                 Vec3 toProj = new Vec3(proj.getX() - getX(), 0.0D, proj.getZ() - getZ());
                 Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-                boolean hitFrontOrBack = toProj.lengthSqr() < 0.04D || Math.abs(toProj.normalize().dot(forward)) >= 0.30D;
-                if (hitFrontOrBack) {
+                double dot = toProj.lengthSqr() < 0.04D ? 1.0D : toProj.normalize().dot(forward);
+                boolean hitFrontEye = dot >= 0.28D;
+                boolean hitRearCore = dot <= -0.28D;
+                if (hitFrontEye || hitRearCore) {
                     eyeHits++;
                     eyeResetTimer = 140;
                     ServerLevel sl = (ServerLevel) level();
-                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.0F, 1.72F);
-                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.9F, 1.35F);
-                    sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 3.1D, getZ(), 24, 0.45D, 0.45D, 0.45D, 0.16D);
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.1D, getZ(), 18, 0.40D, 0.35D, 0.40D, 0.14D);
+                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 1.72F);
+                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.95F, 1.35F);
+                    sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 3.1D, getZ(), 26, 0.45D, 0.45D, 0.45D, 0.16D);
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.1D, getZ(), 22, 0.45D, 0.35D, 0.45D, 0.15D);
                     amount *= 1.35F;
                     if (eyeHits >= 2 || (proj instanceof AbstractArrow && eyeHits >= 2)) {
+                        weakpointRearHit = false;
                         triggerEyeStun(sl);
-                    } else if (source.getEntity() instanceof Player p) {
-                        p.displayClientMessage(Component.literal("✦ Eye Weakpoint Cracked (1/2) — Shoot again to paralyze!")
-                                .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), true);
+                    } else {
+                        // First weakpoint hit: trigger mechanical flinch/stagger animation; swivel to attacker if hit from rear core
+                        weakpointRearHit = hitRearCore;
+                        if (source.getEntity() instanceof LivingEntity attacker) {
+                            double dx = attacker.getX() - getX();
+                            double dz = attacker.getZ() - getZ();
+                            weakpointSwivelTargetYaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+                        } else {
+                            weakpointSwivelTargetYaw = getYRot() + 180.0F;
+                        }
+                        transitionTo(STATE_COMBAT, ANIM_WEAKPOINT_FLINCH);
+                        if (source.getEntity() instanceof Player p) {
+                            p.displayClientMessage(Component.literal(hitRearCore
+                                    ? "✦ Back-Core Weakpoint Cracked (1/2) — Shoot again to paralyze!"
+                                    : "✦ Eye Weakpoint Cracked (1/2) — Shoot again to paralyze!")
+                                    .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), true);
+                        }
                     }
                 }
             }
@@ -464,6 +486,10 @@ public class RuinGuardEntity extends Monster {
         ServerLevel sl = (ServerLevel) level();
         stateTick++;
         if (eyeResetTimer > 0 && --eyeResetTimer == 0) {
+            if (eyeHits > 0) {
+                // Genshin Wiki: protective runes briefly prevent immediate re-disable even if only Hit 1 landed
+                weakpointImmuneTicks = Math.max(weakpointImmuneTicks, 50);
+            }
             eyeHits = 0;
         }
         if (weakpointImmuneTicks > 0) {
@@ -737,6 +763,7 @@ public class RuinGuardEntity extends Monster {
             case ANIM_LEAP_SLAM -> tickLeapSlam(sl, target);
             case ANIM_PHASE2_OVERDRIVE -> tickPhase2Overdrive(sl);
             case ANIM_OVERDRIVE_FINISHER -> tickOverdriveFinisher(sl, target);
+            case ANIM_WEAKPOINT_FLINCH -> tickWeakpointFlinch(sl, target);
             default -> transitionTo(STATE_COMBAT, ANIM_IDLE);
         }
     }
@@ -1209,6 +1236,29 @@ public class RuinGuardEntity extends Monster {
         if (stateTick >= 64) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
             attackCooldown = 40;
+        }
+    }
+
+    /** Genshin-faithful Hit-1 weakpoint stagger (19 ticks = 0.95s); swivels around if struck on the rear core. */
+    private void tickWeakpointFlinch(ServerLevel sl, LivingEntity target) {
+        Vec3 cur = getDeltaMovement();
+        setDeltaMovement(cur.x * 0.45D, cur.y, cur.z * 0.45D);
+        if (stateTick == 1) {
+            sl.playSound(null, getX(), getY() + 2.8D, getZ(), SoundEvents.IRON_GOLEM_HURT, SoundSource.HOSTILE, 1.35F, 0.72F);
+            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.0D, getZ(), 14, 0.55D, 0.45D, 0.55D, 0.12D);
+        }
+        if (weakpointRearHit && stateTick >= 4 && stateTick <= 16) {
+            float newYaw = Mth.approachDegrees(getYRot(), weakpointSwivelTargetYaw, 16.5F);
+            setYRot(newYaw);
+            yBodyRot = newYaw;
+            yHeadRot = newYaw;
+        } else if (!weakpointRearHit && stateTick >= 10) {
+            faceTarget(target, 5.0F);
+        }
+        if (stateTick >= WEAKPOINT_FLINCH_TICKS) {
+            weakpointRearHit = false;
+            transitionTo(STATE_COMBAT, ANIM_IDLE);
+            attackCooldown = Math.max(attackCooldown, 14);
         }
     }
 

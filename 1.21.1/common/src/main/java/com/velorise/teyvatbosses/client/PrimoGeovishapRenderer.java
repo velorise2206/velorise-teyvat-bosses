@@ -53,6 +53,9 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         boolean hasPos = false;
         float ikFL = 0.0F, ikFR = 0.0F, ikBL = 0.0F, ikBR = 0.0F;
         float ikBodyDrop = 0.0F;
+        int lastStaggerStartTick = -1;
+        float frozenClipSec = 0.0F;
+        boolean wasHitstop = false;
     }
 
     public PrimoGeovishapRenderer(EntityRendererProvider.Context ctx) {
@@ -78,6 +81,14 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
 
         float evalClipSec = clipSec;
         WalkStrideState ws = walkStates.computeIfAbsent(entity, k -> new WalkStrideState());
+        // Trigger impact hitstop on Shield-Reflect Counter Beam stagger
+        if (bossState == PrimoGeovishapEntity.STATE_STAGGER && animTick >= 1 && animTick <= 3) {
+            int startTick = entity.tickCount - animTick;
+            if (ws.lastStaggerStartTick != startTick) {
+                ws.lastStaggerStartTick = startTick;
+                BossCameraShake.triggerHitstop(entity.position().add(0.0D, 2.5D, 0.0D), 4, 0.68F, 48.0D);
+            }
+        }
         if (animId == PrimoGeovishapEntity.ANIM_WALK) {
             double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
@@ -102,6 +113,15 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             ws.hasPos = false;
         }
 
+        if (BossCameraShake.isHitstopActive()) {
+            if (!ws.wasHitstop) {
+                ws.frozenClipSec = evalClipSec;
+                ws.wasHitstop = true;
+            }
+            evalClipSec = ws.frozenClipSec;
+        } else {
+            ws.wasHitstop = false;
+        }
         PrimoGeovishapAnimations.BlendState blend = blendStates.computeIfAbsent(
                 entity, k -> new PrimoGeovishapAnimations.BlendState());
         PrimoGeovishapAnimations.applyBlended(model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch);
@@ -111,6 +131,10 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         int[] rgb = entity.getInfusionRgb();
 
         poseStack.pushPose();
+        if (BossCameraShake.isHitstopActive()) {
+            float sh = 0.095F * BossCameraShake.getHitstopIntensity();
+            poseStack.translate(Mth.sin((entity.tickCount + partialTicks) * 33.0F) * sh, 0.0D, Mth.cos((entity.tickCount + partialTicks) * 29.0F) * sh);
+        }
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
         poseStack.scale(-BOSS_SCALE, -BOSS_SCALE, BOSS_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
