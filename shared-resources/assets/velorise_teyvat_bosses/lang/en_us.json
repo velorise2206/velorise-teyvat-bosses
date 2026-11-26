@@ -57,12 +57,5 @@
   "message.velorise_teyvat_bosses.mech.need_parts": "Mech incomplete (%s/%s parts). Weld all 5 salvage parts before piloting.",
   "message.velorise_teyvat_bosses.mech.repaired": "Mech hull repaired! HP: %s/%s | Armor: %s%%",
   "message.velorise_teyvat_bosses.mech.recharging": "Rear reactor hatch open — inserting Redstone Energy Cell (+35% Energy)...",
-  "message.velorise_teyvat_bosses.mech.no_energy": "Reactor energy depleted! Insert a Redstone Block into the rear hatch to recharge.",
-  "key.categories.velorise_teyvat_bosses": "Velorise: Ruin Mech Controls",
-  "key.velorise_teyvat_bosses.mech_clap": "Mech: Double Clap",
-  "key.velorise_teyvat_bosses.mech_combo": "Mech: 3-Hit Combo",
-  "key.velorise_teyvat_bosses.mech_stomp": "Mech: Stomp Shockwave",
-  "key.velorise_teyvat_bosses.mech_cyclone": "Mech: Cyclone Spin",
-  "key.velorise_teyvat_bosses.mech_leap": "Mech: Leap Slam",
-  "key.velorise_teyvat_bosses.mech_missile": "Mech: 6x Homing Missiles"
+  "message.velorise_teyvat_bosses.mech.no_energy": "Reactor energy depleted! Insert a Redstone Block into the rear hatch to recharge."
 }

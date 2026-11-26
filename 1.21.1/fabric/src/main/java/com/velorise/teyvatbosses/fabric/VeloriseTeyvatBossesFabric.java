@@ -231,6 +231,18 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final SoundEvent SOUND_MECH_VISOR_SEAL = Registry.register(
             BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_visor_seal"),
             SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_visor_seal")));
+    public static final SoundEvent SOUND_MECH_SERVO_WHIR = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_servo_whir"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_servo_whir")));
+    public static final SoundEvent SOUND_MECH_JOINT_CREAK = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_joint_creak"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_joint_creak")));
+    public static final SoundEvent SOUND_MECH_METAL_CLANK = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_metal_clank"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_metal_clank")));
+    public static final SoundEvent SOUND_MECH_HYDRAULIC_HISS = Registry.register(
+            BuiltInRegistries.SOUND_EVENT, TeyvatBossesConstants.id("sfx.mech_hydraulic_hiss"),
+            SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_hydraulic_hiss")));
 
     public static final Item MUSIC_DISC_CRYO_REGISVINE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("music_disc_cryo_regisvine"),
@@ -316,7 +328,10 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         );
 
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
-        TeyvatBossesSounds.bind(() -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL);
+        TeyvatBossesSounds.bind(
+                () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
+                () -> SOUND_MECH_SERVO_WHIR, () -> SOUND_MECH_JOINT_CREAK, () -> SOUND_MECH_METAL_CLANK, () -> SOUND_MECH_HYDRAULIC_HISS
+        );
         TeyvatBossesItems.bind(
                 () -> MUSIC_DISC_CRYO_REGISVINE,
                 () -> MUSIC_DISC_THE_OPEN_EYED,

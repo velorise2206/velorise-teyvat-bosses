@@ -7,7 +7,7 @@ import net.minecraft.util.Mth;
 import java.util.function.IntConsumer;
 
 /**
- * Compact LMB + RMB gesture controller (Tap / Double-Tap / Hold) for all 6 Ruin Mech skills:
+ * Compact LMB + RMB gesture controller (Tap / Double-Tap / Hold) + Space Mobility Leap + MMB Lock-On:
  * <ul>
  *   <li><b>LMB Tap:</b> Double Clap</li>
  *   <li><b>LMB Double-Tap:</b> 3-Hit Heavy Combo</li>
@@ -15,6 +15,8 @@ import java.util.function.IntConsumer;
  *   <li><b>RMB Tap:</b> Stomp Shockwave</li>
  *   <li><b>RMB Double-Tap:</b> Leap Slam</li>
  *   <li><b>RMB Hold (0.45s):</b> 6x Homing Missile Barrage</li>
+ *   <li><b>Space:</b> Mobility Long Jump (no combat slam)</li>
+ *   <li><b>MMB:</b> Toggle Hard Lock-On</li>
  * </ul>
  */
 public final class RuinMechInputController {
@@ -35,6 +37,7 @@ public final class RuinMechInputController {
 
     public static final String[] HUD_BADGES = {"L1", "L2", "L+", "R1", "R2", "R+"};
     private static boolean mmbWasDown = false;
+    private static boolean spaceWasDown = false;
 
     private RuinMechInputController() {}
 
@@ -44,6 +47,7 @@ public final class RuinMechInputController {
             LMB.reset();
             RMB.reset();
             mmbWasDown = false;
+            spaceWasDown = false;
             return;
         }
         boolean mmbDown = mc.options.keyPickItem.isDown();
@@ -51,6 +55,13 @@ public final class RuinMechInputController {
             skillSender.accept(RuinMechEntity.SKILL_TOGGLE_LOCK);
         }
         mmbWasDown = mmbDown;
+
+        boolean spaceDown = mc.options.keyJump.isDown();
+        if (spaceDown && !spaceWasDown) {
+            skillSender.accept(RuinMechEntity.SKILL_BOOST_LEAP);
+        }
+        spaceWasDown = spaceDown;
+
         LMB.update(mc.options.keyAttack.isDown(), skillSender);
         RMB.update(mc.options.keyUse.isDown(), skillSender);
     }

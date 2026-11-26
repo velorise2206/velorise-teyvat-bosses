@@ -56,12 +56,5 @@
   "message.velorise_teyvat_bosses.mech.need_parts": "Robot chưa lắp đủ bộ phận (%s/%s mảnh). Hãy gắn đủ 5 mảnh trước khi điều khiển.",
   "message.velorise_teyvat_bosses.mech.repaired": "Đã sửa chữa khung giáp! Máu: %s/%s | Giáp: %s%%",
   "message.velorise_teyvat_bosses.mech.recharging": "Đang mở khoang lò phản ứng sau lưng — nạp Khối Đá Đỏ (+35% Năng Lượng)...",
-  "message.velorise_teyvat_bosses.mech.no_energy": "Hết năng lượng lò phản ứng! Chuột phải Khối Đá Đỏ vào robot để mở nắp lưng nạp lại.",
-  "key.categories.velorise_teyvat_bosses": "Velorise: Điều Khiển Ruin Mech",
-  "key.velorise_teyvat_bosses.mech_clap": "Mech: Đập Vỗ Tay Đôi",
-  "key.velorise_teyvat_bosses.mech_combo": "Mech: Chuỗi Đấm 3 Đòn",
-  "key.velorise_teyvat_bosses.mech_stomp": "Mech: Giậm Chân Sóng Xung Kích",
-  "key.velorise_teyvat_bosses.mech_cyclone": "Mech: Xoay Cối Xay Gió",
-  "key.velorise_teyvat_bosses.mech_leap": "Mech: Nhảy Đập Khổng Lồ",
-  "key.velorise_teyvat_bosses.mech_missile": "Mech: Phóng 6 Tên Lửa Dẫn Đường"
+  "message.velorise_teyvat_bosses.mech.no_energy": "Hết năng lượng lò phản ứng! Chuột phải Khối Đá Đỏ vào robot để mở nắp lưng nạp lại."
 }

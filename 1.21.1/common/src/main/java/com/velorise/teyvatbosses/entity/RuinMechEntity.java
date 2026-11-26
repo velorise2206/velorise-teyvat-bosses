@@ -2,6 +2,7 @@ package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.core.BlockPos;
@@ -77,8 +78,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int ANIM_CYCLONE_WINDUP  = 11;
     public static final int ANIM_CYCLONE_ACTIVE  = 12;
     public static final int ANIM_CYCLONE_RECOVER = 13;
+    public static final int ANIM_BOOST_LEAP      = 14;
 
-    // 6 Skill IDs (used by C2S RuinMechSkillPayload & HUD)
+    // 6 Combat Skills + Lock-On + Space Mobility Leap (used by C2S RuinMechSkillPayload & HUD)
     public static final int SKILL_DOUBLE_CLAP = 1;
     public static final int SKILL_MELEE_3HIT  = 2;
     public static final int SKILL_STOMP       = 3;
@@ -86,6 +88,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int SKILL_LEAP_SLAM   = 5;
     public static final int SKILL_MISSILES    = 6;
     public static final int SKILL_TOGGLE_LOCK = 7;
+    public static final int SKILL_BOOST_LEAP  = 8;
 
     // 10 Redstone Blocks max (100 energy per block = 1000 max energy)
     public static final int   MAX_REDSTONE_CELLS = 10;
@@ -201,6 +204,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case ANIM_CYCLONE_ACTIVE -> "cyclone_spin_active";
             case ANIM_CYCLONE_RECOVER -> "cyclone_spin_recovery";
             case ANIM_LEAP_SLAM -> "leap_slam";
+            case ANIM_BOOST_LEAP -> "mobility_leap";
             case ANIM_MISSILE_SALVO -> "missile_barrage";
             default -> "idle_combat";
         };
@@ -225,6 +229,11 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     @Override protected void registerGoals() {}
     @Override public boolean removeWhenFarAway(double dist) { return false; }
     @Override public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) { return false; }
+    @Override public boolean isPushable() { return false; }
+    @Override public void push(Entity entity) {}
+    @Override protected void doPush(Entity entity) {}
+    @Override public void push(double x, double y, double z) {}
+    @Override public void knockback(double strength, double x, double z) {}
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
@@ -245,6 +254,13 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         for (Entity p : List.copyOf(getPassengers())) {
             p.setInvisible(false);
             p.stopRiding();
+        }
+        if (!level().isClientSide()) {
+            if (hasPart(PART_CORE) && TeyvatBossesItems.mechCore() != null) spawnAtLocation(TeyvatBossesItems.mechCore());
+            if (hasPart(PART_LEFT_ARM) && TeyvatBossesItems.mechLeftArm() != null) spawnAtLocation(TeyvatBossesItems.mechLeftArm());
+            if (hasPart(PART_RIGHT_ARM) && TeyvatBossesItems.mechRightArm() != null) spawnAtLocation(TeyvatBossesItems.mechRightArm());
+            if (hasPart(PART_LEFT_LEG) && TeyvatBossesItems.mechLeftLeg() != null) spawnAtLocation(TeyvatBossesItems.mechLeftLeg());
+            if (hasPart(PART_RIGHT_LEG) && TeyvatBossesItems.mechRightLeg() != null) spawnAtLocation(TeyvatBossesItems.mechRightLeg());
         }
         super.die(cause);
     }
@@ -354,7 +370,26 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 entityData.set(DATA_LEAP_TY, (float) leapTarget.y);
                 entityData.set(DATA_LEAP_TZ, (float) leapTarget.z);
                 playAnim(ANIM_LEAP_SLAM);
-                setCooldown(48);
+                setCooldown(76);
+                yield true;
+            }
+            case SKILL_BOOST_LEAP -> {
+                if (energy < 8.0F) yield false;
+                consumeEnergy(8.0F);
+                float aimYaw = (getControllingPassenger() instanceof Player p) ? p.getYRot() : getYRot();
+                leapStart = position();
+                leapTarget = findExplorationLanding(aimYaw, 14.0D);
+                this.setYRot(aimYaw);
+                this.yBodyRot = aimYaw;
+                this.yHeadRot = aimYaw;
+                entityData.set(DATA_LEAP_SX, (float) leapStart.x);
+                entityData.set(DATA_LEAP_SY, (float) leapStart.y);
+                entityData.set(DATA_LEAP_SZ, (float) leapStart.z);
+                entityData.set(DATA_LEAP_TX, (float) leapTarget.x);
+                entityData.set(DATA_LEAP_TY, (float) leapTarget.y);
+                entityData.set(DATA_LEAP_TZ, (float) leapTarget.z);
+                playAnim(ANIM_BOOST_LEAP);
+                setCooldown(40);
                 yield true;
             }
             case SKILL_MISSILES -> {
@@ -367,6 +402,12 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
             default -> false;
         };
+    }
+
+    private void playMechSfx(ServerLevel sl, @Nullable SoundEvent sfx, double y, float volume, float pitch) {
+        if (sfx != null) {
+            sl.playSound(null, getX(), y, getZ(), sfx, SoundSource.PLAYERS, volume, pitch);
+        }
     }
 
     private void consumeEnergy(float amt) {
@@ -487,6 +528,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             if (t == 3) {
                 // Phase 1: Hydraulic kneel depressurization hiss + white steam vent
                 sl.playSound(null, bx, by, bz, SoundEvents.PISTON_EXTEND, SoundSource.PLAYERS, 1.2F, 0.52F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), by, 0.85F, 0.90F);
                 sl.sendParticles(ParticleTypes.CLOUD, bx, by, bz, 12, 0.45D, 0.25D, 0.45D, 0.05D);
             } else if (t == 13) {
                 // Phase 2: Armored shrouds split + rear reactor hatch unlatches
@@ -507,6 +549,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             } else if (t == 46) {
                 // Phase 4: Rear hatch slams shut + pressure seal steam puff
                 sl.playSound(null, bx, by, bz, SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 1.35F, 0.50F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), by, 1.05F, 0.84F);
                 sl.playSound(null, bx, by, bz, SoundEvents.PISTON_CONTRACT, SoundSource.PLAYERS, 1.1F, 0.58F);
                 sl.sendParticles(ParticleTypes.CLOUD, bx, by, bz, 10, 0.40D, 0.20D, 0.40D, 0.04D);
             }
@@ -578,11 +621,20 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                         playAnim(ANIM_WALK);
                         anim = ANIM_WALK;
                     }
-                    if (serverAnimTick % 24 == 2) {
-                        sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 0.35F, 0.54F);
+                    if (serverAnimTick % 24 == 1) {
+                        playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 1.7D, 0.62F, 0.92F);
+                        playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.4D, 0.55F, 0.86F);
                     } else if (serverAnimTick % 24 == 12) {
-                        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, movedSq > 0.00018D ? 1.40F : 0.90F, 0.45F);
-                        sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.12D, getZ(), movedSq > 0.00018D ? 9 : 4, 0.75D, 0.06D, 0.75D, 0.025D);
+                        boolean stepping = movedSq > 0.00018D;
+                        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, stepping ? 1.45F : 0.95F, 0.44F);
+                        playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.3D, stepping ? 0.85F : 0.52F, 0.85F);
+                        if (stepping) {
+                            playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.6D, 0.48F, 0.95F);
+                        }
+                        sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.12D, getZ(), stepping ? 10 : 4, 0.75D, 0.06D, 0.75D, 0.025D);
+                        if (stepping) {
+                            sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.18D, getZ(), 6, 0.55D, 0.08D, 0.55D, 0.06D);
+                        }
                     }
                 } else if (anim == ANIM_WALK) {
                     playAnim(ANIM_IDLE);
@@ -618,41 +670,61 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             walkGraceTicks = 0;
         }
 
-        // Execute all 6 Ruin Guard Boss Combat Skills
+        // Execute all 6 Ruin Guard Boss Combat Skills + Space Mobility Long Jump
         if (anim == ANIM_DOUBLE_CLAP) {
-            if (t == 23) {
+            if (t == 4) {
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 2.0D, 0.85F, 0.95F);
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 2.0D, 0.72F, 0.88F);
+            } else if (t == 23) {
                 dealFrontAoE(sl, 5.8D, 30.0F, 1.35D);
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.4F, 0.55F);
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.2F, 0.78F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.8D, 1.15F, 0.80F);
                 sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 1.6D, getZ(), 2, 1.2D, 0.5D, 1.2D, 0.01D);
+                sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.8D, getZ(), 14, 1.1D, 0.6D, 1.1D, 0.14D);
             }
             if (t >= 44) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_MELEE_3HIT) {
             // Authentic Genshin 3-Hit Combo: Hit 1 (t=24), Hit 2 (t=58), Hit 3 Finisher Slam (t=98)
+            if (t == 6 || t == 42 || t == 78) {
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 2.0D, 0.82F, t == 78 ? 0.82F : 1.02F);
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.8D, 0.68F, 0.85F);
+            }
             if (t == 24) {
                 dealFrontAoE(sl, 5.2D, 22.0F, 0.95D);
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.PLAYERS, 1.4F, 0.65F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.8D, 0.90F, 0.95F);
                 sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.8D, getZ(), 3, 1.4D, 0.4D, 1.4D, 0.01D);
             } else if (t == 58) {
                 dealFrontAoE(sl, 5.4D, 26.0F, 1.15D);
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.PLAYERS, 1.5F, 0.55F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.8D, 1.00F, 0.85F);
                 sl.sendParticles(ParticleTypes.SWEEP_ATTACK, getX(), getY() + 1.8D, getZ(), 4, 1.5D, 0.4D, 1.5D, 0.01D);
             } else if (t == 98) {
                 dealFrontAoE(sl, 6.4D, 38.0F, 1.55D);
                 sl.playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.6F, 0.60F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 1.0D, 1.20F, 0.72F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 1.0D, 0.95F, 0.85F);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1.0D, getZ(), 1, 0.6D, 0.2D, 0.6D, 0.01D);
             }
             if (t >= 128) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_STOMP) {
-            if (t == 20) {
+            if (t == 5) {
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.3D, 0.80F, 0.82F);
+            } else if (t == 20) {
                 dealRadialAoE(sl, 5.8D, 26.0F, 1.20D, 0.54D);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.4F, 0.65F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.3D, 1.10F, 0.76F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.5D, 0.88F, 0.88F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.3D, getZ(), 28, 2.3D, 0.2D, 2.3D, 0.08D);
+                sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.3D, getZ(), 16, 1.8D, 0.25D, 1.8D, 0.12D);
             }
             if (t >= 38) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_CYCLONE_WINDUP) {
             if (t == 1) {
                 sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.PISTON_EXTEND, SoundSource.PLAYERS, 1.4F, 0.55F);
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 2.0D, 1.05F, 1.12F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 2.0D, 0.90F, 0.95F);
             }
             if (t >= 28) playAnim(ANIM_CYCLONE_ACTIVE);
         } else if (anim == ANIM_CYCLONE_ACTIVE) {
@@ -660,15 +732,25 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             if (t % 10 == 0) {
                 dealRadialAoE(sl, 5.2D, 14.0F, 0.95D, 0.32D);
                 sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.4F, 0.55F);
+                if (t % 20 == 0) {
+                    playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 1.8D, 0.85F, 1.25F);
+                }
                 sl.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 1.2D, getZ(), 14, 2.2D, 0.5D, 2.2D, 0.09D);
             }
             if (t >= 80) playAnim(ANIM_CYCLONE_RECOVER);
         } else if (anim == ANIM_CYCLONE_RECOVER) {
-            if (t == 20) {
+            if (t == 8) {
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 1.8D, 0.80F, 0.85F);
+            } else if (t == 20) {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.3F, 0.48F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.5D, 0.95F, 0.82F);
             }
             if (t >= 44) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_MISSILE_SALVO) {
+            if (t == 2) {
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 2.8D, 0.95F, 1.05F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 2.8D, 0.78F, 1.08F);
+            }
             if (t >= 16 && t < 34 && (t - 16) % 3 == 0) {
                 int idx = (t - 16) / 3;
                 Entity lockedEnt = getLockedTargetId() != -1 ? sl.getEntity(getLockedTargetId()) : null;
@@ -685,22 +767,74 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
             if (t >= 54) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_LEAP_SLAM) {
-            if (t >= 10 && t <= 28) {
-                float f = (t - 10) / 18.0F;
+            // Exact sync with leap_slam clip (3.90s = 78 ticks): crouch 0..16, airborne 17..35, GORILLA SLAM @ tick 36 (1.80s), recover 53..78
+            if (t == 8) {
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.4D, 0.90F, 0.78F);
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 1.6D, 0.85F, 0.86F);
+            } else if (t >= 17 && t <= 35) {
+                if (t == 17) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.65F, 0.46F);
+                    playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.5D, 1.10F, 0.88F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 16, 0.9D, 0.1D, 0.9D, 0.05D);
+                }
+                float f = (t - 17) / 18.0F;
                 float sf = f * f * (3.0F - 2.0F * f);
+                double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
+                double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 5.0D;
                 double nx = Mth.lerp(sf, leapStart.x, leapTarget.x);
                 double nz = Mth.lerp(sf, leapStart.z, leapTarget.z);
-                double apex = Math.max(leapStart.y, leapTarget.y) + 4.6D;
-                double baseLine = Mth.lerp(f, leapStart.y, leapTarget.y);
-                double ny = baseLine + Math.sin(f * Math.PI) * Math.max(4.4D, apex - baseLine);
+                double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
                 setPos(nx, ny, nz);
-            } else if (t == 29) {
+                this.fallDistance = 0.0F;
+            } else if (t == 36) {
                 setPos(leapTarget.x, leapTarget.y, leapTarget.z);
+                setOnGround(true);
+                this.fallDistance = 0.0F;
                 dealRadialAoE(sl, 7.0D, 40.0F, 1.60D, 0.72D);
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.8F, 0.55F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.85F, 0.52F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.35F, 0.46F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.4D, 1.30F, 0.72F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.6D, 1.05F, 0.82F);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 0.5D, getZ(), 1, 0.6D, 0.2D, 0.6D, 0.01D);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.25D, getZ(), 32, 2.8D, 0.2D, 2.8D, 0.09D);
+                sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.35D, getZ(), 22, 2.2D, 0.3D, 2.2D, 0.16D);
+            } else if (t == 53) {
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.5D, 0.85F, 0.84F);
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 1.8D, 0.78F, 0.90F);
             }
-            if (t >= 52) playAnim(ANIM_IDLE);
+            if (t >= 78) playAnim(ANIM_IDLE);
+        } else if (anim == ANIM_BOOST_LEAP) {
+            // Space bar non-combat Mobility Long Jump (38 ticks = 1.90s): coil 0..5, flight 6..22, heavy landing @ 23 (zero damage), recover 24..38
+            if (t == 2) {
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 1.4D, 0.75F, 1.08F);
+            } else if (t >= 6 && t <= 22) {
+                if (t == 6) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.35F, 0.52F);
+                    playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.5D, 1.05F, 1.05F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 14, 0.8D, 0.1D, 0.8D, 0.05D);
+                    sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 0.3D, getZ(), 10, 0.5D, 0.15D, 0.5D, 0.06D);
+                }
+                float f = (t - 6) / 16.0F;
+                float sf = f * f * (3.0F - 2.0F * f);
+                double arcY = Math.sin(f * Math.PI) * 4.2D;
+                double nx = Mth.lerp(sf, leapStart.x, leapTarget.x);
+                double nz = Mth.lerp(sf, leapStart.z, leapTarget.z);
+                double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
+                setPos(nx, ny, nz);
+                this.fallDistance = 0.0F;
+            } else if (t == 23) {
+                setPos(leapTarget.x, leapTarget.y, leapTarget.z);
+                setOnGround(true);
+                this.fallDistance = 0.0F;
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, 1.55F, 0.44F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 0.3D, 1.05F, 0.80F);
+                playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 0.6D, 0.90F, 0.90F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.18D, getZ(), 20, 1.6D, 0.15D, 1.6D, 0.06D);
+                sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.22D, getZ(), 10, 1.1D, 0.2D, 1.1D, 0.10D);
+            } else if (t == 30) {
+                playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 1.4D, 0.65F, 0.92F);
+            }
+            if (t >= 38) playAnim(ANIM_IDLE);
         }
     }
 
@@ -708,7 +842,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public void travel(Vec3 travelVector) {
         int anim = getAnimId();
         // Controlling client must execute the exact same parabolic leap arc so vehicle position sync never rubber-bands!
-        if (anim == ANIM_LEAP_SLAM && level().isClientSide() && isVehicle()) {
+        if ((anim == ANIM_LEAP_SLAM || anim == ANIM_BOOST_LEAP) && level().isClientSide() && isVehicle()) {
             int t = getAnimTick();
             double sx = entityData.get(DATA_LEAP_SX);
             double sy = entityData.get(DATA_LEAP_SY);
@@ -716,21 +850,33 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             double tx = entityData.get(DATA_LEAP_TX);
             double ty = entityData.get(DATA_LEAP_TY);
             double tz = entityData.get(DATA_LEAP_TZ);
-            if (t >= 10 && t <= 28) {
-                float f = (t - 10) / 18.0F;
-                float sf = f * f * (3.0F - 2.0F * f);
-                double nx = Mth.lerp(sf, sx, tx);
-                double nz = Mth.lerp(sf, sz, tz);
-                double apex = Math.max(sy, ty) + 4.6D;
-                double baseLine = Mth.lerp(f, sy, ty);
-                double ny = baseLine + Math.sin(f * Math.PI) * Math.max(4.4D, apex - baseLine);
-                setPos(nx, ny, nz);
-                setDeltaMovement(Vec3.ZERO);
-                return;
-            } else if (t == 29) {
-                setPos(tx, ty, tz);
-                setDeltaMovement(Vec3.ZERO);
-                return;
+            if (anim == ANIM_LEAP_SLAM) {
+                if (t >= 17 && t <= 35) {
+                    float f = (t - 17) / 18.0F;
+                    float sf = f * f * (3.0F - 2.0F * f);
+                    double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
+                    double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 5.0D;
+                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                } else if (t == 36) {
+                    setPos(tx, ty, tz);
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                }
+            } else {
+                if (t >= 6 && t <= 22) {
+                    float f = (t - 6) / 16.0F;
+                    float sf = f * f * (3.0F - 2.0F * f);
+                    double arcY = Math.sin(f * Math.PI) * 4.2D;
+                    setPos(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                } else if (t == 23) {
+                    setPos(tx, ty, tz);
+                    setDeltaMovement(Vec3.ZERO);
+                    return;
+                }
             }
         }
         boolean canMove = (anim == ANIM_IDLE || anim == ANIM_WALK || anim == ANIM_CYCLONE_ACTIVE);
@@ -788,18 +934,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 } else if (!activeWalk && anim == ANIM_WALK) {
                     playAnim(ANIM_IDLE);
                 }
-                if (activeWalk && anim == ANIM_WALK) {
-                    if (serverAnimTick % 24 == 2) {
-                        // Subtle hydraulic joint creak on leg lift
-                        level().playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 0.38F, 0.54F);
-                    } else if (serverAnimTick % 24 == 12) {
-                        // Heavy metallic stomp on footplant
-                        level().playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.PLAYERS, wantsMove ? 1.40F : 0.90F, 0.45F);
-                        if (level() instanceof ServerLevel sl) {
-                            sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.12D, getZ(), wantsMove ? 9 : 4, 0.75D, 0.06D, 0.75D, 0.025D);
-                        }
-                    }
-                }
+
             }
             return;
         }
@@ -817,8 +952,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             double tz = getZ() + fwd.z * dist;
             int bx = Mth.floor(tx);
             int bz = Mth.floor(tz);
-            int startY = Mth.floor(getY()) + 6;
-            int minY = Math.max(level().getMinBuildHeight() + 2, Mth.floor(getY()) - 12);
+            int startY = Mth.floor(getY()) + 7;
+            int minY = Math.max(level().getMinBuildHeight() + 2, Mth.floor(getY()) - 14);
             for (int y = startY; y >= minY; y--) {
                 BlockPos floorPos = new BlockPos(bx, y - 1, bz);
                 BlockPos feetPos = new BlockPos(bx, y, bz);

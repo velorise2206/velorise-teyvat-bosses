@@ -12,11 +12,12 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 
 /**
  * Renders RuinMissileProjectile as a sleek 3D bronze-iron mechanical warhead with a
- * glowing amber thruster flare.
+ * glowing amber thruster flare aligned straight along its velocity vector.
  */
 public class RuinMissileRenderer extends EntityRenderer<RuinMissileProjectile> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/ruin_guard_missile.png");
@@ -27,9 +28,14 @@ public class RuinMissileRenderer extends EntityRenderer<RuinMissileProjectile> {
 
     @Override
     public void render(RuinMissileProjectile entity, float yaw, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+        float interpYaw = Mth.rotLerp(partialTicks, entity.yRotO, entity.getYRot());
+        float interpPitch = Mth.lerp(partialTicks, entity.xRotO, entity.getXRot());
+
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - entity.getYRot()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(entity.getXRot()));
+        // Warhead nose is along local -Z; rotating by (180 - yaw) aligns -Z with world forward (-sin(yaw), cos(yaw)),
+        // and rotating by -pitch pitches local -Z UP when climbing (xRot < 0) and DOWN when diving (xRot > 0).
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - interpYaw));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-interpPitch));
 
         // Textured warhead body
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));

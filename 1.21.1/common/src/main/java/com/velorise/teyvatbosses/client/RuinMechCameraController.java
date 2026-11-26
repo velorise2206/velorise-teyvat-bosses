@@ -11,9 +11,9 @@ import net.minecraft.util.Mth;
  * <ul>
  *   <li>Extends 3rd-person camera distance to {@link #THIRD_PERSON_ZOOM} blocks.</li>
  *   <li>Smooth Titanfall-style Embark camera glide + visor-clamp thump during {@code ANIM_ENTER_COCKPIT}.</li>
- *   <li>Heavy 48-tick step bobbing & alternating roll sway synced to {@code walk_combat}.</li>
+ *   <li>Heavy 48-tick step bobbing & rigid mechanical roll sway synced to {@code walk_combat}.</li>
  *   <li>Tactical radar lock-on beep when acquiring targets or charging {@code R+} missiles.</li>
- *   <li>Impact camera shake on all 6 combat skills and incoming damage.</li>
+ *   <li>Impact camera shake synced accurately to all 6 combat skills, mobility leap, and incoming damage.</li>
  * </ul>
  */
 public final class RuinMechCameraController {
@@ -88,7 +88,7 @@ public final class RuinMechCameraController {
             lastTriggeredTick = tick;
 
             if (anim == RuinMechEntity.ANIM_WALK && tick % 24 == 12) {
-                addTrauma(0.26F);
+                addTrauma(0.32F);
             } else if (anim == RuinMechEntity.ANIM_DOUBLE_CLAP && tick == 23) {
                 addTrauma(0.75F);
             } else if (anim == RuinMechEntity.ANIM_MELEE_3HIT) {
@@ -99,8 +99,12 @@ public final class RuinMechCameraController {
                 addTrauma(0.80F);
             } else if (anim == RuinMechEntity.ANIM_CYCLONE_ACTIVE && tick % 10 == 0) {
                 addTrauma(0.38F);
-            } else if (anim == RuinMechEntity.ANIM_LEAP_SLAM && tick == 29) {
-                addTrauma(1.00F);
+            } else if (anim == RuinMechEntity.ANIM_LEAP_SLAM) {
+                if (tick == 17) addTrauma(0.35F);
+                else if (tick == 36) addTrauma(1.00F);
+            } else if (anim == RuinMechEntity.ANIM_BOOST_LEAP) {
+                if (tick == 6) addTrauma(0.28F);
+                else if (tick == 23) addTrauma(0.55F);
             } else if (anim == RuinMechEntity.ANIM_MISSILE_SALVO && tick >= 16 && tick < 34 && (tick - 16) % 3 == 0) {
                 addTrauma(0.32F);
             } else if (anim == RuinMechEntity.ANIM_ENTER_COCKPIT && tick == 13) {
@@ -130,8 +134,9 @@ public final class RuinMechCameraController {
         if (anim == RuinMechEntity.ANIM_WALK) {
             float cycle = (animT % 48.0F) / 48.0F;
             float angle = cycle * Mth.TWO_PI;
+            // Tight, heavy mechanical stomp bobbing (no soft swaying)
             pitchOff += Mth.sin(angle * 2.0F - 0.6F) * 1.15F;
-            rollOff  += Mth.sin(angle) * 1.65F;
+            rollOff  += Mth.sin(angle) * 0.95F;
         } else if (anim == RuinMechEntity.ANIM_ENTER_COCKPIT) {
             // Smooth Titanfall-style embark pitch sweep into seated cockpit posture
             float p = Mth.clamp(animT / 26.0F, 0.0F, 1.0F);

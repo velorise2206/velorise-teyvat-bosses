@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
+import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -206,6 +207,15 @@ public class RuinGuardEntity extends Monster {
 
     @Override
     public boolean isPushable() { return false; }
+
+    @Override
+    public void push(Entity entity) {}
+
+    @Override
+    protected void doPush(Entity entity) {}
+
+    @Override
+    public void push(double x, double y, double z) {}
 
     @Override
     public void knockback(double strength, double x, double z) {}
@@ -582,9 +592,19 @@ public class RuinGuardEntity extends Monster {
                 } else {
                     setDeltaMovement(cur.x * 0.32D, cur.y, cur.z * 0.32D);
                 }
-                if (stateTick % 24 == 12) {
-                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.35F : 0.85F, 0.52F);
-                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 6 : 2, 0.45D, 0.04D, 0.45D, 0.015D);
+                if (stateTick % 24 == 1) {
+                    net.minecraft.sounds.SoundEvent whir = TeyvatBossesSounds.mechServoWhir();
+                    if (whir != null) sl.playSound(null, getX(), getY() + 1.6D, getZ(), whir, SoundSource.HOSTILE, 0.58F, 0.88F);
+                    net.minecraft.sounds.SoundEvent creak = TeyvatBossesSounds.mechJointCreak();
+                    if (creak != null) sl.playSound(null, getX(), getY() + 1.4D, getZ(), creak, SoundSource.HOSTILE, 0.52F, 0.84F);
+                } else if (stateTick % 24 == 12) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, shouldWalk ? 1.40F : 0.90F, 0.48F);
+                    net.minecraft.sounds.SoundEvent clank = TeyvatBossesSounds.mechMetalClank();
+                    if (clank != null) sl.playSound(null, getX(), getY() + 0.3D, getZ(), clank, SoundSource.HOSTILE, shouldWalk ? 0.78F : 0.45F, 0.86F);
+                    net.minecraft.sounds.SoundEvent hiss = TeyvatBossesSounds.mechHydraulicHiss();
+                    if (hiss != null && shouldWalk) sl.playSound(null, getX(), getY() + 0.6D, getZ(), hiss, SoundSource.HOSTILE, 0.45F, 0.92F);
+                    sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), shouldWalk ? 8 : 3, 0.55D, 0.05D, 0.55D, 0.02D);
+                    if (shouldWalk) sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.15D, getZ(), 5, 0.45D, 0.08D, 0.45D, 0.06D);
                 }
             } else {
                 if (anim != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
@@ -937,6 +957,10 @@ public class RuinGuardEntity extends Monster {
             setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
             if (stateTick == 8) {
                 sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.54F);
+                net.minecraft.sounds.SoundEvent creak = TeyvatBossesSounds.mechJointCreak();
+                if (creak != null) sl.playSound(null, getX(), getY() + 1.4D, getZ(), creak, SoundSource.HOSTILE, 0.85F, 0.78F);
+                net.minecraft.sounds.SoundEvent whir = TeyvatBossesSounds.mechServoWhir();
+                if (whir != null) sl.playSound(null, getX(), getY() + 1.6D, getZ(), whir, SoundSource.HOSTILE, 0.80F, 0.85F);
             }
             if (stateTick < 13) {
                 Vec3 clamped = clampTargetToArena(new Vec3(target.getX(), target.getY(), target.getZ()));
@@ -948,6 +972,8 @@ public class RuinGuardEntity extends Monster {
         } else if (stateTick >= 17 && stateTick <= 35) {
             if (stateTick == 17) {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.65F, 0.46F);
+                net.minecraft.sounds.SoundEvent hiss = TeyvatBossesSounds.mechHydraulicHiss();
+                if (hiss != null) sl.playSound(null, getX(), getY() + 0.5D, getZ(), hiss, SoundSource.HOSTILE, 1.05F, 0.85F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 16, 0.9D, 0.1D, 0.9D, 0.05D);
             }
             float f = (stateTick - 17) / 18.0F;

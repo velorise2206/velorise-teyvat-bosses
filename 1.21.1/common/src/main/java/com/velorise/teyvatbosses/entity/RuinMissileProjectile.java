@@ -55,7 +55,7 @@ public class RuinMissileProjectile extends Entity {
         m.ownerUuid = owner != null ? owner.getUUID() : null;
         m.targetUuid = target != null ? target.getUUID() : null;
         m.damage = damage;
-        m.updateRotationFromVelocity(initialVel);
+        m.updateRotationFromVelocity(initialVel, true);
         level.addFreshEntity(m);
         level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 0.9F, 0.85F);
         return m;
@@ -64,14 +64,24 @@ public class RuinMissileProjectile extends Entity {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {}
 
-    private void updateRotationFromVelocity(Vec3 vel) {
+    private void updateRotationFromVelocity(Vec3 vel, boolean snapOld) {
+        if (vel.lengthSqr() < 1e-6D) return;
         double horiz = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
-        setYRot((float) (Math.atan2(-vel.x, vel.z) * (180.0D / Math.PI)));
-        setXRot((float) (Math.atan2(-vel.y, horiz) * (180.0D / Math.PI)));
+        float newYaw = (float) (Math.atan2(-vel.x, vel.z) * (180.0D / Math.PI));
+        float newPitch = (float) (Math.atan2(-vel.y, horiz) * (180.0D / Math.PI));
+        if (snapOld) {
+            this.yRotO = newYaw;
+            this.xRotO = newPitch;
+        }
+        setYRot(newYaw);
+        setXRot(newPitch);
     }
 
     @Override
     public void tick() {
+        double prevX = getX();
+        double prevY = getY();
+        double prevZ = getZ();
         super.tick();
         Vec3 vel = getDeltaMovement();
 
@@ -113,10 +123,18 @@ public class RuinMissileProjectile extends Entity {
         }
 
         setPos(getX() + vel.x, getY() + vel.y, getZ() + vel.z);
-        updateRotationFromVelocity(vel);
+
+        // On client, orient along actual world displacement so server position sync & homing curves always align nose-first
+        Vec3 flightVec = level().isClientSide()
+                ? new Vec3(getX() - prevX, getY() - prevY, getZ() - prevZ)
+                : vel;
+        if (flightVec.lengthSqr() < 1e-6D) {
+            flightVec = vel;
+        }
+        updateRotationFromVelocity(flightVec, tickCount <= 1);
 
         if (level().isClientSide()) {
-            level().addParticle(ParticleTypes.FLAME, getX(), getY(), getZ(), -vel.x * 0.15D, -vel.y * 0.15D, -vel.z * 0.15D);
+            level().addParticle(ParticleTypes.FLAME, getX(), getY(), getZ(), -flightVec.x * 0.15D, -flightVec.y * 0.15D, -flightVec.z * 0.15D);
             level().addParticle(ParticleTypes.SMOKE, getX(), getY(), getZ(), 0.0D, 0.02D, 0.0D);
             return;
         }
@@ -162,7 +180,6 @@ public class RuinMissileProjectile extends Entity {
             e.hurtMarked = true;
         }
     }
-
 
     private boolean isFriendlyToOwner(LivingEntity candidate, LivingEntity owner) {
         if (owner != null) {

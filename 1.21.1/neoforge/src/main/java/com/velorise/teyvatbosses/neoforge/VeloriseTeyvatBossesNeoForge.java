@@ -228,6 +228,14 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("sfx.mech_lockon_beep", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_lockon_beep")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_VISOR_SEAL =
             SOUNDS.register("sfx.mech_visor_seal", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_visor_seal")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_SERVO_WHIR =
+            SOUNDS.register("sfx.mech_servo_whir", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_servo_whir")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_JOINT_CREAK =
+            SOUNDS.register("sfx.mech_joint_creak", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_joint_creak")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_METAL_CLANK =
+            SOUNDS.register("sfx.mech_metal_clank", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_metal_clank")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_HYDRAULIC_HISS =
+            SOUNDS.register("sfx.mech_hydraulic_hiss", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("sfx.mech_hydraulic_hiss")));
 
     public static final DeferredHolder<Item, Item> MUSIC_DISC_CRYO_REGISVINE =
             ITEMS.register("music_disc_cryo_regisvine", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
@@ -279,7 +287,10 @@ public class VeloriseTeyvatBossesNeoForge {
         TABS.register(modEventBus);
         STRUCTURE_TYPES.register(modEventBus);
         TeyvatBossesStructures.bind(FLAT_ARENA);
-        TeyvatBossesSounds.bind(SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL);
+        TeyvatBossesSounds.bind(
+                SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL,
+                SOUND_MECH_SERVO_WHIR, SOUND_MECH_JOINT_CREAK, SOUND_MECH_METAL_CLANK, SOUND_MECH_HYDRAULIC_HISS
+        );
 
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,

@@ -51,5 +51,33 @@
         "name": "velorise_teyvat_bosses:sfx/mech_visor_seal"
       }
     ]
+  },
+  "sfx.mech_servo_whir": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_servo_whir"
+      }
+    ]
+  },
+  "sfx.mech_joint_creak": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_joint_creak"
+      }
+    ]
+  },
+  "sfx.mech_metal_clank": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_metal_clank"
+      }
+    ]
+  },
+  "sfx.mech_hydraulic_hiss": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:sfx/mech_hydraulic_hiss"
+      }
+    ]
   }
 }
