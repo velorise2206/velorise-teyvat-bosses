@@ -14,6 +14,7 @@ import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.ElementalStarRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
+import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
@@ -68,6 +69,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MISSILE.get(), RuinMissileRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.ASTRALION.get(), AstralionRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.RUIN_MECH.get(), RuinMechRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.CRYO_TURRET.get(), CryoTurretRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }

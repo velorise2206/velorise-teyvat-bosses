@@ -15,7 +15,10 @@ import com.velorise.teyvatbosses.client.RuinGuardRenderer;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechCockpitHud;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
+import com.velorise.teyvatbosses.client.AnemoJetpackController;
+import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.RuinMechRenderer;
+import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -65,12 +68,14 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MISSILE, RuinMissileRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.ASTRALION, AstralionRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.RUIN_MECH, RuinMechRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_TURRET, CryoTurretRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             RuinMechCameraController.clientTick();
             RuinMechInputController.tickAndDispatch(skillId -> ClientPlayNetworking.send(new RuinMechSkillPayload(skillId)));
+            AnemoJetpackController.clientTick(boosting -> ClientPlayNetworking.send(new AnemoJetpackPayload(boosting)));
         });
         HudRenderCallback.EVENT.register((gui, deltaTracker) ->
                 RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false)));

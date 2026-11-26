@@ -11,6 +11,7 @@ import com.velorise.teyvatbosses.entity.CryoIcicleProjectile;
 import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.ElementalStarEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
+import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.entity.RuinMissileProjectile;
 import com.velorise.teyvatbosses.entity.SkySpearEntity;
@@ -44,6 +45,7 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<RuinMissileProjectile>> ruinMissile;
     private static Supplier<EntityType<AstralionEntity>> astralion;
     private static Supplier<EntityType<RuinMechEntity>> ruinMech;
+    private static Supplier<EntityType<CryoTurretEntity>> cryoTurret;
 
     private TeyvatBossesEntities() {}
 
@@ -64,7 +66,8 @@ public final class TeyvatBossesEntities {
             Supplier<EntityType<RuinGuardEntity>> ruinGuardSupplier,
             Supplier<EntityType<RuinMissileProjectile>> ruinMissileSupplier,
             Supplier<EntityType<AstralionEntity>> astralionSupplier,
-            Supplier<EntityType<RuinMechEntity>> ruinMechSupplier
+            Supplier<EntityType<RuinMechEntity>> ruinMechSupplier,
+            Supplier<EntityType<CryoTurretEntity>> cryoTurretSupplier
     ) {
         cryoRegisvine = cryoRegisvineSupplier;
         cryoIcicle = cryoIcicleSupplier;
@@ -83,6 +86,7 @@ public final class TeyvatBossesEntities {
         ruinMissile = ruinMissileSupplier;
         astralion = astralionSupplier;
         ruinMech = ruinMechSupplier;
+        cryoTurret = cryoTurretSupplier;
     }
 
     public static EntityType<CryoRegisvineEntity> cryoRegisvine() { return cryoRegisvine.get(); }
@@ -102,4 +106,5 @@ public final class TeyvatBossesEntities {
     public static EntityType<RuinMissileProjectile> ruinMissile() { return ruinMissile.get(); }
     public static EntityType<AstralionEntity> astralion() { return astralion.get(); }
     public static EntityType<RuinMechEntity> ruinMech() { return ruinMech.get(); }
+    public static EntityType<CryoTurretEntity> cryoTurret() { return cryoTurret.get(); }
 }

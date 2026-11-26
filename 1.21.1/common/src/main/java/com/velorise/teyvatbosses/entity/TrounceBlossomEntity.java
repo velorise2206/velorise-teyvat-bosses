@@ -111,6 +111,7 @@ public class TrounceBlossomEntity extends Entity {
         }
         if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
             if (TeyvatBossesItems.anemoDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.anemoDisc()));
+            if (TeyvatBossesItems.anemoPrismCube() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.anemoPrismCube()));
             dropReward(sl, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
             dropReward(sl, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
             dropReward(sl, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
@@ -131,6 +132,8 @@ public class TrounceBlossomEntity extends Entity {
             dropReward(sl, new ItemStack(Items.BLAZE_ROD, 4 + random.nextInt(4)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
             if (TeyvatBossesItems.cryoDisc() != null) dropReward(sl, new ItemStack(TeyvatBossesItems.cryoDisc()));
+            net.minecraft.world.item.Item cryoPart = TeyvatBossesItems.randomCryoTurretPart(random);
+            if (cryoPart != null) dropReward(sl, new ItemStack(cryoPart));
             dropReward(sl, new ItemStack(Items.BLUE_ICE, 16));
             dropReward(sl, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
         } else {

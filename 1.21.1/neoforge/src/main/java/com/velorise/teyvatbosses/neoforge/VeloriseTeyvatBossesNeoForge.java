@@ -20,7 +20,11 @@ import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.entity.CryoTurretEntity;
+import com.velorise.teyvatbosses.item.AnemoJetpackItem;
+import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
@@ -150,6 +154,9 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<EntityType<?>, EntityType<RuinMechEntity>> RUIN_MECH =
             ENTITIES.register("ruin_mech", () -> EntityType.Builder.of(RuinMechEntity::new, MobCategory.MISC)
                     .sized(2.4F, 4.0F).clientTrackingRange(14).build("ruin_mech"));
+    public static final DeferredHolder<EntityType<?>, EntityType<CryoTurretEntity>> CRYO_TURRET =
+            ENTITIES.register("cryo_turret", () -> EntityType.Builder.of(CryoTurretEntity::new, MobCategory.MISC)
+                    .sized(2.6F, 5.6F).clientTrackingRange(12).build("cryo_turret"));
 
     // 3D Miniature Boss Trophy Blocks
     public static final DeferredHolder<Block, BossTrophyBlock> CRYO_REGISVINE_TROPHY =
@@ -193,6 +200,16 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("ruin_mech_left_leg", () -> new RuinMechPartItem(RuinMechEntity.PART_LEFT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> RUIN_MECH_RIGHT_LEG =
             ITEMS.register("ruin_mech_right_leg", () -> new RuinMechPartItem(RuinMechEntity.PART_RIGHT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> CRYO_TURRET_ROOT =
+            ITEMS.register("cryo_turret_root", () -> new CryoTurretPartItem(CryoTurretEntity.PART_ROOT, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> CRYO_TURRET_STEM =
+            ITEMS.register("cryo_turret_stem", () -> new CryoTurretPartItem(CryoTurretEntity.PART_STEM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> CRYO_TURRET_COROLLA =
+            ITEMS.register("cryo_turret_corolla", () -> new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> ANEMO_PRISM_CUBE =
+            ITEMS.register("anemo_prism_cube", () -> new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> ANEMO_JETPACK =
+            ITEMS.register("anemo_jetpack", () -> new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
 
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_SPAWN_EGG =
             ITEMS.register("cryo_regisvine_spawn_egg", () -> new DeferredSpawnEggItem(
@@ -275,6 +292,11 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(RUIN_MECH_RIGHT_ARM.get());
                         output.accept(RUIN_MECH_LEFT_LEG.get());
                         output.accept(RUIN_MECH_RIGHT_LEG.get());
+                            output.accept(CRYO_TURRET_ROOT.get());
+                            output.accept(CRYO_TURRET_STEM.get());
+                            output.accept(CRYO_TURRET_COROLLA.get());
+                            output.accept(ANEMO_PRISM_CUBE.get());
+                            output.accept(ANEMO_JETPACK.get());
                         output.accept(MUSIC_DISC_CRYO_REGISVINE.get());
                         output.accept(MUSIC_DISC_THE_OPEN_EYED.get());
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS.get());
@@ -301,7 +323,7 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesEntities.bind(
                 CRYO_REGISVINE, CRYO_ICICLE, CRYO_ICE_SPIKE, THE_OPEN_EYED, ELEMENTAL_STAR, SKY_SPEAR, BOSS_RESPAWN_ANCHOR,
                 ANEMO_HYPOSTASIS, ANEMO_WIND_ORB, ANEMO_TORNADO, ANEMO_MISSILE, WIND_CURRENT, TROUNCE_BLOSSOM,
-                RUIN_GUARD, RUIN_MISSILE, ASTRALION, RUIN_MECH
+                RUIN_GUARD, RUIN_MISSILE, ASTRALION, RUIN_MECH, CRYO_TURRET
         );
 
         TeyvatBossesBlocks.bind(
@@ -311,13 +333,19 @@ public class VeloriseTeyvatBossesNeoForge {
 
         TeyvatBossesItems.bind(
                 MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_THE_OPEN_EYED, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD, MUSIC_DISC_ASTRALION,
-                RUIN_MECH_CORE, RUIN_MECH_LEFT_ARM, RUIN_MECH_RIGHT_ARM, RUIN_MECH_LEFT_LEG, RUIN_MECH_RIGHT_LEG
+                RUIN_MECH_CORE, RUIN_MECH_LEFT_ARM, RUIN_MECH_RIGHT_ARM, RUIN_MECH_LEFT_LEG, RUIN_MECH_RIGHT_LEG,
+                CRYO_TURRET_ROOT, CRYO_TURRET_STEM, CRYO_TURRET_COROLLA, ANEMO_PRISM_CUBE, ANEMO_JETPACK
         );
         modEventBus.addListener(this::registerAttributes);
         modEventBus.addListener(this::registerPayloads);
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playToServer(
+                AnemoJetpackPayload.TYPE,
+                AnemoJetpackPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> AnemoJetpackItem.setBoosting(ctx.player().getUUID(), payload.boosting()))
+        );
         event.registrar("1").playToServer(
                 RuinMechSkillPayload.TYPE,
                 RuinMechSkillPayload.STREAM_CODEC,
@@ -337,5 +365,6 @@ public class VeloriseTeyvatBossesNeoForge {
         event.put(RUIN_GUARD.get(), RuinGuardEntity.createAttributes().build());
         event.put(ASTRALION.get(), AstralionEntity.createAttributes().build());
         event.put(RUIN_MECH.get(), RuinMechEntity.createAttributes().build());
+        event.put(CRYO_TURRET.get(), CryoTurretEntity.createAttributes().build());
     }
 }

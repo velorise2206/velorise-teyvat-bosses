@@ -20,7 +20,11 @@ import com.velorise.teyvatbosses.entity.SkySpearEntity;
 import com.velorise.teyvatbosses.entity.TheOpenEyedEntity;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.entity.CryoTurretEntity;
+import com.velorise.teyvatbosses.item.AnemoJetpackItem;
+import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -131,6 +135,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<RuinMechEntity> RUIN_MECH = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("ruin_mech"),
             EntityType.Builder.of(RuinMechEntity::new, MobCategory.MISC).sized(2.4F, 4.0F).clientTrackingRange(14).build());
+    public static final EntityType<CryoTurretEntity> CRYO_TURRET = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("cryo_turret"),
+            EntityType.Builder.of(CryoTurretEntity::new, MobCategory.MISC).sized(2.6F, 5.6F).clientTrackingRange(12).build());
 
     // 3D Miniature Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
@@ -189,6 +196,21 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item RUIN_MECH_RIGHT_LEG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_mech_right_leg"),
             new RuinMechPartItem(RuinMechEntity.PART_RIGHT_LEG, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item CRYO_TURRET_ROOT = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_turret_root"),
+            new CryoTurretPartItem(CryoTurretEntity.PART_ROOT, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item CRYO_TURRET_STEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_turret_stem"),
+            new CryoTurretPartItem(CryoTurretEntity.PART_STEM, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item CRYO_TURRET_COROLLA = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_turret_corolla"),
+            new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item ANEMO_PRISM_CUBE = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_prism_cube"),
+            new Item(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+    public static final Item ANEMO_JETPACK = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_jetpack"),
+            new AnemoJetpackItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
 
     public static final Item CRYO_REGISVINE_SPAWN_EGG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_spawn_egg"),
@@ -294,6 +316,11 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(RUIN_MECH_RIGHT_ARM);
                         output.accept(RUIN_MECH_LEFT_LEG);
                         output.accept(RUIN_MECH_RIGHT_LEG);
+                        output.accept(CRYO_TURRET_ROOT);
+                        output.accept(CRYO_TURRET_STEM);
+                        output.accept(CRYO_TURRET_COROLLA);
+                        output.accept(ANEMO_PRISM_CUBE);
+                        output.accept(ANEMO_JETPACK);
                         output.accept(MUSIC_DISC_CRYO_REGISVINE);
                         output.accept(MUSIC_DISC_THE_OPEN_EYED);
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS);
@@ -323,7 +350,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> RUIN_GUARD,
                 () -> RUIN_MISSILE,
                 () -> ASTRALION,
-                () -> RUIN_MECH
+                () -> RUIN_MECH,
+                () -> CRYO_TURRET
         );
 
         TeyvatBossesBlocks.bind(
@@ -350,7 +378,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> RUIN_MECH_LEFT_ARM,
                 () -> RUIN_MECH_RIGHT_ARM,
                 () -> RUIN_MECH_LEFT_LEG,
-                () -> RUIN_MECH_RIGHT_LEG
+                () -> RUIN_MECH_RIGHT_LEG,
+                () -> CRYO_TURRET_ROOT,
+                () -> CRYO_TURRET_STEM,
+                () -> CRYO_TURRET_COROLLA,
+                () -> ANEMO_PRISM_CUBE,
+                () -> ANEMO_JETPACK
         );
         FabricDefaultAttributeRegistry.register(CRYO_REGISVINE, CryoRegisvineEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(THE_OPEN_EYED, TheOpenEyedEntity.createAttributes());
@@ -359,8 +392,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         FabricDefaultAttributeRegistry.register(RUIN_GUARD, RuinGuardEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(ASTRALION, AstralionEntity.createAttributes());
         FabricDefaultAttributeRegistry.register(RUIN_MECH, RuinMechEntity.createAttributes());
+        FabricDefaultAttributeRegistry.register(CRYO_TURRET, CryoTurretEntity.createAttributes());
 
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(AnemoJetpackPayload.TYPE, AnemoJetpackPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(AnemoJetpackPayload.TYPE, (payload, ctx) ->
+                ctx.server().execute(() -> AnemoJetpackItem.setBoosting(ctx.player().getUUID(), payload.boosting())));
         ServerPlayNetworking.registerGlobalReceiver(RuinMechSkillPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> {
                     if (ctx.player().getVehicle() instanceof RuinMechEntity mech) {

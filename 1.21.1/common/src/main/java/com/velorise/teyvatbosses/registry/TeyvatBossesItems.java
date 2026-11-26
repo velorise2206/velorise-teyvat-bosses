@@ -20,6 +20,11 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> mechRightArm;
     private static Supplier<Item> mechLeftLeg;
     private static Supplier<Item> mechRightLeg;
+    private static Supplier<Item> cryoTurretRoot;
+    private static Supplier<Item> cryoTurretStem;
+    private static Supplier<Item> cryoTurretCorolla;
+    private static Supplier<Item> anemoPrismCube;
+    private static Supplier<Item> anemoJetpack;
 
     private TeyvatBossesItems() {}
 
@@ -33,7 +38,12 @@ public final class TeyvatBossesItems {
             Supplier<Item> mechLeftArmSupplier,
             Supplier<Item> mechRightArmSupplier,
             Supplier<Item> mechLeftLegSupplier,
-            Supplier<Item> mechRightLegSupplier
+            Supplier<Item> mechRightLegSupplier,
+            Supplier<Item> cryoTurretRootSupplier,
+            Supplier<Item> cryoTurretStemSupplier,
+            Supplier<Item> cryoTurretCorollaSupplier,
+            Supplier<Item> anemoPrismCubeSupplier,
+            Supplier<Item> anemoJetpackSupplier
     ) {
         cryoDisc = cryoDiscSupplier;
         openEyedDisc = openEyedDiscSupplier;
@@ -45,6 +55,11 @@ public final class TeyvatBossesItems {
         mechRightArm = mechRightArmSupplier;
         mechLeftLeg = mechLeftLegSupplier;
         mechRightLeg = mechRightLegSupplier;
+        cryoTurretRoot = cryoTurretRootSupplier;
+        cryoTurretStem = cryoTurretStemSupplier;
+        cryoTurretCorolla = cryoTurretCorollaSupplier;
+        anemoPrismCube = anemoPrismCubeSupplier;
+        anemoJetpack = anemoJetpackSupplier;
     }
 
     public static Item cryoDisc() { return cryoDisc != null ? cryoDisc.get() : null; }
@@ -58,6 +73,19 @@ public final class TeyvatBossesItems {
     public static Item mechRightArm() { return mechRightArm != null ? mechRightArm.get() : null; }
     public static Item mechLeftLeg() { return mechLeftLeg != null ? mechLeftLeg.get() : null; }
     public static Item mechRightLeg() { return mechRightLeg != null ? mechRightLeg.get() : null; }
+    public static Item cryoTurretRoot() { return cryoTurretRoot != null ? cryoTurretRoot.get() : null; }
+    public static Item cryoTurretStem() { return cryoTurretStem != null ? cryoTurretStem.get() : null; }
+    public static Item cryoTurretCorolla() { return cryoTurretCorolla != null ? cryoTurretCorolla.get() : null; }
+    public static Item anemoPrismCube() { return anemoPrismCube != null ? anemoPrismCube.get() : null; }
+    public static Item anemoJetpack() { return anemoJetpack != null ? anemoJetpack.get() : null; }
+
+    public static Item randomCryoTurretPart(RandomSource random) {
+        return switch (random.nextInt(3)) {
+            case 0 -> cryoTurretRoot();
+            case 1 -> cryoTurretStem();
+            default -> cryoTurretCorolla();
+        };
+    }
 
     public static Item randomMechPart(RandomSource random) {
         return switch (random.nextInt(5)) {

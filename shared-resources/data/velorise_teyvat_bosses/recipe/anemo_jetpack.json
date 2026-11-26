@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "ICI",
+    "BWB",
+    "P P"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "C": {
+      "item": "velorise_teyvat_bosses:anemo_prism_cube"
+    },
+    "B": {
+      "item": "minecraft:breeze_rod"
+    },
+    "W": {
+      "item": "minecraft:wind_charge"
+    },
+    "P": {
+      "item": "minecraft:phantom_membrane"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:anemo_jetpack",
+    "count": 1
+  }
+}

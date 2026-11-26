@@ -11,9 +11,9 @@ import net.minecraft.util.Mth;
  * Client-side procedural camera & tactical audio controller for the Pilotable Ruin Mech:
  * <ul>
  *   <li>Extends 3rd-person camera distance to {@link #THIRD_PERSON_ZOOM} blocks.</li>
- *   <li>1st-person cockpit camera physically tracks the animated eye-core torso pitch/yaw/roll during combat skills & movement.</li>
- *   <li>Amplified impact camera shake in 1st-person synced to every strike, stomp, slam, and missile launch.</li>
- *   <li>Tactical radar lock-on beep when acquiring targets or charging {@code R+} missiles.</li>
+ *   <li>Continuously smoothed camera angle offsets (prevents any snap/reset jerk when releasing WASD or ending skills).</li>
+ *   <li>1st-person cockpit camera physically tracks the animated eye-core torso pitch/yaw/roll during combat & movement.</li>
+ *   <li>Amplified impact camera shake in 1st-person synced to every strike, stomp, slam, leap, and missile launch.</li>
  * </ul>
  */
 public final class RuinMechCameraController {
@@ -25,6 +25,14 @@ public final class RuinMechCameraController {
     private static int lastHurtTime = 0;
     private static int lastLockedId = -1;
     private static int chargeBeepTick = 0;
+
+    // Smoothed per-tick camera angle offsets so stopping movement NEVER snaps/resets the camera!
+    private static float prevSmoothYaw = 0.0F;
+    private static float prevSmoothPitch = 0.0F;
+    private static float prevSmoothRoll = 0.0F;
+    private static float curSmoothYaw = 0.0F;
+    private static float curSmoothPitch = 0.0F;
+    private static float curSmoothRoll = 0.0F;
 
     private RuinMechCameraController() {}
 
@@ -50,6 +58,9 @@ public final class RuinMechCameraController {
             lastHurtTime = 0;
             lastLockedId = -1;
             chargeBeepTick = 0;
+            prevSmoothYaw = curSmoothYaw = 0.0F;
+            prevSmoothPitch = curSmoothPitch = 0.0F;
+            prevSmoothRoll = curSmoothRoll = 0.0F;
             return;
         }
 
@@ -118,6 +129,55 @@ public final class RuinMechCameraController {
                 addTrauma(0.45F);
             }
         }
+
+        // Smoothly damp target pose-coupled camera angles at 20 TPS (interpolated per frame via partialTicks!)
+        prevSmoothYaw = curSmoothYaw;
+        prevSmoothPitch = curSmoothPitch;
+        prevSmoothRoll = curSmoothRoll;
+
+        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+        float targetYaw = 0.0F;
+        float targetPitch = 0.0F;
+        float targetRoll = 0.0F;
+
+        if (firstPerson && anim != RuinMechEntity.ANIM_IDLE && anim != RuinMechEntity.ANIM_DORMANT) {
+            float[] core = new float[6];
+            RuinGuardAnimations.sampleCoreMotion(mech.getBaseClipName(), tick / 20.0F, core);
+            float relPitch = core[3] - 7.0F;
+            float relYaw = Mth.clamp(core[4], -26.0F, 26.0F);
+            float relRoll = Mth.clamp(core[5], -16.0F, 16.0F);
+            if (anim == RuinMechEntity.ANIM_WALK) {
+                targetPitch = relPitch * 0.42F;
+                targetRoll  = relRoll * 0.55F;
+            } else {
+                targetPitch = Mth.clamp(relPitch * 0.52F, -18.0F, 24.0F);
+                targetYaw   = relYaw * 0.35F;
+                targetRoll  = relRoll * 0.65F;
+            }
+        } else if (anim == RuinMechEntity.ANIM_WALK) {
+            float cycle = (tick % 48.0F) / 48.0F;
+            float angle = cycle * Mth.TWO_PI;
+            targetPitch = Mth.sin(angle * 2.0F - 0.6F) * 0.95F;
+            targetRoll  = Mth.sin(angle) * 0.80F;
+        }
+
+        if (anim == RuinMechEntity.ANIM_ENTER_COCKPIT) {
+            float p = Mth.clamp(tick / 26.0F, 0.0F, 1.0F);
+            float ease = 1.0F - (float) Math.pow(1.0F - p, 3.0F);
+            targetPitch += (1.0F - ease) * 13.0F;
+            targetRoll  += Mth.sin(p * Mth.PI) * 2.4F;
+        } else if (anim == RuinMechEntity.ANIM_CYCLONE_ACTIVE) {
+            targetRoll += Mth.sin(mech.tickCount * 0.9F) * (firstPerson ? 4.2F : 2.6F);
+            if (firstPerson) {
+                targetYaw += Mth.cos(mech.tickCount * 1.15F) * 3.8F;
+            }
+        }
+
+        // Smooth exponential damping -> releasing WASD or ending an attack glides gently back to neutral (zero camera snap!)
+        float blend = (anim == RuinMechEntity.ANIM_IDLE || anim == RuinMechEntity.ANIM_DORMANT) ? 0.22F : 0.38F;
+        curSmoothYaw   = Mth.lerp(blend, curSmoothYaw, targetYaw);
+        curSmoothPitch = Mth.lerp(blend, curSmoothPitch, targetPitch);
+        curSmoothRoll  = Mth.lerp(blend, curSmoothRoll, targetRoll);
     }
 
     /**
@@ -132,49 +192,10 @@ public final class RuinMechCameraController {
 
         boolean firstPerson = mc.options.getCameraType().isFirstPerson();
         float time = mech.tickCount + partialTicks;
-        float animT = mech.getAnimTick() + partialTicks;
-        int anim = mech.getAnimId();
 
-        float yawOff = 0.0F;
-        float pitchOff = 0.0F;
-        float rollOff = 0.0F;
-
-        // 1st-person cockpit camera physically tracks the animated torso/waist/core orientation during combat & movement!
-        if (firstPerson && anim != RuinMechEntity.ANIM_IDLE && anim != RuinMechEntity.ANIM_DORMANT) {
-            float[] core = new float[6];
-            RuinGuardAnimations.sampleCoreMotion(mech.getBaseClipName(), animT / 20.0F, core);
-            // core = [pelvisX, pelvisY, pelvisZ, torsoPitchDeg, waistYawDeg, torsoRollDeg]
-            // Subtract baseline combat stance pitch (~7 deg) so idle/neutral stays level
-            float relPitch = core[3] - 7.0F;
-            float relYaw = Mth.clamp(core[4], -26.0F, 26.0F);
-            float relRoll = Mth.clamp(core[5], -16.0F, 16.0F);
-            if (anim == RuinMechEntity.ANIM_WALK) {
-                pitchOff += relPitch * 0.42F;
-                rollOff  += relRoll * 0.55F;
-            } else {
-                // Combat skills & leaps: strong core-coupled pitch/yaw/roll so 1st-person feels seated inside the chest core!
-                pitchOff += Mth.clamp(relPitch * 0.52F, -18.0F, 24.0F);
-                yawOff   += relYaw * 0.35F;
-                rollOff  += relRoll * 0.65F;
-            }
-        } else if (anim == RuinMechEntity.ANIM_WALK) {
-            float cycle = (animT % 48.0F) / 48.0F;
-            float angle = cycle * Mth.TWO_PI;
-            pitchOff += Mth.sin(angle * 2.0F - 0.6F) * 1.05F;
-            rollOff  += Mth.sin(angle) * 0.85F;
-        }
-
-        if (anim == RuinMechEntity.ANIM_ENTER_COCKPIT) {
-            float p = Mth.clamp(animT / 26.0F, 0.0F, 1.0F);
-            float ease = 1.0F - (float) Math.pow(1.0F - p, 3.0F);
-            pitchOff += (1.0F - ease) * 13.0F;
-            rollOff  += Mth.sin(p * Mth.PI) * 2.4F;
-        } else if (anim == RuinMechEntity.ANIM_CYCLONE_ACTIVE) {
-            rollOff += Mth.sin(time * 0.9F) * (firstPerson ? 4.2F : 2.6F);
-            if (firstPerson) {
-                yawOff += Mth.cos(time * 1.15F) * 3.8F;
-            }
-        }
+        float yawOff   = Mth.lerp(partialTicks, prevSmoothYaw, curSmoothYaw);
+        float pitchOff = Mth.lerp(partialTicks, prevSmoothPitch, curSmoothPitch);
+        float rollOff  = Mth.lerp(partialTicks, prevSmoothRoll, curSmoothRoll);
 
         if (shakeTrauma > 0.001F) {
             float s = shakeTrauma * shakeTrauma * (firstPerson ? 1.55F : 1.0F);
