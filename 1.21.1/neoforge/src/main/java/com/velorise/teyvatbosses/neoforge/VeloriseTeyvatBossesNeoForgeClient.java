@@ -24,7 +24,9 @@ import com.velorise.teyvatbosses.client.RuinNautilusRenderer;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import com.velorise.teyvatbosses.client.RuinSubmersibleRenderer;
 import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
+import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
+import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import com.velorise.teyvatbosses.client.RuinMissileRenderer;
 import com.velorise.teyvatbosses.client.SkySpearRenderer;
@@ -57,6 +59,8 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
         event.registerLayerDefinition(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
         event.registerLayerDefinition(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
+        event.registerLayerDefinition(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
+        event.registerLayerDefinition(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
     }
 
     @SubscribeEvent

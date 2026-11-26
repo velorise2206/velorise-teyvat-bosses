@@ -97,6 +97,8 @@ public class RuinNautilusEntity extends Mob {
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_RAILGUN_PITCH =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<String> DATA_MINES_SYNC =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.STRING);
 
     private static final class DepthMine {
         Vec3 pos;
@@ -150,6 +152,7 @@ public class RuinNautilusEntity extends Mob {
         builder.define(DATA_PHASE2, false);
         builder.define(DATA_RAILGUN_YAW, 0.0F);
         builder.define(DATA_RAILGUN_PITCH, 0.0F);
+        builder.define(DATA_MINES_SYNC, "");
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -160,6 +163,7 @@ public class RuinNautilusEntity extends Mob {
     public boolean isPhase2() { return entityData.get(DATA_PHASE2); }
     public float getRailgunYawDeg() { return entityData.get(DATA_RAILGUN_YAW); }
     public float getRailgunPitchDeg() { return entityData.get(DATA_RAILGUN_PITCH); }
+    public String getSyncedMinesData() { return entityData.get(DATA_MINES_SYNC); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : serverAnimTick; }
 
     public String getCurrentClipName() {
@@ -304,6 +308,7 @@ public class RuinNautilusEntity extends Mob {
         if (getBossState() != STATE_DEATH) {
             setHealth(1.0F);
             activeMines.clear();
+            syncMinesToClients();
             transitionTo(STATE_DEATH, ANIM_DEATH);
             bossEvent.removeAllPlayers();
             playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.ELDER_GUARDIAN_DEATH, 1.5F, 0.65F);
@@ -675,6 +680,7 @@ public class RuinNautilusEntity extends Mob {
             double dy = (random.nextDouble() - 0.5D) * 3.0D;
             activeMines.add(new DepthMine(position().add(Math.cos(ang) * radius, 1.8D + dy, Math.sin(ang) * radius), 220));
         }
+        syncMinesToClients();
     }
 
     private void tickDepthMines(ServerLevel sl) {
@@ -700,8 +706,19 @@ public class RuinNautilusEntity extends Mob {
                     sl.playSound(null, m.pos.x, m.pos.y, m.pos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 0.9F, 1.15F);
                 }
                 it.remove();
+                syncMinesToClients();
             }
         }
+    }
+
+    private void syncMinesToClients() {
+        if (activeMines.isEmpty()) { entityData.set(DATA_MINES_SYNC, ""); return; }
+        StringBuilder sb = new StringBuilder();
+        for (DepthMine m : activeMines) {
+            if (sb.length() > 0) sb.append(";");
+            sb.append(String.format(java.util.Locale.ROOT, "%.2f,%.2f,%.2f", m.pos.x, m.pos.y, m.pos.z));
+        }
+        entityData.set(DATA_MINES_SYNC, sb.toString());
     }
 
     private void finishAttack(int cd) {

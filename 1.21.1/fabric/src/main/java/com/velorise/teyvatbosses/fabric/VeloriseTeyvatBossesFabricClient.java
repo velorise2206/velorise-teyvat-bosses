@@ -26,7 +26,9 @@ import com.velorise.teyvatbosses.client.RuinNautilusRenderer;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import com.velorise.teyvatbosses.client.RuinSubmersibleRenderer;
 import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
+import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
+import com.velorise.teyvatbosses.client.model.RuinTorpedoModel;
 import com.velorise.teyvatbosses.network.AnemoJetpackPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -59,6 +61,8 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(AstralionModel.LAYER_LOCATION, AstralionModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AnemoJetpackModel.LAYER_LOCATION, AnemoJetpackModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(RuinNautilusModel.LAYER_LOCATION, RuinNautilusModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(RuinTorpedoModel.LAYER_LOCATION, RuinTorpedoModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(DepthMineModel.LAYER_LOCATION, DepthMineModel::createBodyLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);

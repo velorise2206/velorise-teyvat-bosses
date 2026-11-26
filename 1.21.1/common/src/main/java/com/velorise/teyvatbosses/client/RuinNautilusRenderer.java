@@ -5,7 +5,9 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.model.RuinNautilusAnimations;
+import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.RuinNautilusModel;
+import net.minecraft.client.renderer.LightTexture;
 import com.velorise.teyvatbosses.entity.RuinNautilusEntity;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -29,6 +31,8 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/ruin_nautilus_boss_emissive.png");
     private static final ResourceLocation GLASS_TEX = TeyvatBossesConstants.id("textures/entity/ruin_submersible_glass.png");
+    private static final ResourceLocation MINE_TEX = TeyvatBossesConstants.id("textures/entity/ruin_depth_mine.png");
+    private static final ResourceLocation MINE_EM = TeyvatBossesConstants.id("textures/entity/ruin_depth_mine_emissive.png");
     private static final ResourceLocation MUSIC_ID = TeyvatBossesConstants.id("music.ruin_nautilus_theme");
     private static final float BOSS_SCALE = 2.35F;
     private static final float BLEND_TICKS = 7.0F;
@@ -49,12 +53,14 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
     }
 
     private final RuinNautilusModel<RuinNautilusEntity> model;
+    private final DepthMineModel<RuinNautilusEntity> mineModel;
     private final Map<Integer, SmoothState> smoothMap = new HashMap<>();
 
     public RuinNautilusRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
         this.shadowRadius = 3.2F;
         this.model = new RuinNautilusModel<>(ctx.bakeLayer(RuinNautilusModel.LAYER_LOCATION));
+        this.mineModel = new DepthMineModel<>(ctx.bakeLayer(DepthMineModel.LAYER_LOCATION));
     }
 
     private static float lerpAngle(float from, float to, float a) {
@@ -185,6 +191,14 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
             }
         }
 
+        // Render all active Acoustic Depth Mines as TRUE SOLID 3D Naval Sea Mines!
+        renderSolid3DDepthMines(entity, partialTicks, poseStack, buffers, packedLight, liveTick);
+
+        // Render 3D Expanding Hydro-Cyan Sonar Shockwave Rings during ANIM_SONAR
+        if (animId == RuinNautilusEntity.ANIM_SONAR && t >= 16.0F && t <= 42.0F) {
+            renderSonarRings3D(poseStack, buffers, t);
+        }
+
         super.render(entity, entityYaw, partialTicks, poseStack, buffers, packedLight);
     }
 
@@ -247,6 +261,66 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         vc.addVertex(m, 0,  r, z0).setColor(red, grn, blu, a);
         vc.addVertex(m, 0,  r, z1).setColor(red, grn, blu, Math.max(80, a - 40));
         vc.addVertex(m, 0, -r, z1).setColor(red, grn, blu, Math.max(80, a - 40));
+    }
+
+
+    private void renderSolid3DDepthMines(RuinNautilusEntity entity, float partialTicks, PoseStack poseStack,
+                                         MultiBufferSource buffers, int packedLight, float liveTick) {
+        String data = entity.getSyncedMinesData();
+        if (data == null || data.isEmpty()) return;
+        double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+        double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
+        double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+        String[] entries = data.split(";");
+        for (int i = 0; i < entries.length; i++) {
+            String[] xyz = entries[i].split(",");
+            if (xyz.length != 3) continue;
+            try {
+                double mx = Double.parseDouble(xyz[0]);
+                double my = Double.parseDouble(xyz[1]);
+                double mz = Double.parseDouble(xyz[2]);
+                poseStack.pushPose();
+                float bob = Mth.sin(liveTick * 0.12F + i * 1.3F) * 0.18F;
+                poseStack.translate(mx - ex, my - ey + bob, mz - ez);
+                poseStack.mulPose(Axis.YP.rotationDegrees(liveTick * 2.5F + i * 52.0F));
+                poseStack.scale(-1.15F, -1.15F, 1.15F);
+                VertexConsumer mvc = buffers.getBuffer(RenderType.entityCutoutNoCull(MINE_TEX));
+                mineModel.renderToBuffer(poseStack, mvc, packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                // Pulsing red proximity warning beacon
+                if (((int) (liveTick + i * 5) / 6) % 2 == 0) {
+                    VertexConsumer mevc = buffers.getBuffer(RenderType.eyes(MINE_EM));
+                    mineModel.renderToBuffer(poseStack, mevc, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                }
+                poseStack.popPose();
+            } catch (NumberFormatException ignored) {}
+        }
+    }
+
+    private static void renderSonarRings3D(PoseStack poseStack, MultiBufferSource buffers, float t) {
+        int[] starts = {18, 26, 34};
+        VertexConsumer vc = buffers.getBuffer(RenderType.lightning());
+        for (int st : starts) {
+            if (t < st || t > st + 12.0F) continue;
+            float p = (t - st) / 12.0F;
+            float r0 = 2.0F + p * 8.5F;
+            float r1 = r0 + 0.35F;
+            int alpha = (int) ((1.0F - p) * 210.0F);
+            poseStack.pushPose();
+            poseStack.translate(0.0D, 1.8D, 0.0D);
+            Matrix4f m = poseStack.last().pose();
+            int segs = 24;
+            for (int i = 0; i < segs; i++) {
+                float a0 = (float) (i * Math.PI * 2.0 / segs);
+                float a1 = (float) ((i + 1) * Math.PI * 2.0 / segs);
+                float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                vc.addVertex(m, c0 * r0, 0.0F, s0 * r0).setColor(80, 245, 255, alpha);
+                vc.addVertex(m, c1 * r0, 0.0F, s1 * r0).setColor(80, 245, 255, alpha);
+                vc.addVertex(m, c1 * r1, 0.0F, s1 * r1).setColor(190, 255, 255, alpha / 2);
+                vc.addVertex(m, c0 * r1, 0.0F, s0 * r1).setColor(190, 255, 255, alpha / 2);
+            }
+            poseStack.popPose();
+        }
     }
 
     @Override
