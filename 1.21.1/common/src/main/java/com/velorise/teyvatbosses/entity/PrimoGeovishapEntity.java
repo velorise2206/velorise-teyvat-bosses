@@ -88,6 +88,8 @@ public class PrimoGeovishapEntity extends Monster {
     public static final int ANIM_COUNTERED_STAGGER = 12;
     public static final int ANIM_DEATH             = 13;
     public static final int ANIM_DORMANT           = 14;
+    public static final int ANIM_REAR_TAIL_SLAM    = 15;
+    public static final int ANIM_VERTICAL_TAIL_CLEAVE = 16;
 
     // Elemental infusions (matches Genshin Primo Geovishap variants)
     public static final int INFUSION_PYRO    = 0;
@@ -128,6 +130,8 @@ public class PrimoGeovishapEntity extends Monster {
     private int breathCooldown = 140;        // Elemental Breath CD (14-20s)
     private int comboCooldown = 100;         // Combo Slash CD (11-16s)
     private int scatteredCooldown = 80;      // Scattered Rocks CD (9-13s)
+    private int rearTailSlamCooldown = 0;    // Anti-flank Rear Tail Slam CD (5s)
+    private int verticalCleaveCooldown = 120;// Mid-range Vertical Tail Cleave CD (11-15s)
 
     private int lastAttackAnim = -1;
     private int noTargetTicks = 0;
@@ -207,7 +211,30 @@ public class PrimoGeovishapEntity extends Monster {
 
     public int getBossState() { return entityData.get(DATA_STATE); }
     public int getAnimId() { return entityData.get(DATA_ANIM); }
-    public int getAnimTick() { return level().isClientSide() ? clientAnimTick : stateTick; }
+    public int getAnimTick() {
+        if (level().isClientSide()) {
+            // Prevent 1-frame stale-tick VFX flashes when SetEntityData arrives before client tick() runs!
+            if (getAnimId() != lastSyncedAnim || entityData.get(DATA_ANIM_EPOCH) != lastSyncedEpoch) {
+                return 0;
+            }
+            return clientAnimTick;
+        }
+        return stateTick;
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (level().isClientSide() && (DATA_ANIM.equals(key) || DATA_ANIM_EPOCH.equals(key))) {
+            int curA = getAnimId();
+            int curE = entityData.get(DATA_ANIM_EPOCH);
+            if (curA != lastSyncedAnim || curE != lastSyncedEpoch) {
+                lastSyncedAnim = curA;
+                lastSyncedEpoch = curE;
+                clientAnimTick = 0;
+            }
+        }
+    }
     public int getInfusion() { return entityData.get(DATA_INFUSION); }
     public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
     public CompoundTag getStonesTag() { return entityData.get(DATA_STONES_NBT); }
@@ -269,6 +296,8 @@ public class PrimoGeovishapEntity extends Monster {
             case ANIM_COUNTERED_STAGGER -> "countered_stagger";
             case ANIM_DEATH -> "death";
             case ANIM_DORMANT -> "dormant_sleep";
+            case ANIM_REAR_TAIL_SLAM -> "attack_rear_tail_slam";
+            case ANIM_VERTICAL_TAIL_CLEAVE -> "attack_vertical_tail_cleave";
             default -> "idle";
         };
     }
@@ -588,6 +617,12 @@ public class PrimoGeovishapEntity extends Monster {
                 range = 30.0D;
             } else if (anim == ANIM_LEFT_CLAW && t == 28) {
                 intensity = 0.48F;
+            } else if (anim == ANIM_REAR_TAIL_SLAM && t == 18) {
+                intensity = 0.56F;
+                range = 26.0D;
+            } else if (anim == ANIM_VERTICAL_TAIL_CLEAVE && t == 25) {
+                intensity = 0.68F;
+                range = 30.0D;
             }
         }
         if (intensity > 0.0F) {
@@ -604,6 +639,8 @@ public class PrimoGeovishapEntity extends Monster {
         if (breathCooldown > 0) breathCooldown--;
         if (comboCooldown > 0) comboCooldown--;
         if (scatteredCooldown > 0) scatteredCooldown--;
+        if (rearTailSlamCooldown > 0) rearTailSlamCooldown--;
+        if (verticalCleaveCooldown > 0) verticalCleaveCooldown--;
     }
 
     /**
@@ -834,11 +871,18 @@ public class PrimoGeovishapEntity extends Monster {
             // Smooth head look-tracking toward target even before body finishes turning
             lookAtTargetHead(target);
 
-            // Canonical Genshin Anti-Flank AI: Whirlwind ignores Action Interval if player runs behind!
-            if (whirlwindCooldown <= 0 && dist <= 10.5D && relAngle >= 115.0F) {
-                whirlwindCooldown = 100; // 5s CD
-                lastAttackAnim = ANIM_WHIRLWIND;
-                transitionTo(STATE_COMBAT, ANIM_WHIRLWIND);
+            // Canonical Genshin Anti-Flank AI: Rear Tail Slam or Whirlwind when player runs behind tail!
+            if (dist <= 9.8D && relAngle >= 120.0F && (rearTailSlamCooldown <= 0 || whirlwindCooldown <= 0)) {
+                boolean pickRearSlam = (rearTailSlamCooldown <= 0) && (whirlwindCooldown > 0 || lastAttackAnim == ANIM_WHIRLWIND || random.nextFloat() < 0.62F);
+                if (pickRearSlam) {
+                    rearTailSlamCooldown = 110;
+                    lastAttackAnim = ANIM_REAR_TAIL_SLAM;
+                    transitionTo(STATE_COMBAT, ANIM_REAR_TAIL_SLAM);
+                } else {
+                    whirlwindCooldown = 100;
+                    lastAttackAnim = ANIM_WHIRLWIND;
+                    transitionTo(STATE_COMBAT, ANIM_WHIRLWIND);
+                }
                 return;
             }
 
@@ -896,6 +940,8 @@ public class PrimoGeovishapEntity extends Monster {
             case ANIM_ELEMENTAL_BREATH -> tickElementalBreath(sl, target);
             case ANIM_PRIMORDIAL_SHOWER -> tickPrimordialShower(sl, target);
             case ANIM_PRIMEVAL_SPRING -> tickPrimevalSpring(sl, target);
+            case ANIM_REAR_TAIL_SLAM -> tickRearTailSlam(sl, target);
+            case ANIM_VERTICAL_TAIL_CLEAVE -> tickVerticalTailCleave(sl, target);
             default -> finishAttack(46);
         }
     }
@@ -963,6 +1009,9 @@ public class PrimoGeovishapEntity extends Monster {
             if (scatteredCooldown <= 0 && dist >= 5.5D) {
                 candidates.add(ANIM_SCATTERED_ROCKS);
             }
+            if (verticalCleaveCooldown <= 0 && dist >= 4.2D && dist <= 12.0D && relAngle <= 75.0F) {
+                candidates.add(ANIM_VERTICAL_TAIL_CLEAVE);
+            }
             if (burrowCooldown <= 0 && dist >= 7.8D) {
                 candidates.add(ANIM_BURROW);
             }
@@ -980,6 +1029,7 @@ public class PrimoGeovishapEntity extends Monster {
             else if (chosen == ANIM_ELEMENTAL_BREATH) breathCooldown = 280 + random.nextInt(120);
             else if (chosen == ANIM_SCATTERED_ROCKS) scatteredCooldown = 180 + random.nextInt(80);
             else if (chosen == ANIM_BURROW) burrowCooldown = 320;
+            else if (chosen == ANIM_VERTICAL_TAIL_CLEAVE) verticalCleaveCooldown = 220 + random.nextInt(80);
         }
 
         lastAttackAnim = chosen;
@@ -1077,13 +1127,57 @@ public class PrimoGeovishapEntity extends Monster {
         setDeltaMovement(getDeltaMovement().x * 0.68D, getDeltaMovement().y, getDeltaMovement().z * 0.68D);
         if (stateTick < 10) faceTargetSmooth(target, 6.0F);
         // Synced directly to Phase-2 ultra-fast 0.60s whip spin (tick 11..23)!
-        if (stateTick == 15 || stateTick == 22) {
+        if (stateTick == 14 || stateTick == 20) {
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.9F, 0.46F);
             dealRadialDamage(sl, 8.5D, 19.5F, 1.55D, 0.50D, false);
             spawnGroundRing(sl, 7.8D, 36, ParticleTypes.CLOUD);
             spawnGroundRing(sl, 6.5D, 24, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DIRT.defaultBlockState()));
         }
         if (stateTick >= 52) finishAttack(44);
+    }
+
+    /** Anti-flank Rear Tail Slam: raises curled tail high behind hips and slams straight down onto ground behind boss (tick 18). */
+    private void tickRearTailSlam(ServerLevel sl, LivingEntity target) {
+        setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
+        // Stay facing forward so the tail hammer lands squarely on the player behind the boss!
+        if (stateTick == 18) {
+            Vec3 back = Vec3.directionFromRotation(0.0F, getYRot()).scale(-5.2D);
+            Vec3 impactPos = position().add(back);
+            sl.playSound(null, impactPos.x, getY(), impactPos.z, sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 1.9F, 0.88F);
+            sl.playSound(null, impactPos.x, getY(), impactPos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.8F, 0.48F);
+            dealPointRadialDamage(sl, impactPos, 5.6D, 23.0F, 1.45D, 0.68D, false);
+            sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
+                    impactPos.x, getY() + 0.5D, impactPos.z, 38, 2.2D, 0.6D, 2.2D, 0.16D);
+            sl.sendParticles(ParticleTypes.EXPLOSION, impactPos.x, getY() + 0.6D, impactPos.z, 4, 1.6D, 0.3D, 1.6D, 0.0D);
+        }
+        if (stateTick >= 48) finishAttack(40);
+    }
+
+    /** Mid-range Vertical Spine-Curl Overhead Tail Cleave: curls vertically on forepaws and chops tail straight overhead forward (tick 25). */
+    private void tickVerticalTailCleave(ServerLevel sl, LivingEntity target) {
+        setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
+        if (stateTick < 18) faceTargetSmooth(target, 7.5F);
+        if (stateTick >= 19 && stateTick <= 24) {
+            Vec3 lunge = Vec3.directionFromRotation(0.0F, getYRot()).scale(0.30D);
+            setDeltaMovement(lunge.x, getDeltaMovement().y, lunge.z);
+        }
+        if (stateTick == 25) {
+            Vec3 dir = Vec3.directionFromRotation(0.0F, getYRot());
+            Vec3 impactPos = position().add(dir.scale(5.6D));
+            sl.playSound(null, impactPos.x, getY(), impactPos.z, sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 2.0F, 0.85F);
+            sl.playSound(null, impactPos.x, getY(), impactPos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.9F, 0.46F);
+            dealPointRadialDamage(sl, impactPos, 5.0D, 25.0F, 1.50D, 0.72D, false);
+            dealConeDamage(sl, 9.6D, 34.0D, 21.0F, 1.35D, false);
+            // Linear Geo fissure burst along the forward tail chop line
+            for (int d = 3; d <= 9; d += 2) {
+                Vec3 pt = position().add(dir.scale(d));
+                sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
+                        pt.x, getY() + 0.5D, pt.z, 16, 1.1D, 0.5D, 1.1D, 0.14D);
+                sl.sendParticles(infusionParticle(), pt.x, getY() + 0.6D, pt.z, 6, 0.8D, 0.4D, 0.8D, 0.08D);
+            }
+            sl.sendParticles(ParticleTypes.EXPLOSION, impactPos.x, getY() + 0.6D, impactPos.z, 5, 1.8D, 0.3D, 1.8D, 0.0D);
+        }
+        if (stateTick >= 58) finishAttack(44);
     }
 
     /**

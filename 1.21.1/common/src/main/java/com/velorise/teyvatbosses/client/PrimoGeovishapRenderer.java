@@ -110,15 +110,15 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 double distMoved = Math.hypot(ex - ws.lastX, ez - ws.lastZ);
                 float yawDelta = Math.abs(Mth.wrapDegrees(bodyYaw - ws.lastBodyYaw));
                 float speedBlocksPerSec = (float) (distMoved / dtSec);
-                float turnStepDrive = Mth.clamp((yawDelta / dtSec) / 90.0F, 0.0F, 0.55F);
+                float turnStepDrive = Mth.clamp((yawDelta / dtSec) / 55.0F, 0.0F, 0.72F);
                 float targetWalkAmt = Mth.clamp(Math.max(speedBlocksPerSec / 3.4F, turnStepDrive), 0.0F, 1.0F);
                 if (animId == PrimoGeovishapEntity.ANIM_WALK) {
                     targetWalkAmt = Math.max(targetWalkAmt, 0.45F);
                 }
                 float damp = 1.0F - (float) Math.exp(-dtSec * 8.5D);
                 ws.walkAmount = Mth.lerp(damp, ws.walkAmount, targetWalkAmt);
-                // Advance continuous gait phase strictly proportional to real ground distance (zero foot-skating!)
-                float phaseStep = (float) (distMoved * 1.95D) + (turnStepDrive * dtSec * 3.2F);
+                // Advance continuous gait phase strictly proportional to real ground distance + pivot turning
+                float phaseStep = (float) (distMoved * 1.95D) + (turnStepDrive * dtSec * 4.4F);
                 ws.walkPhase += phaseStep;
                 // Trigger weighty footstep camera thud on each of the 4 staggered paw plants
                 int stepQuarter = (int) Math.floor(ws.walkPhase / (Mth.HALF_PI));
@@ -241,7 +241,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         }
 
         // 6. Golden Geo Ground Shockwaves on heavy slams (Combo Hit 3, Burrow emerge, Primeval Spring)
-        renderImpactShockwave(poseStack, lvc, animId, animTick, partialTicks, rgb);
+        renderImpactShockwave(poseStack, lvc, animId, animTick, partialTicks, bodyYaw, rgb);
 
         // 7. Infused Stones are now real independent 3D PrimoInfusedStoneEntity instances
 
@@ -257,6 +257,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         boolean allowIK = entity.onGround()
                 && animId != PrimoGeovishapEntity.ANIM_BURROW
                 && animId != PrimoGeovishapEntity.ANIM_SCATTERED_ROCKS
+                && animId != PrimoGeovishapEntity.ANIM_VERTICAL_TAIL_CLEAVE
                 && animId != PrimoGeovishapEntity.ANIM_DORMANT
                 && animId != PrimoGeovishapEntity.ANIM_DEATH;
         float tFL = 0.0F, tFR = 0.0F, tBL = 0.0F, tBR = 0.0F;
@@ -588,9 +589,14 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         float sweepYaw = bodyYaw + Mth.lerp(progress, 46.0F, -46.0F);
         float fade = (progress < 0.08F) ? (progress / 0.08F) : (progress > 0.90F ? (1.0F - progress) / 0.10F : 1.0F);
         poseStack.pushPose();
-        poseStack.translate(0.0D, 2.30D, 0.0D);
+        // Offset beam origin slightly along swung neck/snout axis so torrent emerges dead-center from open jaws
+        float sweepRelDeg = Mth.lerp(progress, 46.0F, -46.0F);
+        float pivotYawRad = (float) Math.toRadians(bodyYaw + sweepRelDeg * 0.45F);
+        double mouthAnchorX = -Math.sin(pivotYawRad) * 1.15D;
+        double mouthAnchorZ = Math.cos(pivotYawRad) * 1.15D;
+        poseStack.translate(mouthAnchorX, 2.18D, mouthAnchorZ);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - sweepYaw));
-        poseStack.mulPose(Axis.XP.rotationDegrees(-6.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-7.5F));
         Matrix4f mat = poseStack.last().pose();
 
         int lr = Math.min(255, rgb[0] + 65);
@@ -598,14 +604,14 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         int lb = Math.min(255, rgb[2] + 65);
 
         // 1. Silky 4-layer undulating volumetric torrent (outer vapor mist -> mid elemental surge -> bright plasma -> white-hot jet core)
-        drawUndulatingBreathStream(lvc, mat, 2.40F, 17.2F, 0.60F, 3.05F, 10, 20, clientSec, 0.16F, rgb[0], rgb[1], rgb[2], (int) (82 * fade));
-        drawUndulatingBreathStream(lvc, mat, 2.44F, 16.5F, 0.40F, 1.95F, 10, 18, clientSec * 1.15F, 0.13F, lr, lg, lb, (int) (145 * fade));
-        drawUndulatingBreathStream(lvc, mat, 2.50F, 15.6F, 0.24F, 1.05F, 10, 16, clientSec * 1.32F, 0.10F, 230, 248, 255, (int) (180 * fade));
-        drawUndulatingBreathStream(lvc, mat, 2.55F, 14.4F, 0.13F, 0.48F, 8, 12, clientSec * 1.50F, 0.07F, 255, 255, 255, (int) (220 * fade));
+        drawUndulatingBreathStream(lvc, mat, 1.35F, 16.2F, 0.60F, 3.05F, 10, 20, clientSec, 0.16F, rgb[0], rgb[1], rgb[2], (int) (82 * fade));
+        drawUndulatingBreathStream(lvc, mat, 1.40F, 15.5F, 0.40F, 1.95F, 10, 18, clientSec * 1.15F, 0.13F, lr, lg, lb, (int) (145 * fade));
+        drawUndulatingBreathStream(lvc, mat, 1.46F, 14.6F, 0.24F, 1.05F, 10, 16, clientSec * 1.32F, 0.10F, 230, 248, 255, (int) (180 * fade));
+        drawUndulatingBreathStream(lvc, mat, 1.52F, 13.4F, 0.13F, 0.48F, 8, 12, clientSec * 1.50F, 0.07F, 255, 255, 255, (int) (220 * fade));
 
         // 2. Dual counter-flowing twisting helical vortex ribbons (eliminates flat geometric hoops!)
-        drawHelicalBreathRibbons(lvc, mat, 2.50F, 16.4F, 0.44F, 2.45F, 22, clientSec, rgb[0], rgb[1], rgb[2], (int) (155 * fade));
-        drawHelicalBreathRibbons(lvc, mat, 2.60F, 15.8F, 0.26F, 1.55F, 20, -clientSec * 0.85F, lr, lg, lb, (int) (135 * fade));
+        drawHelicalBreathRibbons(lvc, mat, 1.45F, 15.4F, 0.44F, 2.45F, 22, clientSec, rgb[0], rgb[1], rgb[2], (int) (155 * fade));
+        drawHelicalBreathRibbons(lvc, mat, 1.55F, 14.8F, 0.26F, 1.55F, 20, -clientSec * 0.85F, lr, lg, lb, (int) (135 * fade));
         poseStack.popPose();
     }
 
@@ -678,27 +684,36 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         }
     }
 
-    private static void renderImpactShockwave(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, int[] rgb) {
+    private static void renderImpactShockwave(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, float bodyYaw, int[] rgb) {
         int start = -1;
         float maxR = 9.0F;
         boolean goldenGeo = true;
+        double fwdOffset = 0.0D;
         if (animId == PrimoGeovishapEntity.ANIM_COMBO_SLASH && animTick >= 47 && animTick <= 62) {
             start = 47; maxR = 9.8F;
         } else if (animId == PrimoGeovishapEntity.ANIM_BURROW && animTick >= 64 && animTick <= 79) {
             start = 64; maxR = 10.2F;
         } else if (animId == PrimoGeovishapEntity.ANIM_PRIMEVAL_SPRING && animTick >= 24 && animTick <= 39) {
             start = 24; maxR = 10.5F; goldenGeo = false;
+        } else if (animId == PrimoGeovishapEntity.ANIM_REAR_TAIL_SLAM && animTick >= 18 && animTick <= 32) {
+            start = 18; maxR = 6.2F; fwdOffset = -5.2D;
+        } else if (animId == PrimoGeovishapEntity.ANIM_VERTICAL_TAIL_CLEAVE && animTick >= 25 && animTick <= 40) {
+            start = 25; maxR = 7.4F; fwdOffset = 5.6D;
         }
         if (start < 0) return;
         float p = Mth.clamp((animTick - start + partialTicks) / 15.0F, 0.0F, 1.0F);
         float ease = 1.0F - (1.0F - p) * (1.0F - p);
-        float r = 1.6F + ease * (maxR - 1.6F);
+        float r = 1.4F + ease * (maxR - 1.4F);
         int a = (int) (225 * (1.0F - p));
         if (a <= 10) return;
         int cr = goldenGeo ? 255 : rgb[0];
         int cg = goldenGeo ? 205 : rgb[1];
         int cb = goldenGeo ? 75  : rgb[2];
         poseStack.pushPose();
+        if (Math.abs(fwdOffset) > 0.01D) {
+            double rad = Math.toRadians(bodyYaw);
+            poseStack.translate(-Math.sin(rad) * fwdOffset, 0.0D, Math.cos(rad) * fwdOffset);
+        }
         Matrix4f mat = poseStack.last().pose();
         drawRing(lvc, mat, Math.max(0.4F, r - 1.5F), r, 48, 0.14F, cr, cg, cb, a);
         drawRing(lvc, mat, Math.max(0.4F, r - 0.45F), r, 48, 0.20F, 255, 250, 220, Math.min(255, a + 20));

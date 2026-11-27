@@ -45,6 +45,8 @@ public final class PrimoGeovishapAnimations {
         CLIPS.put("countered_stagger", build_countered_stagger());
         CLIPS.put("death", build_death());
         CLIPS.put("dormant_sleep", build_dormant_sleep());
+        CLIPS.put("attack_rear_tail_slam", build_attack_rear_tail_slam());
+        CLIPS.put("attack_vertical_tail_cleave", build_attack_vertical_tail_cleave());
     }
 
     private PrimoGeovishapAnimations() {}
@@ -132,7 +134,7 @@ public final class PrimoGeovishapAnimations {
             state.blendElapsed = 0.0F;
             boolean fastSnap = "countered_stagger".equals(clipName) || "attack_whirlwind".equals(clipName);
             boolean smoothReturn = "idle".equals(clipName) || "walk".equals(clipName) || "dormant_sleep".equals(clipName);
-            state.blendDuration = fastSnap ? 0.16F : (smoothReturn ? 0.34F : 0.22F);
+            state.blendDuration = fastSnap ? 0.14F : (smoothReturn ? 0.42F : 0.22F);
         } else {
             state.activeTime = clipSeconds;
             if (state.blendElapsed < state.blendDuration) {
@@ -327,7 +329,7 @@ public final class PrimoGeovishapAnimations {
                 if (t2 != null) t2.yRot += acWalkValue(ticks, amp, 1.6F, 2.3F, 0.070F, false);
             }
             // 2. Explosive sky-roar head/jaw/neck vibration (2.30s..3.30s, SauropodBaseModel.ANIMATION_ROAR)
-            float roarEnv = acCullWindow(clipSec, 2.30F, 3.30F, 2.4F);
+            float roarEnv = acCullWindow(clipSec, 2.32F, 3.35F, 2.5F);
             if (roarEnv > 0.01F) {
                 if (head != null) head.yRot += acWalkValue(ticks, roarEnv, 1.1F, -1.0F, 0.095F, false);
                 if (jaw != null) jaw.xRot += acWalkValue(ticks, roarEnv, 2.1F, 1.0F, 0.110F, false);
@@ -359,10 +361,19 @@ public final class PrimoGeovishapAnimations {
                 if (neck != null) neck.zRot += acWalkValue(ticks, agonyEnv, 0.5F, -2.0F, 0.060F, false);
             }
         } else if ("countered_stagger".equals(clipName)) {
-            float dazeEnv = acCullWindow(clipSec, 0.85F, 3.90F, 2.2F);
+            // Heavy exhausted panting + periodic groggy head-shake spasms while collapsed
+            float dazeEnv = acCullWindow(clipSec, 0.95F, 3.85F, 2.4F);
             if (dazeEnv > 0.01F) {
-                if (torso != null) torso.xRot += acWalkValue(ticks, dazeEnv, 0.22F, 0.0F, 0.035F, false);
-                if (jaw != null) jaw.xRot += acWalkValue(ticks, dazeEnv, 0.22F, 0.8F, 0.075F, false);
+                if (torso != null) torso.xRot += acWalkValue(ticks, dazeEnv, 0.28F, 0.0F, 0.055F, false);
+                if (neck != null) neck.zRot += acWalkValue(ticks, dazeEnv, 0.24F, 0.6F, 0.065F, false);
+                if (head != null) head.yRot += acWalkValue(ticks, dazeEnv, 0.34F, 1.2F, 0.095F, false);
+                if (jaw != null) jaw.xRot += acWalkValue(ticks, dazeEnv, 0.28F, 0.8F, 0.115F, false);
+            }
+            // Recovery head-shake shudder as boss pushes itself back up (3.90s..4.75s)
+            float shakeEnv = acCullWindow(clipSec, 3.90F, 4.75F, 2.2F);
+            if (shakeEnv > 0.01F) {
+                if (head != null) head.yRot += acWalkValue(ticks, shakeEnv, 1.15F, 0.0F, 0.14F, false);
+                if (neck != null) neck.zRot += acWalkValue(ticks, shakeEnv, 1.15F, 0.7F, 0.07F, false);
             }
         }
     }
@@ -451,35 +462,35 @@ public final class PrimoGeovishapAnimations {
         boolean isBurrow = "attack_burrow".equals(clipName);
 
         ModelPart body = model.getBone("body");
-        if (body != null && !isBurrow) body.y += 0.45F;
+        if (body != null && !isBurrow) body.y += 1.25F;
 
         ModelPart armL = model.getBone("arm_left");
         ModelPart armR = model.getBone("arm_right");
         ModelPart foreL = model.getBone("forearm_left");
         ModelPart foreR = model.getBone("forearm_right");
-        if (armL != null) { armL.xRot -= 12.0F * DEG; armL.zRot += 14.0F * DEG; }
-        if (armR != null) { armR.xRot -= 12.0F * DEG; armR.zRot -= 14.0F * DEG; }
-        if (foreL != null) { foreL.xRot += 14.0F * DEG; foreL.zRot -= 12.0F * DEG; }
-        if (foreR != null) { foreR.xRot += 14.0F * DEG; foreR.zRot += 12.0F * DEG; }
+        if (armL != null) { armL.xRot -= 16.0F * DEG; armL.zRot += 20.0F * DEG; }
+        if (armR != null) { armR.xRot -= 16.0F * DEG; armR.zRot -= 20.0F * DEG; }
+        if (foreL != null) { foreL.xRot += 18.0F * DEG; foreL.zRot -= 18.0F * DEG; }
+        if (foreR != null) { foreR.xRot += 18.0F * DEG; foreR.zRot += 18.0F * DEG; }
 
         ModelPart legL = model.getBone("leg_left");
         ModelPart legR = model.getBone("leg_right");
         ModelPart shinL = model.getBone("shin_left");
         ModelPart shinR = model.getBone("shin_right");
-        if (legL != null) { legL.xRot -= 12.0F * DEG; legL.zRot += 6.0F * DEG; }
-        if (legR != null) { legR.xRot -= 12.0F * DEG; legR.zRot -= 6.0F * DEG; }
-        if (shinL != null) { shinL.xRot += 14.0F * DEG; shinL.zRot -= 5.0F * DEG; }
-        if (shinR != null) { shinR.xRot += 14.0F * DEG; shinR.zRot += 5.0F * DEG; }
+        if (legL != null) { legL.xRot -= 16.0F * DEG; legL.zRot += 10.0F * DEG; }
+        if (legR != null) { legR.xRot -= 16.0F * DEG; legR.zRot -= 10.0F * DEG; }
+        if (shinL != null) { shinL.xRot += 18.0F * DEG; shinL.zRot -= 8.0F * DEG; }
+        if (shinR != null) { shinR.xRot += 18.0F * DEG; shinR.zRot += 8.0F * DEG; }
 
-        // In Minecraft model coords (+Y down, +Z back), negative xRot droops tail DOWN, positive xRot lifts UP.
+        // Low Komodo-dragon lotus tail skimming just above the grass (Y ~ 19..22px, zero underground clip)
         ModelPart t1 = model.getBone("tail_1");
         ModelPart t2 = model.getBone("tail_2");
         ModelPart t3 = model.getBone("tail_3");
         ModelPart t4 = model.getBone("tail_4");
-        if (t1 != null) t1.xRot -= 14.0F * DEG;
-        if (t2 != null) t2.xRot -= 8.0F * DEG;
-        if (t3 != null) t3.xRot += 10.0F * DEG;
-        if (t4 != null) t4.xRot += 14.0F * DEG;
+        if (t1 != null) t1.xRot -= 19.0F * DEG;
+        if (t2 != null) t2.xRot -= 10.0F * DEG;
+        if (t3 != null) t3.xRot += 12.0F * DEG;
+        if (t4 != null) t4.xRot += 16.0F * DEG;
     }
 
     /** Natural secondary-motion phase lag so neck, head, and 4-segment lotus tail follow torso inertia fluidly. */
@@ -630,24 +641,25 @@ public final class PrimoGeovishapAnimations {
     private static Clip build_idle() {
         Clip c = new Clip("idle", 3.20F, true);
         float[] t = f(0.0F, 0.8F, 1.6F, 2.4F, 3.2F);
-        c.pos("body", t, f(0, 0, 0, 0, 0), f(0.0F, -0.65F, -1.00F, -0.45F, 0.0F), f(0, 0, 0, 0, 0));
-        c.rot("torso", t, f(0.0F, 1.8F, 0.0F, -1.8F, 0.0F), f(0.0F, 2.2F, 0.0F, -2.2F, 0.0F), f(0.0F, 1.0F, 0.0F, -1.0F, 0.0F));
-        c.rot("neck", t, f(1.2F, -2.2F, -1.2F, 2.2F, 1.2F), f(0.0F, 4.5F, 0.0F, -4.5F, 0.0F), f(0, 0, 0, 0, 0));
-        c.rot("head", t, f(-1.2F, 2.0F, 1.2F, -2.0F, -1.2F), f(-2.0F, 5.5F, 2.0F, -5.5F, -2.0F), f(0.8F, 1.6F, -0.8F, -1.6F, 0.8F));
-        c.rot("jaw", t, f(3.0F, 8.5F, 5.0F, 1.5F, 3.0F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
-        c.rot("arm_left", t, f(0.0F, -2.5F, 0.0F, 2.0F, 0.0F), f(0, 0, 0, 0, 0), f(0.0F, 1.6F, 0.0F, -1.0F, 0.0F));
-        c.rot("forearm_left", t, f(0.0F, 2.5F, 0.0F, -2.0F, 0.0F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
-        c.rot("arm_right", t, f(0.0F, -2.5F, 0.0F, 2.0F, 0.0F), f(0, 0, 0, 0, 0), f(0.0F, -1.6F, 0.0F, 1.0F, 0.0F));
-        c.rot("forearm_right", t, f(0.0F, 2.5F, 0.0F, -2.0F, 0.0F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
+        c.pos("body", t, f(0, 0.35F, 0, -0.35F, 0), f(0.0F, -1.10F, -1.45F, -0.55F, 0.0F), f(0, 0.35F, 0.55F, 0.20F, 0));
+        c.rot("torso", t, f(0.0F, 3.0F, 0.4F, -2.6F, 0.0F), f(0.0F, 3.4F, 0.0F, -3.4F, 0.0F), f(0.0F, 1.8F, 0.0F, -1.8F, 0.0F));
+        c.rot("neck", t, f(1.8F, -3.4F, -1.6F, 3.2F, 1.8F), f(0.0F, 6.8F, 0.0F, -6.8F, 0.0F), f(0.0F, -1.2F, 0.0F, 1.2F, 0.0F));
+        c.rot("head", t, f(-1.8F, 3.2F, 1.6F, -2.8F, -1.8F), f(-2.8F, 8.8F, 2.8F, -8.8F, -2.8F), f(1.2F, 2.6F, -1.2F, -2.6F, 1.2F));
+        c.rot("jaw", t, f(3.5F, 12.5F, 7.5F, 2.0F, 3.5F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
+        c.rot("arm_left", t, f(0.0F, -3.6F, -1.0F, 2.8F, 0.0F), f(0, 0, 0, 0, 0), f(0.0F, 2.6F, 0.8F, -1.6F, 0.0F));
+        c.rot("forearm_left", t, f(0.0F, 3.6F, 1.0F, -2.8F, 0.0F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
+        c.rot("arm_right", t, f(0.0F, -3.6F, -1.0F, 2.8F, 0.0F), f(0, 0, 0, 0, 0), f(0.0F, -2.6F, -0.8F, 1.6F, 0.0F));
+        c.rot("forearm_right", t, f(0.0F, 3.6F, 1.0F, -2.8F, 0.0F), f(0, 0, 0, 0, 0), f(0, 0, 0, 0, 0));
         // Tail stays gently hovering above ground (Y ~ 17-22px)
-        c.rot("tail_1", t, f(-2.0F, -4.0F, -2.0F, -0.5F, -2.0F), f(0.0F, 8.0F, 0.0F, -8.0F, 0.0F), f(0, 0, 0, 0, 0));
-        c.rot("tail_2", t, f(-2.0F, -1.0F, 0.5F, -1.5F, -2.0F), f(-7.0F, 11.0F, 7.0F, -11.0F, -7.0F), f(0, 0, 0, 0, 0));
-        c.rot("tail_3", t, f(-1.5F, 0.5F, 1.5F, -0.5F, -1.5F), f(-12.0F, 4.0F, 12.0F, -4.0F, -12.0F), f(0, 0, 0, 0, 0));
-        c.rot("tail_4", t, f(-1.5F, -0.5F, 1.5F, 0.5F, -1.5F), f(-14.0F, -6.0F, 14.0F, 6.0F, -14.0F), f(0, 0, 0, 0, 0));
+        c.rot("tail_1", t, f(-2.0F, -4.5F, -2.2F, -0.5F, -2.0F), f(0.0F, 10.5F, 0.0F, -10.5F, 0.0F), f(0, 0, 0, 0, 0));
+        c.rot("tail_2", t, f(-2.0F, -1.0F, 0.5F, -1.5F, -2.0F), f(-8.5F, 14.0F, 8.5F, -14.0F, -8.5F), f(0, 0, 0, 0, 0));
+        c.rot("tail_3", t, f(-1.5F, 0.5F, 1.5F, -0.5F, -1.5F), f(-14.0F, 5.5F, 14.0F, -5.5F, -14.0F), f(0, 0, 0, 0, 0));
+        c.rot("tail_4", t, f(-1.5F, -0.5F, 1.5F, 0.5F, -1.5F), f(-16.5F, -7.0F, 16.5F, 7.0F, -16.5F), f(0, 0, 0, 0, 0));
         return c;
     }
 
     // =========================================================================
+    // 2. WALK    // =========================================================================
     // 2. WALK (1.60s C1-periodic — 1.mp4 00:05-00:12):
     //    Heavy grounded reptilian S-wave stride: 3 paws planted at all times, zero hind double-float!
     // =========================================================================
@@ -702,10 +714,10 @@ public final class PrimoGeovishapAnimations {
         c.rot("neck", t, f(-18, -14, -8, -2, 22, 18, -6, 0), f(0, 0, 0, 0, 4, -4, 0, 0), f(0,0,0,0,0,0,0,0));
         c.rot("head", t, f(-12, -8, -4, 2, 16, 14, -4, 0), f(0, 0, 0, 0, 6, -6, 0, 0), f(0,0,0,0,2,-2,0,0));
         c.rot("jaw", t, f(0, 4, 10, 16, 52, 46, 12, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("arm_left", t, f(22, 26, 14, 4, 52, 46, 6, 0), f(0, 0, 0, 0, -14, -10, 0, 0), f(-8, 10, 8, 6, 28, 24, 8, 0));
-        c.rot("forearm_left", t, f(18, 16, 10, 6, 26, 22, 8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,8,6,0,0));
-        c.rot("arm_right", t, f(22, 26, 14, 4, 52, 46, 6, 0), f(0, 0, 0, 0, 14, 10, 0, 0), f(8, -10, -8, -6, -28, -24, -8, 0));
-        c.rot("forearm_right", t, f(18, 16, 10, 6, 26, 22, 8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,-8,-6,0,0));
+        c.rot("arm_left", t, f(22, 26, 14, 4, 34, 30, 12, 0), f(0, 0, 0, 0, -38, -32, 0, 0), f(-8, 10, 8, 6, 68, 58, 14, 0));
+        c.rot("forearm_left", t, f(18, 16, 10, 6, 16, 14, 10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,-14,-10,-10,0));
+        c.rot("arm_right", t, f(22, 26, 14, 4, 34, 30, 12, 0), f(0, 0, 0, 0, 38, 32, 0, 0), f(8, -10, -8, -6, -68, -58, -14, 0));
+        c.rot("forearm_right", t, f(18, 16, 10, 6, 16, 14, 10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,14,10,10,0));
         c.rot("leg_left", t, f(12, 10, 6, 4, -22, -20, 6, 0), f(0,0,0,0,0,0,0,0), f(4,4,4,4,6,6,2,0));
         c.rot("shin_left", t, f(-14, -12, -8, -4, 10, 8, -8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
         c.rot("leg_right", t, f(12, 10, 6, 4, -22, -20, 6, 0), f(0,0,0,0,0,0,0,0), f(-4,-4,-4,-4,-6,-6,-2,0));
@@ -724,35 +736,35 @@ public final class PrimoGeovishapAnimations {
     // =========================================================================
     private static Clip build_attack_left_claw() {
         Clip c = new Clip("attack_left_claw", 2.30F, false);
-        float[] t = f(0.0F, 0.22F, 0.46F, 0.60F, 0.72F, 0.96F, 1.18F, 1.40F, 1.68F, 2.02F, 2.30F);
+        float[] t = f(0.0F, 0.24F, 0.48F, 0.60F, 0.72F, 0.96F, 1.18F, 1.40F, 1.78F, 2.08F, 2.30F);
         c.pos("body", t,
-                f(0,  1.2F,  2.2F,  0.4F, -1.8F, -1.6F, -1.4F,  1.0F,  0.6F,  0.2F, 0),
-                f(0, -1.0F, -0.8F, -1.8F, -3.2F, -3.0F, -3.4F, -0.6F, -1.2F, -0.5F, 0),
-                f(0,  1.2F,  2.4F, -1.2F, -4.4F, -4.2F, -3.6F, -1.8F, -1.2F, -0.4F, 0));
-        // Torso coils right/up -> plunges down-left into Hit 1 slam -> explosive upward rip-up at 1.40s!
+                f(0,  1.6F,  2.8F,  0.4F, -2.2F, -1.8F, -1.6F,  1.2F,  0.6F,  0.2F, 0),
+                f(0, -1.2F, -0.6F, -2.0F, -3.4F, -3.2F, -3.8F, -0.6F, -1.8F, -0.8F, 0),
+                f(0,  1.6F,  3.2F, -1.4F, -5.0F, -4.6F, -3.8F, -1.8F, -1.4F, -0.5F, 0));
+        // Deep shoulder coil -> explosive earth-slam at 0.72s -> muscular rip-up at 1.40s -> damped settle
         c.rot("torso", t,
-                f(0,  2,   5,  0, -10, -10, -12,  12,   7,  2, 0),
-                f(0, 14,  30,  0, -30, -24, -18,  22,  12,  3, 0),
-                f(0, -3,  -6, -1,   8,   7,   5,  -6,  -3, -1, 0));
+                f(0,  4,   8,  0, -10, -10, -11,  14,   5, -2, 0),
+                f(0, 18,  38,  0, -36, -28, -20,  26,  12,  3, 0),
+                f(0, -4,  -8, -1,  10,   8,   6,  -7,  -3, -1, 0));
         c.rot("neck", t,
-                f(0,  2,   6,  0,  -6,  -6,  -8,  12,   6,  1, 0),
-                f(0, -8, -14,  0,  16,  14,  10, -12,  -6,  0, 0),
-                f(0,  2,   4,  0,  -5,  -4,  -3,   4,   2,  0, 0));
+                f(0,  4,   8,  0,  -8,  -7,  -9,  14,   5, -1, 0),
+                f(0, -10,-18,  0,  20,  16,  12, -14,  -6,  0, 0),
+                f(0,  2,   5,  0,  -6,  -5,  -4,   5,   2,  0, 0));
         c.rot("head", t,
-                f(0,  2,   6,  0,  -4,  -4,  -6,  12,   6,  0, 0),
-                f(0, -8, -14,  0,  16,  14,  10, -12,  -6,  0, 0),
-                f(0,  3,   6,  0,  -6,  -5,  -4,   5,   2,  0, 0));
-        c.rot("jaw", t, f(0, 10, 22, 34, 38, 22, 26, 48, 30, 8, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
-        // Left arm: wide circular windup -> fast sweeping earth slam at 0.72s -> buried tension -> explosive rip-up at 1.40s!
+                f(0,  4,   8,  0,  -5,  -5,  -7,  14,   5, -1, 0),
+                f(0, -10,-18,  0,  20,  16,  12, -14,  -6,  0, 0),
+                f(0,  3,   7,  0,  -7,  -6,  -5,   6,   2,  0, 0));
+        c.rot("jaw", t, f(0, 14, 28, 38, 42, 24, 28, 52, 28, 8, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
+        // Left arm: wide outward wind-up (negative vy = outward!) -> cross-front slam -> high rip-up
         c.rot("arm_left", t,
-                f(0, 28,  66, 46,  14,  12,  10,  78,  46, 12, 0),
-                f(0, 18,  38,  4, -36, -30, -24,  28,  14,  2, 0),
-                f(0, 24,  50, 28, -12, -10,  -8,  44,  24,  6, 0));
+                f(0, 36,  78, 48,  14,  12,  10,  86,  44, 10, 0),
+                f(0,-20, -42,  2,  34,  28,  22, -26, -12, -2, 0),
+                f(0, 28,  58, 30, -14, -12, -10,  52,  24,  6, 0));
         c.rot("forearm_left", t,
-                f(0, 16,  28, 12,   4,   4,   8,  30,  18,  6, 0),
+                f(0, 18,  30, 14,   4,   4,   8,  32,  16,  5, 0),
                 f(0,  0,   0,  0,   0,   0,   0,   0,   0,  0, 0),
-                f(0,  8,  18,  6,  -6,  -6,  -4,  16,   8,  0, 0));
-        // Supporting RIGHT arm reaches cleanly down & stays solidly planted on Y~21-24 throughout!
+                f(0, -8, -16, -4,   8,   6,   4, -14,  -6,  0, 0));
+        // Supporting RIGHT arm planted solidly on ground
         c.rot("arm_right", t,
                 f(0,  2,   4,  2,   6,   6,   8,   4,   2,  0, 0),
                 f(0,  0,   0,  0,   0,   0,   0,   0,   0,  0, 0),
@@ -761,53 +773,54 @@ public final class PrimoGeovishapAnimations {
                 f(0, -4,  -8, -2,   6,   6,   8,  -8,  -4,  0, 0),
                 f(0,  0,   0,  0,   0,   0,   0,   0,   0,  0, 0),
                 f(0,  0,   0,  0,   0,   0,   0,   0,   0,  0, 0));
-        // Hind legs counter-flex cleanly to stay glued to floor!
-        c.rot("leg_left", t, f(0, -4, -8, -2, 8, 8, 10, -12, -8, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,2,4,4,4,4,4,4,2,1,0));
-        c.rot("shin_left", t, f(0, 4, 8, 2, -8, -8, -10, 10, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, -4, -8, -2, 8, 8, 10, -12, -8, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,-2,-4,-4,-4,-4,-4,-4,-2,-1,0));
-        c.rot("shin_right", t, f(0, 4, 8, 2, -8, -8, -10, 10, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
-        // Counter-pitched whip tail staying strictly above ground (Y ~ 16-22px)
-        c.rot("tail_1", t, f(0, -4, -12, -2,  6,  6,  8, -18, -10, -2, 0), f(0, -8, -16, 0, 20, 18, 14, -16, -8, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -2,  -6,  0,  4,  4,  6, -10,  -6, -1, 0), f(0,-12, -22, 0, 26, 22, 18, -20, -10, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  0,  -4,  0,  2,  2,  4,  -6,  -4,  0, 0), f(0,-14, -26, 0, 30, 26, 22, -24, -12, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  0,  -2,  0,  2,  2,  2,  -4,  -2,  0, 0), f(0,-16, -30, 0, 34, 30, 24, -28, -14, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
+        // Hind legs counter-flex cleanly to stay glued to floor
+        c.rot("leg_left", t, f(0, -5, -10, -2, 10, 8, 12, -14, -8, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,2,4,4,4,4,4,4,2,1,0));
+        c.rot("shin_left", t, f(0, 5, 10, 2, -10, -8, -12, 12, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, -5, -10, -2, 10, 8, 12, -14, -8, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,-2,-4,-4,-4,-4,-4,-4,-2,-1,0));
+        c.rot("shin_right", t, f(0, 5, 10, 2, -10, -8, -12, 12, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0));
+        // Strong counter-balancing whip tail swinging opposite the slashing arm (Y ~ 16-22px)
+        c.rot("tail_1", t, f(0, -6, -14, -2,  6,  6,  8, -20, -10, -2, 0), f(0,-12, -24, 0, 28, 24, 18, -22, -10, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -3,  -8,  0,  4,  4,  6, -12,  -6, -1, 0), f(0,-16, -32, 0, 36, 30, 24, -28, -14, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  0,  -4,  0,  2,  2,  4,  -6,  -4,  0, 0), f(0,-20, -38, 0, 42, 36, 28, -34, -16, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  0,  -2,  0,  2,  2,  2,  -4,  -2,  0, 0), f(0,-24, -44, 0, 48, 40, 32, -38, -18, -2, 0), f(0,0,0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 5. ATTACK RIGHT CLAW    // =========================================================================
     // 5. ATTACK RIGHT CLAW (2.00s — 1.mp4 00:52-00:55):
     //    Wide open-shoulder horizontal-diagonal golden slash with planted left support paw!
     // =========================================================================
     private static Clip build_attack_right_claw() {
         Clip c = new Clip("attack_right_claw", 2.00F, false);
-        float[] t = f(0.0F, 0.22F, 0.46F, 0.60F, 0.72F, 0.96F, 1.32F, 1.68F, 2.00F);
+        float[] t = f(0.0F, 0.24F, 0.48F, 0.60F, 0.72F, 1.06F, 1.44F, 1.76F, 2.00F);
         c.pos("body", t,
-                f(0, -1.2F, -2.2F, -0.4F,  2.0F,  1.8F,  0.8F,  0.2F, 0),
-                f(0, -1.0F, -0.8F, -1.6F, -2.6F, -2.2F, -1.2F, -0.4F, 0),
-                f(0,  1.2F,  2.4F, -1.2F, -4.6F, -4.0F, -1.8F, -0.5F, 0));
+                f(0, -1.6F, -2.8F, -0.4F,  2.4F,  2.0F,  0.9F,  0.2F, 0),
+                f(0, -1.2F, -0.6F, -1.8F, -2.8F, -2.4F, -1.6F, -0.8F, 0),
+                f(0,  1.6F,  3.2F, -1.4F, -5.2F, -4.4F, -2.0F, -0.6F, 0));
         c.rot("torso", t,
-                f(0,   2,   5,   0,  -9,  -8,  -2,   1, 0),
-                f(0, -14, -32,   0,  34,  26,  10,   2, 0),
-                f(0,   3,   6,   1,  -8,  -7,  -2,   0, 0));
+                f(0,   4,   8,   0, -11,  -9,  -3,  -1, 0),
+                f(0, -18, -38,   0,  40,  30,  12,   3, 0),
+                f(0,   4,   8,   1, -10,  -8,  -3,   0, 0));
         c.rot("neck", t,
-                f(0,   2,   6,   0,  -6,  -5,  -1,   0, 0),
-                f(0,   8,  15,   0, -18, -14,  -6,   0, 0),
-                f(0,  -2,  -4,   0,   5,   4,   2,   0, 0));
+                f(0,   4,   8,   0,  -7,  -6,  -2,   0, 0),
+                f(0,  10,  18,   0, -22, -16,  -7,   0, 0),
+                f(0,  -2,  -5,   0,   6,   5,   2,   0, 0));
         c.rot("head", t,
-                f(0,   2,   6,   0,  -4,  -4,   0,   0, 0),
-                f(0,   8,  15,   0, -18, -15,  -6,   0, 0),
-                f(0,  -3,  -6,   0,   6,   5,   2,   0, 0));
-        c.rot("jaw", t, f(0, 10, 22, 34, 38, 28, 12, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Right arm: wide outward windup -> mid-arc breakdown -> whipping cross-front slash -> smooth replant
+                f(0,   4,   8,   0,  -5,  -4,  -1,   0, 0),
+                f(0,  10,  18,   0, -22, -17,  -7,   0, 0),
+                f(0,  -3,  -7,   0,   7,   6,   2,   0, 0));
+        c.rot("jaw", t, f(0, 14, 28, 38, 42, 30, 14, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Right arm: wide outward wind-up (positive vy = outward!) -> cross-front whipping slash -> soft replant
         c.rot("arm_right", t,
-                f(0,  28,  66,  44,  18,  16,  10,   4, 0),
-                f(0, -18, -38,  -2,  42,  34,  14,   2, 0),
-                f(0, -24, -52, -26,  14,  12,  -4,  -2, 0));
+                f(0,  36,  78,  46,  18,  16,  10,   4, 0),
+                f(0,  20,  42,  -2, -38, -30, -12,  -2, 0),
+                f(0, -28, -58, -28,  14,  12,  -4,  -2, 0));
         c.rot("forearm_right", t,
-                f(0,  14,  26,  12,   6,   6,   4,   2, 0),
+                f(0,  16,  28,  14,   6,   6,   4,   2, 0),
                 f(0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,  -8, -18,  -6,   8,   6,   0,   0, 0));
-        // Supporting LEFT arm reaches cleanly down & stays solidly planted on Y~21-24!
+                f(0,   8,  16,   4,  -8,  -6,   0,   0, 0));
+        // Supporting LEFT arm planted solidly on ground
         c.rot("arm_left", t,
                 f(0,   2,   4,   2,   6,   6,   3,   1, 0),
                 f(0,   0,   0,   0,   0,   0,   0,   0, 0),
@@ -816,129 +829,133 @@ public final class PrimoGeovishapAnimations {
                 f(0,  -4,  -8,  -2,   6,   6,   3,   1, 0),
                 f(0,   0,   0,   0,   0,   0,   0,   0, 0),
                 f(0,   0,   0,   0,   0,   0,   0,   0, 0));
-        c.rot("leg_left", t, f(0, -4, -8, -2, 8, 6, 2, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,2,4,4,4,4,2,0,0));
-        c.rot("shin_left", t, f(0, 4, 8, 2, -8, -6, -2, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, -4, -8, -2, 8, 6, 2, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,-2,-4,-4,-4,-4,-2,0,0));
-        c.rot("shin_right", t, f(0, 4, 8, 2, -8, -6, -2, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Counter-pitched tail staying cleanly above ground
-        c.rot("tail_1", t, f(0, -4, -12, -2,  6,  4,  0, 0, 0), f(0,  8, 16, 0, -22, -18, -8, -2, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -2,  -6,  0,  4,  2,  0, 0, 0), f(0, 12, 22, 0, -28, -22, -10, -2, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  0,  -4,  0,  2,  2,  0, 0, 0), f(0, 14, 26, 0, -32, -26, -12, -2, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  0,  -2,  0,  2,  0,  0, 0, 0), f(0, 16, 30, 0, -36, -28, -12, -2, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("leg_left", t, f(0, -5, -10, -2, 10, 7, 3, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,2,4,4,4,4,2,0,0));
+        c.rot("shin_left", t, f(0, 5, 10, 2, -10, -7, -3, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, -5, -10, -2, 10, 7, 3, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,-2,-4,-4,-4,-4,-2,0,0));
+        c.rot("shin_right", t, f(0, 5, 10, 2, -10, -7, -3, 0, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Counter-balancing whip tail swinging opposite the right claw
+        c.rot("tail_1", t, f(0, -6, -14, -2,  6,  4,  0, 0, 0), f(0, 12, 24, 0, -28, -22, -10, -2, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -3,  -8,  0,  4,  2,  0, 0, 0), f(0, 16, 32, 0, -36, -28, -12, -2, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  0,  -4,  0,  2,  2,  0, 0, 0), f(0, 20, 38, 0, -42, -34, -14, -2, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  0,  -2,  0,  2,  0,  0, 0, 0), f(0, 24, 44, 0, -48, -38, -16, -2, 0), f(0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 6. ATTACK COMBO SLASH    // =========================================================================
     // 6. ATTACK COMBO SLASH (3.60s — 1.mp4 00:13-00:18 & 2.mp4 00:11-00:16)
     //    Fluid chained Right Slash (0.70s) -> Left Slash (1.45s) -> Towering Rear-Up (1.98s)
     //    -> Double-Hand Geo Slam (2.36s) + Hitstop (2.56s) -> Heavy Push-Up Settle!
     // =========================================================================
     private static Clip build_attack_combo_slash() {
         Clip c = new Clip("attack_combo_slash", 3.60F, false);
-        float[] t = f(0.0F, 0.44F, 0.58F, 0.72F, 1.14F, 1.30F, 1.45F, 1.98F, 2.22F, 2.36F, 2.58F, 3.02F, 3.60F);
+        // Hit 1 (0.72s) -> Hit 2 (1.45s) -> High Overhead Open-Elbow Apex (1.92..2.12s) -> Heavy Ground-Pinned Slam (2.36..2.82s) -> Push-Up Settle!
+        float[] t = f(0.0F, 0.44F, 0.58F, 0.72F, 1.14F, 1.30F, 1.45F, 1.92F, 2.12F, 2.25F, 2.36F, 2.82F, 3.22F, 3.60F);
         c.pos("body", t,
-                f(0, -2.2F, -0.4F,  2.4F,  2.2F,  0.4F, -2.4F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F, 0),
-                f(0, -0.8F, -1.6F, -2.4F, -0.8F, -1.6F, -2.6F, -1.6F, -1.4F, -4.2F, -3.8F, -1.8F, 0),
-                f(0,  2.0F, -1.0F, -3.8F, -1.6F, -3.2F, -4.8F,  1.2F, -1.8F, -5.8F, -5.4F, -2.8F, 0));
-        // Continuous momentum: Deep cross-chest Hit 1 right -> Hit 2 left -> Towering +50 deg rear-up -> -18 deg slam!
+                f(0, -2.6F, -0.4F,  2.8F,  2.6F,  0.4F, -2.8F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F, 0),
+                f(0, -0.8F, -1.8F, -2.6F, -0.8F, -1.8F, -2.8F, -1.2F, -1.0F, -1.6F, -6.2F, -5.8F, -2.0F, 0),
+                f(0,  2.4F, -1.4F, -5.0F, -2.2F, -4.0F, -6.0F,  1.6F,  1.6F, -2.4F, -7.2F, -6.8F, -2.6F, 0));
         c.rot("torso", t,
-                f(0,   6,   0, -10,   6,   0, -11,  50,  14, -18, -16,  -6, 0),
-                f(0, -42,   2,  46,  42,  -2, -46,   0,   0,   0,   0,   0, 0),
-                f(0,   8,   2, -12,  -8,  -2,  12,   0,   0,   0,   0,   0, 0));
+                f(0,   8,   0, -12,   8,   0, -13,  54,  52,  14, -22, -20,  -6, 0),
+                f(0, -48,   2,  54,  48,  -2, -54,   0,   0,   0,   0,   0,   0, 0),
+                f(0,  10,   2, -14, -10,  -2,  14,   0,   0,   0,   0,   0,   0, 0));
         c.rot("neck", t,
-                f(0,   6,   0,  -6,   6,   0,  -7,  26,   8, -14, -12,  -4, 0),
-                f(0,  16,   0, -18, -16,   0,  18,   0,   0,   0,   0,   0, 0),
-                f(0,  -4,   0,   5,   4,   0,  -5,   0,   0,   0,   0,   0, 0));
+                f(0,   7,   0,  -8,   7,   0,  -8,  30,  28,   8, -18, -16,  -5, 0),
+                f(0,  18,   0, -22, -18,   0,  22,   0,   0,   0,   0,   0,   0, 0),
+                f(0,  -5,   0,   6,   5,   0,  -6,   0,   0,   0,   0,   0,   0, 0));
         c.rot("head", t,
-                f(0,   6,   0,  -4,   6,   0,  -5,  18,   6, -10,  -9,  -3, 0),
-                f(0,  15,   0, -17, -15,   0,  17,   0,   0,   0,   0,   0, 0),
-                f(0,  -5,   0,   6,   5,   0,  -6,   0,   0,   0,   0,   0, 0));
-        c.rot("jaw", t, f(0, 18, 32, 38, 22, 36, 42, 58, 52, 46, 38, 12, 0), f(0,0,0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0,0,0));
-        // Right arm: Wide open-shoulder windup -> full cross-chest slash past centerline -> plants -> Hit 3 overhead!
+                f(0,   7,   0,  -5,   7,   0,  -6,  22,  20,   6, -14, -12,  -4, 0),
+                f(0,  17,   0, -20, -17,   0,  20,   0,   0,   0,   0,   0,   0, 0),
+                f(0,  -6,   0,   7,   6,   0,  -7,   0,   0,   0,   0,   0,   0, 0));
+        c.rot("jaw", t, f(0, 20, 34, 42, 24, 38, 46, 62, 64, 54, 48, 36, 12, 0), f(0,0,0,0,0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0,0,0,0,0));
+        // Fixed arm vy sign: outward open-elbow overhead raise (arm_right vy=+22, arm_left vy=-22) -> deep chest-crushing double slam!
         c.rot("arm_right", t,
-                f(0,  74,  48,  22,   4,   2,   6, 114,  68,  10,  12,   6, 0),
-                f(0, -48,   4,  58,   4,   0,   0, -22,  -8,   8,   6,   2, 0),
-                f(0, -58, -28,  22,   4,   0,  -6, -44, -26, -12, -10,  -4, 0));
+                f(0,  82,  50,  22,   4,   2,   6, 126, 132,  72,  28,  26,   8, 0),
+                f(0,  46,  -4, -52,  -4,   0,   0,  22,  24,   6,  -8,  -6,  -2, 0),
+                f(0, -62, -30,  22,   4,   0,  -6, -50, -54, -26, -38, -34, -10, 0));
         c.rot("forearm_right", t,
-                f(0,  28,  14,  10,  -8,  -2,   6,  34,  18,   6,   8,   4, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0, -18,  -6,  12,   0,   0,   0, -14,  -6,   0,   0,   0, 0));
-        // Left arm: plants cleanly -> Wide open-shoulder windup -> full cross-chest slash past centerline -> Hit 3 overhead!
+                f(0,  28,  14,  10,  -8,  -2,   6,  22,  24,  14,  16,  14,   4, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,  16,   6, -10,   0,   0,   0,  14,  14,   6,  28,  24,   5, 0));
         c.rot("arm_left", t,
-                f(0,   4,   2,   6,  74,  48,  22, 114,  68,  10,  12,   6, 0),
-                f(0,  -4,   0,   0,  48,  -4, -58,  22,   8,  -8,  -6,  -2, 0),
-                f(0,  -4,   0,   6,  58,  28, -22,  44,  26,  12,  10,   4, 0));
+                f(0,   4,   2,   6,  82,  50,  22, 126, 132,  72,  28,  26,   8, 0),
+                f(0,   4,   0,   0, -46,   4,  52, -22, -24,  -6,   8,   6,   2, 0),
+                f(0,  -4,   0,   6,  62,  30, -22,  50,  54,  26,  38,  34,  10, 0));
         c.rot("forearm_left", t,
-                f(0,  -8,  -2,   6,  28,  14,  10,  34,  18,   6,   8,   4, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,  18,   6, -12,  14,   6,   0,   0,   0, 0));
-        // Hind legs stay solidly planted on ground during ALL 3 hits (including Hit 3 rear-up AND slam!)
+                f(0,  -8,  -2,   6,  28,  14,  10,  22,  24,  14,  16,  14,   4, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0, -16,  -6,  10, -14, -14,  -6, -28, -24,  -5, 0));
+        // Alternating hind stride on Hit 1 & Hit 2 -> braced rear-up -> deep slammed squat
         c.rot("leg_left", t,
-                f(0,  -8,  -2,   8,  -8,  -2,   8, -36, -10,  16,  14,   6, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,   2,   3,   4,   2,   3,   4,  10,   8,   8,   8,   4, 0));
+                f(0, -10,  -4,  14,  -6,  -2,   6, -38, -38, -10,  24,  22,   6, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   2,   3,   4,   2,   3,   4,  10,  10,   8,  16,  14,   4, 0));
         c.rot("shin_left", t,
-                f(0,   8,   2,  -8,   8,   2,  -8,  20,   6, -14, -12,  -6, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
+                f(0,  10,   4, -14,   6,   2,  -6,  22,  22,   6, -24, -22,  -6, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  -8,  -6,   0, 0));
         c.rot("leg_right", t,
-                f(0,  -8,  -2,   8,  -8,  -2,   8, -36, -10,  16,  14,   6, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,  -2,  -3,  -4,  -2,  -3,  -4, -10,  -8,  -8,  -8,  -4, 0));
+                f(0,  -6,  -2,   6, -10,  -4,  14, -38, -38, -10,  24,  22,   6, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,  -2,  -3,  -4,  -2,  -3,  -4, -10, -10,  -8, -16, -14,  -4, 0));
         c.rot("shin_right", t,
-                f(0,   8,   2,  -8,   8,   2,  -8,  20,   6, -14, -12,  -6, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
-        // Tail counter-pitches UP (-vx = -48 deg) during Hit 3 rear-up so it braces cleanly above floor, then whips up slightly on slam!
+                f(0,   6,   2,  -6,  10,   4, -14,  22,  22,   6, -24, -22,  -6, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8,   6,   0, 0));
         c.rot("tail_1", t,
-                f(0, -10,  -2,   6, -10,  -2,   6, -48, -14,   4,   6,   2, 0),
-                f(0,  16,   0, -20, -16,   0,  22,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
+                f(0, -12,  -2,   6, -12,  -2,   6, -54, -52, -14,   4,   6,   2, 0),
+                f(0,  20,   0, -26, -20,   0,  28,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
         c.rot("tail_2", t,
-                f(0,  -6,   0,   4,  -6,   0,   4, -18,  -6,   2,   4,   2, 0),
-                f(0,  22,   0, -26, -22,   0,  28,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
+                f(0,  -6,   0,   4,  -6,   0,   4, -22, -20,  -6,   2,   4,   2, 0),
+                f(0,  26,   0, -34, -26,   0,  36,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
         c.rot("tail_3", t,
-                f(0,  -4,   0,   2,  -4,   0,   2,  -8,  -2,   0,   2,   0, 0),
-                f(0,  26,   0, -30, -26,   0,  32,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
+                f(0,  -4,   0,   2,  -4,   0,   2,  -8,  -8,  -2,   0,   2,   0, 0),
+                f(0,  32,   0, -40, -32,   0,  42,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
         c.rot("tail_4", t,
-                f(0,  -2,   0,   2,  -2,   0,   2,  -4,   0,  -2,   0,   0, 0),
-                f(0,  30,   0, -34, -30,   0,  36,   0,   0,   0,   0,   0, 0),
-                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
+                f(0,  -2,   0,   2,  -2,   0,   2,  -4,  -4,   0,  -2,   0,   0, 0),
+                f(0,  36,   0, -44, -36,   0,  46,   0,   0,   0,   0,   0,   0, 0),
+                f(0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0));
         return c;
     }
 
     // =========================================================================
+    // 7. ATTACK WHIRLWIND    // =========================================================================
     // 7. ATTACK WHIRLWIND (2.60s — 1.mp4 00:56-00:59)
     //    Low coil + look over shoulder -> blazing 0.60s 360-deg horizontal tail cyclone -> skid-brake overshoot!
     // =========================================================================
     private static Clip build_attack_whirlwind() {
         Clip c = new Clip("attack_whirlwind", 2.60F, false);
-        float[] t = f(0.0F, 0.30F, 0.55F, 0.75F, 0.95F, 1.15F, 1.46F, 1.92F, 2.60F);
-        c.pos("body", t, f(0,0,0,0,0,0,0,0,0), f(0, -2.0F, -3.4F, -2.6F, -2.4F, -2.8F, -3.2F, -1.4F, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("body", t, f(0,0,0,0,0,0,0,0,0), f(0, -28, -54, 72, 236, 386, 352, 360, 360), f(0,0,0,0,0,0,0,0,0));
-        c.rot("torso", t, f(0, 4, 6, 8, 8, 6, 4, 2, 0), f(0, -14, -24, 24, 22, 16, -8, 0, 0), f(0, -5, -8, 10, 10, 8, -4, 0, 0));
-        c.rot("neck", t, f(0, 4, 6, 4, 4, 3, 2, 0, 0), f(0, -20, -36, 28, 24, 16, -6, 0, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, 2, 4, 3, 3, 2, 1, 0, 0), f(0, -22, -40, 26, 22, 14, -6, 0, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("jaw", t, f(0, 10, 20, 36, 38, 32, 14, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("arm_left", t, f(0, -10, -16, 14, 16, 12, -8, -3, 0), f(0,0,0,0,0,0,0,0,0), f(0, 12, 18, 26, 28, 22, 12, 5, 0));
-        c.rot("forearm_left", t, f(0, -12, -18, -24, -26, -20, -12, -4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("arm_right", t, f(0, 8, 14, -14, -16, -12, 8, 3, 0), f(0,0,0,0,0,0,0,0,0), f(0, -12, -18, -26, -28, -22, -12, -5, 0));
-        c.rot("forearm_right", t, f(0, -10, -16, -24, -26, -20, -12, -4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_left", t, f(0, 4, 6, -6, -6, -4, 6, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0,4,6,8,8,6,4,2,0));
-        c.rot("shin_left", t, f(0, -6, -8, 6, 6, 4, -6, -2, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, 4, 6, -6, -6, -4, 6, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0,-4,-6,-8,-8,-6,-4,-2,0));
-        c.rot("shin_right", t, f(0, -6, -8, 6, 6, 4, -6, -2, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Tail stretches STRAIGHT & HORIZONTAL like a sweeping lotus mace blade (Y ~ 14-18px)!
-        c.rot("tail_1", t, f(0, -8, -14, -16, -16, -14, -6, -2, 0), f(0, -10, -18, -32, -30, -22, 14, 4, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -6, -10, -12, -12, -10, -4, -1, 0), f(0, -14, -24, -38, -36, -26, 18, 6, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  2,   4,   4,   4,   4,  2,  0, 0), f(0, -16, -28, -42, -40, -30, 20, 6, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  4,   6,   6,   6,   6,  2,  0, 0), f(0, -18, -32, -46, -44, -34, 22, 6, 0), f(0,0,0,0,0,0,0,0,0));
+        // Ultra-low crouched coil (0.00..0.52s) -> blazing 0.52s 360-deg tail-whip spin (0.52..1.04s) -> skid-brake whip overshoot (1.36s) -> low settle!
+        float[] t = f(0.0F, 0.28F, 0.52F, 0.70F, 0.88F, 1.04F, 1.36F, 1.88F, 2.60F);
+        c.pos("body", t, f(0,0,0,0,0,0,0,0,0), f(0, -2.6F, -4.4F, -4.2F, -4.0F, -4.2F, -4.4F, -1.8F, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("body", t, f(0,0,0,0,0,0,0,0,0), f(0, -30, -58, 92, 262, 392, 350, 360, 360), f(0,0,0,0,0,0,0,0,0));
+        // Torso pitches DOWN (-8 deg) hugging the earth so the boss never rears up during the tail spin!
+        c.rot("torso", t, f(0, -4, -6, -6, -6, -5, -4, -2, 0), f(0, -16, -28, 30, 26, 18, -12, 0, 0), f(0, -2, -4, 4, 4, 3, -2, 0, 0));
+        c.rot("neck", t, f(0, -2, -4, -3, -3, -2, -2, 0, 0), f(0, -22, -38, 34, 28, 18, -10, 0, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 0, -2, -2, -2, -1, 0, 0, 0), f(0, -24, -42, 32, 26, 16, -8, 0, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 12, 22, 38, 42, 34, 16, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Wide crouched spider-like bracing limbs tucked low so enforceFloorContact never pushes the body upward
+        c.rot("arm_left", t, f(0, 14, 22, 24, 24, 20, 14, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 24, 34, 38, 38, 32, 22, 8, 0));
+        c.rot("forearm_left", t, f(0, 10, 14, 14, 14, 12, 10, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0, -22, -30, -34, -34, -28, -18, -6, 0));
+        c.rot("arm_right", t, f(0, 14, 22, 24, 24, 20, 14, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -24, -34, -38, -38, -32, -22, -8, 0));
+        c.rot("forearm_right", t, f(0, 10, 14, 14, 14, 12, 10, 4, 0), f(0,0,0,0,0,0,0,0,0), f(0, 22, 30, 34, 34, 28, 18, 6, 0));
+        c.rot("leg_left", t, f(0, 16, 24, 24, 24, 20, 16, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 12, 18, 20, 20, 16, 12, 4, 0));
+        c.rot("shin_left", t, f(0, -18, -26, -26, -26, -22, -18, -6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -8, -12, -14, -14, -10, -8, -2, 0));
+        c.rot("leg_right", t, f(0, 16, 24, 24, 24, 20, 16, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -12, -18, -20, -20, -16, -12, -4, 0));
+        c.rot("shin_right", t, f(0, -18, -26, -26, -26, -22, -18, -6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 8, 12, 14, 14, 10, 8, 2, 0));
+        // True centrifugal whip tail: coils OPPOSITE (+vy) during wind-up -> snaps into deep trailing C-curve (-38..-58) during 360 spin -> whips PAST (+24..+44) on skid-brake!
+        c.rot("tail_1", t, f(0, -2, -4, -6, -6, -4, -2, -1, 0), f(0, 14, 22, -38, -36, -26, 22, 6, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -2, -4, -4, -4, -4, -2,  0, 0), f(0, 18, 28, -46, -44, -32, 28, 8, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  2,  4,  4,  4,  4,  2,  0, 0), f(0, 22, 34, -52, -50, -38, 34, 8, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  4,  6,  6,  6,  6,  2,  0, 0), f(0, 26, 40, -58, -56, -42, 40, 10, 0), f(0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 8. ATTACK BURROW    // =========================================================================
     // 8. ATTACK BURROW (4.40s — 1.mp4 00:19-00:28 & 2.mp4 00:02-00:10, 00:47-00:58)
     //    Nose-dive into earth -> Dorsal crystal mane plowing -> Explosive Breach (2.90s) -> Clean Ground Slam (3.22s)!
     // =========================================================================
@@ -976,100 +993,102 @@ public final class PrimoGeovishapAnimations {
     // =========================================================================
     private static Clip build_attack_scattered_rocks() {
         Clip c = new Clip("attack_scattered_rocks", 3.20F, false);
-        float[] t = f(0.0F, 0.45F, 0.98F, 1.22F, 1.82F, 2.06F, 2.66F, 3.20F);
-        c.pos("body", t, f(0,0,0,0,0,0,0,0), f(0, -1.6F, 4.2F, 3.6F, 4.2F, 3.4F, -2.0F, 0), f(0, -1.4F, -3.5F, -2.6F, -3.5F, -2.4F, -0.8F, 0));
-        c.rot("torso", t, f(0, -18, -50, -42, -50, -40, -8, 0), f(0, 0, -8, 12, 10, -14, 0, 0), f(0, 0, -4, 5, 4, -5, 0, 0));
-        c.rot("neck", t, f(0, 12, 32, 26, 32, 24, 6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, 10, 18, 14, 18, 14, 4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("jaw", t, f(0, 12, 24, 36, 24, 38, 10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        float[] t = f(0.0F, 0.45F, 0.96F, 1.22F, 1.80F, 2.06F, 2.66F, 3.20F);
+        c.pos("body", t, f(0,0,0,0,0,0,0,0), f(0, -1.6F, 3.8F, 4.6F, 3.8F, 4.6F, -2.0F, 0), f(0, -1.4F, -2.8F, -4.4F, -2.8F, -4.4F, -0.8F, 0));
+        c.rot("torso", t, f(0, -18, -44, -54, -44, -54, -8, 0), f(0, 0, -10, 12, 10, -12, 0, 0), f(0, 0, -4, 5, 4, -5, 0, 0));
+        c.rot("neck", t, f(0, 12, 28, 34, 28, 34, 6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 10, 16, 20, 16, 20, 4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 12, 22, 40, 22, 42, 10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
         // Forelimbs brace straight down as handstand pillars!
-        c.rot("arm_left", t, f(0, 20, 48, 42, 48, 40, 8, 0), f(0,0,0,0,0,0,0,0), f(0, 8, 14, 12, 14, 12, 5, 0));
-        c.rot("forearm_left", t, f(0, -6, -14, -12, -14, -12, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("arm_right", t, f(0, 20, 48, 42, 48, 40, 8, 0), f(0,0,0,0,0,0,0,0), f(0, -8, -14, -12, -14, -12, -5, 0));
-        c.rot("forearm_right", t, f(0, -6, -14, -12, -14, -12, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("arm_left", t, f(0, 20, 44, 52, 44, 52, 8, 0), f(0,0,0,0,0,0,0,0), f(0, 8, 14, 16, 14, 16, 5, 0));
+        c.rot("forearm_left", t, f(0, -6, -12, -14, -12, -14, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("arm_right", t, f(0, 20, 44, 52, 44, 52, 8, 0), f(0,0,0,0,0,0,0,0), f(0, -8, -14, -16, -14, -16, -5, 0));
+        c.rot("forearm_right", t, f(0, -6, -12, -14, -12, -14, -4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
         // Hind legs tuck cleanly in the air during handstand then plant back down at 2.66s!
-        c.rot("leg_left", t, f(0, -8, -32, -26, -32, -24, 6, 0), f(0,0,0,0,0,0,0,0), f(0,4,10,8,10,8,4,0));
-        c.rot("shin_left", t, f(0, -12, -28, -22, -28, -20, -6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, -8, -32, -26, -32, -24, 6, 0), f(0,0,0,0,0,0,0,0), f(0,-4,-10,-8,-10,-8,-4,0));
-        c.rot("shin_right", t, f(0, -12, -28, -22, -28, -20, -6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        // CORRECT SIGN: negative vx (+xRot) coils scorpion tail HIGH & FORWARD over back at windup (0.92s & 1.72s),
-        // then snaps outward/forward (+vx + lateral yaw whip) at 1.24s & 2.14s to sling Elemental Stones!
-        c.rot("tail_1", t, f(0, -8, -24,  18, -24,  18, 4, 0), f(0, 0, -18, 26, 18, -28, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -8, -26,  16, -26,  16, 2, 0), f(0, 0, -22, 32, 22, -34, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0, -6, -24,  14, -24,  14, 0, 0), f(0, 0, -26, 36, 26, -38, 0, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0, -4, -20,  12, -20,  12, 0, 0), f(0, 0, -30, 40, 30, -42, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("leg_left", t, f(0, -8, -28, -36, -28, -36, 6, 0), f(0,0,0,0,0,0,0,0), f(0,4,10,12,10,12,4,0));
+        c.rot("shin_left", t, f(0, -12, -24, -30, -24, -30, -6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, -8, -28, -36, -28, -36, 6, 0), f(0,0,0,0,0,0,0,0), f(0,-4,-10,-12,-10,-12,-4,0));
+        c.rot("shin_right", t, f(0, -12, -24, -30, -24, -30, -6, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        // TRUE MID-RANGE SCORPION WHIP: cocks HIGH & BACK (+vx, Z~+45) at windup (0.96s & 1.80s),
+        // then lashes OVERHEAD & EXTENDS FAR FORWARD (-vx, Z < -25 past head!) at 1.22s & 2.06s to sling Elemental Stones!
+        c.rot("tail_1", t, f(0,  4,  16, -50,  16, -50, 4, 0), f(0, 0, -18,  8, 18,  -8, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0,  2,  14, -36,  14, -36, 2, 0), f(0, 0, -22, 10, 22, -10, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  0,  10, -24,  10, -24, 0, 0), f(0, 0, -24, 10, 24, -10, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  0,   8, -22,   8, -22, 0, 0), f(0, 0, -26, 10, 26, -10, 0, 0), f(0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 10. ATTACK ELEMENTAL BREATH    // =========================================================================
     // 10. ATTACK ELEMENTAL BREATH (4.20s — 1.mp4 00:40-00:46 & 2.mp4 00:00-00:02)
     //     ALL FOUR PAWS braced wide & solid on the ground -> inhale -> smooth 92-deg sweeping beam!
     // =========================================================================
     private static Clip build_attack_elemental_breath() {
         Clip c = new Clip("attack_elemental_breath", 4.20F, false);
-        // Synchronized 1:1 with renderer & server beam sweep: t=1.10s (-46 deg) -> t=2.10s (0) -> t=3.10s (+46 deg)
-        float[] t = f(0.0F, 0.65F, 1.10F, 1.60F, 2.10F, 2.60F, 3.10F, 3.65F, 4.20F);
+        // Distinct inhale pullback (0.55..0.90s) -> lunge down into 1:1 synced sweeping beam (1.10s -50deg -> 2.10s 0 -> 3.10s +50deg) -> settle
+        float[] t = f(0.0F, 0.55F, 0.90F, 1.10F, 1.60F, 2.10F, 2.60F, 3.10F, 3.65F, 4.20F);
         c.pos("body", t,
-                f(0, -0.7F, -0.9F, -0.4F, 0.0F, 0.4F, 0.9F, 0.3F, 0),
-                f(0, -1.6F, -2.0F, -2.2F, -2.2F, -2.2F, -2.0F, -0.8F, 0),
-                f(0,  2.2F,  2.8F,  3.0F,  3.2F,  3.0F,  2.6F,  0.8F, 0));
-        c.rot("torso", t, f(0, 3, 2, 2, 2, 2, 2, 0, 0), f(0, -11, -14, -7, 0, 7, 14, 4, 0), f(0, 2.5F, 3.5F, 1.8F, 0, -1.8F, -3.5F, 0, 0));
-        c.rot("neck", t, f(0, 4, -4, -5, -6, -5, -4, 0, 0), f(0, -15, -18, -9, 0, 9, 18, 6, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, 4, -4, -5, -6, -5, -4, 0, 0), f(0, -12, -14, -7, 0, 7, 14, 4, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("jaw", t, f(0, 30, 52, 54, 54, 54, 48, 12, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Braced wide quadruped stance: front paws stay SOLIDLY PLANTED on Y~23-24 (zero mid-air floating!)
-        c.rot("arm_left", t, f(0, -5, -6, -6, -6, -6, -5, -2, 0), f(0,0,0,0,0,0,0,0,0), f(0, 8, 10, 12, 12, 12, 10, 4, 0));
-        c.rot("forearm_left", t, f(0, 6, 8, 8, 8, 8, 6, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0, -6, -8, -10, -10, -10, -8, -3, 0));
-        c.rot("arm_right", t, f(0, -5, -6, -6, -6, -6, -5, -2, 0), f(0,0,0,0,0,0,0,0,0), f(0, -8, -10, -12, -12, -12, -10, -4, 0));
-        c.rot("forearm_right", t, f(0, 6, 8, 8, 8, 8, 6, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0, 6, 8, 10, 10, 10, 8, 3, 0));
-        c.rot("leg_left", t, f(0, -4, -5, -5, -5, -5, -4, -1, 0), f(0,0,0,0,0,0,0,0,0), f(0,4,6,6,6,6,4,2,0));
-        c.rot("shin_left", t, f(0, 5, 6, 6, 6, 6, 5, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("leg_right", t, f(0, -4, -5, -5, -5, -5, -4, -1, 0), f(0,0,0,0,0,0,0,0,0), f(0,-4,-6,-6,-6,-6,-4,-2,0));
-        c.rot("shin_right", t, f(0, 5, 6, 6, 6, 6, 5, 2, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+                f(0, -0.5F, -0.8F, -1.0F, -0.5F, 0.0F, 0.5F, 1.0F, 0.3F, 0),
+                f(0, -0.8F, -0.6F, -2.4F, -2.6F, -2.6F, -2.6F, -2.4F, -1.0F, 0),
+                f(0,  3.2F,  4.4F,  2.2F,  2.4F,  2.6F,  2.4F,  2.2F,  0.8F, 0));
+        c.rot("torso", t, f(0, 8, 12, 1, 1, 1, 1, 1, -2, 0), f(0, -10, -15, -16, -8, 0, 8, 16, 4, 0), f(0, 2.0F, 3.2F, 4.0F, 2.0F, 0, -2.0F, -4.0F, 0, 0));
+        c.rot("neck", t, f(0, 14, 20, -6, -7, -8, -7, -6, -1, 0), f(0, -14, -19, -20, -10, 0, 10, 20, 6, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 10, 14, -5, -6, -7, -6, -5, 0, 0), f(0, -12, -15, -16, -8, 0, 8, 16, 4, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 24, 40, 56, 58, 58, 58, 52, 14, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        // Braced wide quadruped stance: all 4 paws stay SOLIDLY PLANTED on Y~23-24
+        c.rot("arm_left", t, f(0, -6, -8, -6, -6, -6, -6, -5, -2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, 8, 10, 12, 14, 14, 14, 12, 4, 0));
+        c.rot("forearm_left", t, f(0, 8, 10, 8, 8, 8, 8, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, -6, -8, -10, -12, -12, -12, -10, -3, 0));
+        c.rot("arm_right", t, f(0, -6, -8, -6, -6, -6, -6, -5, -2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, -8, -10, -12, -14, -14, -14, -12, -4, 0));
+        c.rot("forearm_right", t, f(0, 8, 10, 8, 8, 8, 8, 6, 2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, 6, 8, 10, 12, 12, 12, 10, 3, 0));
+        c.rot("leg_left", t, f(0, -6, -8, -5, -5, -5, -5, -4, -1, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,4,6,6,6,6,6,4,2,0));
+        c.rot("shin_left", t, f(0, 7, 9, 6, 6, 6, 6, 5, 2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, -6, -8, -5, -5, -5, -5, -4, -1, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,-4,-6,-6,-6,-6,-6,-4,-2,0));
+        c.rot("shin_right", t, f(0, 7, 9, 6, 6, 6, 6, 5, 2, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
         // Tail counter-sweeps smoothly above ground (Y ~ 17-22px)
-        c.rot("tail_1", t, f(0, -4, -4, -4, -4, -4, -4, -1, 0), f(0, 12, 16, 8, 0, -8, -16, -4, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -2, -2, -2, -2, -2, -2,  0, 0), f(0, 16, 20, 10, 0, -10, -20, -4, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  0,  0,  0,  0,  0,  0,  0, 0), f(0, 20, 24, 12, 0, -12, -24, -4, 0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  0,  0,  0,  0,  0,  0,  0, 0), f(0, 22, 28, 14, 0, -14, -28, -4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_1", t, f(0, -10, -14, -4, -4, -4, -4, -4, -1, 0), f(0, 12, 16, 18, 9, 0, -9, -18, -4, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0,  -4,  -6, -2, -2, -2, -2, -2,  0, 0), f(0, 16, 20, 24, 12, 0, -12, -24, -4, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,   0,  -2,  0,  0,  0,  0,  0,  0, 0), f(0, 20, 24, 28, 14, 0, -14, -28, -4, 0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,   0,   0,  0,  0,  0,  0,  0,  0, 0), f(0, 22, 28, 32, 16, 0, -16, -32, -4, 0), f(0,0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 11. ATTACK PRIMORDIAL SHOWER    // =========================================================================
     // 11. ATTACK PRIMORDIAL SHOWER (4.60s — 1.mp4 00:33-00:39 & 2.mp4 00:18-00:24)
     //     Ultra-low grounded 4-paw trembling crouch -> explosive sky-roar eruption (t=2.35s) -> settle!
     // =========================================================================
     private static Clip build_attack_primordial_shower() {
         Clip c = new Clip("attack_primordial_shower", 4.60F, false);
-        // Tighter compression at 2.18s -> blazing 0.18s (3.6-tick) sky-roar snap at 2.36s!
-        float[] t = f(0.0F, 0.55F, 1.15F, 1.68F, 2.18F, 2.36F, 2.95F, 3.65F, 4.60F);
+        // Coiled-spring flat crouch (2.18s) -> explosive chest-open sky roar held proudly (2.36..3.15s) -> heavy forepaw slam settle (3.74s) -> idle!
+        float[] t = f(0.0F, 0.55F, 1.15F, 1.68F, 2.18F, 2.36F, 3.15F, 3.74F, 4.18F, 4.60F);
         c.pos("body", t,
-                f(0, 0,  0.9F, -0.9F,  1.0F, 0, 0, 0, 0),
-                // Deep chin-near-earth 4-paw compression (-4.6px) -> explosive sky-roar (+3.0px) -> settle!
-                f(0, -3.2F, -4.0F, -4.4F, -4.6F, 3.0F, 1.8F, -1.2F, 0),
-                f(0,  2.2F,  3.2F,  3.8F,  4.2F, -2.2F, -1.0F, 0.4F, 0));
-        c.rot("torso", t, f(0, -9, -11, -12, -14, 46, 34, -6, 0), f(0, 0, 3, -3, 4, 0, 0, 0, 0), f(0, 0, 2.5F, -2.5F, 3, 0, 0, 0, 0));
-        c.rot("neck", t, f(0, -18, -22, -25, -28, 32, 24, -6, 0), f(0,0,4,-4,5,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("head", t, f(0, -14, -18, -21, -24, 24, 16, -4, 0), f(0,0,5,-5,6,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("jaw", t, f(0, 18, 28, 36, 44, 66, 54, 18, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        // Wide splayed elbows hugging ground during crouch -> flung high & wide on eruption!
-        c.rot("arm_left", t, f(0, 14, 16, 18, 18, 78, 58, 8, 0), f(0, 10, 12, 14, 16, -26, -16, 0, 0), f(0, 20, 24, 26, 28, 54, 38, 8, 0));
-        c.rot("forearm_left", t, f(0, 10, 12, 14, 14, 34, 24, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -16, -20, -22, -24, 14, 8, 0, 0));
-        c.rot("arm_right", t, f(0, 14, 16, 18, 18, 78, 58, 8, 0), f(0, -10, -12, -14, -16, 26, 16, 0, 0), f(0, -20, -24, -26, -28, -54, -38, -8, 0));
-        c.rot("forearm_right", t, f(0, 10, 12, 14, 14, 34, 24, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 16, 20, 22, 24, -14, -8, 0, 0));
-        // Hind legs deeply bent & splayed wide during crouch (ZERO floating!) -> solidly braced during roar!
-        c.rot("leg_left", t, f(0, 16, 20, 22, 24, -32, -24, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0,12,14,16,16,8,6,4,0));
-        c.rot("shin_left", t, f(0, -20, -24, -26, -28, 18, 12, -8, 0), f(0,0,0,0,0,0,0,0,0), f(0,-8,-10,-10,-10,0,0,0,0));
-        c.rot("leg_right", t, f(0, 16, 20, 22, 24, -32, -24, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0,-12,-14,-16,-16,-8,-6,-4,0));
-        c.rot("shin_right", t, f(0, -20, -24, -26, -28, 18, 12, -8, 0), f(0,0,0,0,0,0,0,0,0), f(0,8,10,10,10,0,0,0,0));
-        // Tail stays low & tense during crouch (+vx counters -12 torso) -> counter-pitches UP (-46 deg) during roar!
-        c.rot("tail_1", t, f(0,  6,  8,  9, 10, -46, -36, 2, 0), f(0,0,-8,8,-8,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0,  4,  5,  6,  6, -18, -14, 2, 0), f(0,0,-12,12,-12,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  2,  2,  2,  2,  -8,  -6, 0, 0), f(0,0,-16,16,-16,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  0,  0,  0,  0,  -4,  -4, 0, 0), f(0,0,-20,20,-20,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+                f(0, 0,  0.9F, -0.9F,  1.0F, 0, 0, 0, 0, 0),
+                f(0, -4.0F, -4.8F, -5.2F, -5.6F, 3.4F, 2.6F, -2.6F, -1.2F, 0),
+                f(0,  2.4F,  3.4F,  4.0F,  4.4F, -2.4F, -1.6F, -1.2F, -0.4F, 0));
+        c.rot("torso", t, f(0, -8, -10, -11, -12, 52, 46, -12, -4, 0), f(0, 0, 3, -3, 4, 0, 0, 0, 0, 0), f(0, 0, 2.5F, -2.5F, 3, 0, 0, 0, 0, 0));
+        c.rot("neck", t, f(0, -18, -22, -25, -28, 38, 34, -10, -3, 0), f(0,0,4,-4,5,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, -14, -18, -21, -24, 28, 24, -8, -2, 0), f(0,0,5,-5,6,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 18, 28, 36, 44, 68, 62, 22, 8, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        // FIXED SIGN: negative vy on arm_left (+yRot) & positive vy on arm_right (-yRot) sweeps both arms WIDE OUT & BACK to fling the chest open!
+        c.rot("arm_left", t, f(0, 20, 22, 24, 26, 36, 30, 14, 5, 0), f(0, -8, -10, -12, -14, -44, -38, 0, 0, 0), f(0, 28, 34, 36, 38, 76, 68, 18, 6, 0));
+        c.rot("forearm_left", t, f(0, 12, 14, 16, 16, 16, 14, 10, 4, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, -24, -28, -30, -32, -16, -14, -12, -4, 0));
+        c.rot("arm_right", t, f(0, 20, 22, 24, 26, 36, 30, 14, 5, 0), f(0, 8, 10, 12, 14, 44, 38, 0, 0, 0), f(0, -28, -34, -36, -38, -76, -68, -18, -6, 0));
+        c.rot("forearm_right", t, f(0, 12, 14, 16, 16, 16, 14, 10, 4, 0), f(0,0,0,0,0,0,0,0,0,0), f(0, 24, 28, 30, 32, 16, 14, 12, 4, 0));
+        // Deep coiled hind-leg crouch -> solidly planted upright pillars during roar -> damped knee bend on slam
+        c.rot("leg_left", t, f(0, 22, 26, 30, 32, -38, -34, 14, 5, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,16,18,20,22,10,8,6,2,0));
+        c.rot("shin_left", t, f(0, -26, -32, -36, -38, 22, 18, -14, -5, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,-10,-12,-14,-14,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, 22, 26, 30, 32, -38, -34, 14, 5, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,-16,-18,-20,-22,-10,-8,-6,-2,0));
+        c.rot("shin_right", t, f(0, -26, -32, -36, -38, 22, 18, -14, -5, 0), f(0,0,0,0,0,0,0,0,0,0), f(0,10,12,14,14,0,0,0,0,0));
+        // Tail counter-pitches UP (-56 deg) during tall roar so it braces cleanly above ground!
+        c.rot("tail_1", t, f(0,  4,  6,  7,  8, -56, -48, 4, 2, 0), f(0,0,-8,8,-8,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0,  2,  3,  4,  4, -22, -18, 2, 1, 0), f(0,0,-12,12,-12,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  0,  0,  0,  0,  -8,  -6, 0, 0, 0), f(0,0,-16,16,-16,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  0,  0,  0,  0,  -4,  -4, 0, 0, 0), f(0,0,-20,20,-20,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 12. ATTACK PRIMEVAL SPRING    // =========================================================================
     // 12. ATTACK PRIMEVAL SPRING (3.40s — Near-Death <=20% HP Rear-Up Slam + Handstand Tail Barrage!)
     // =========================================================================
     private static Clip build_attack_primeval_spring() {
@@ -1088,11 +1107,11 @@ public final class PrimoGeovishapAnimations {
         c.rot("shin_left", t, f(0, 16, -14, -14, -22, -6, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
         c.rot("leg_right", t, f(0, -30, 14, 14, -28, 6, 0), f(0,0,0,0,0,0,0), f(0,-8,-6,-6,-8,-2,0));
         c.rot("shin_right", t, f(0, 16, -14, -14, -22, -6, 0), f(0,0,0,0,0,0,0), f(0,0,0,0,0,0,0));
-        // Counter-pitched tail on rear-up (0.70s) & clean scorpion whip at 2.05s!
-        c.rot("tail_1", t, f(0, -40, 6, 6, -18, 2, 0), f(0, 0, 0, 0, -24, 0, 0), f(0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -16, 4, 4, -20, 2, 0), f(0, 0, 0, 0, -30, 0, 0), f(0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  -6, 2, 2, -16, 0, 0), f(0, 0, 0, 0, -34, 0, 0), f(0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  -4, 0, 0, -12, 0, 0), f(0, 0, 0, 0, -38, 0, 0), f(0,0,0,0,0,0,0));
+        // Counter-pitched tail on rear-up (0.70s) -> long forward overhead scorpion lash at 2.05s!
+        c.rot("tail_1", t, f(0, -40, 6, 12, -52, 2, 0), f(0, 0, 0, 14, -10, 0, 0), f(0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -16, 4, 10, -38, 2, 0), f(0, 0, 0, 18, -12, 0, 0), f(0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  -6, 2,  8, -24, 0, 0), f(0, 0, 0, 20, -12, 0, 0), f(0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  -4, 0,  6, -22, 0, 0), f(0, 0, 0, 22, -12, 0, 0), f(0,0,0,0,0,0,0));
         return c;
     }
 
@@ -1102,35 +1121,36 @@ public final class PrimoGeovishapAnimations {
     // =========================================================================
     private static Clip build_countered_stagger() {
         Clip c = new Clip("countered_stagger", 5.00F, false);
-        float[] t = f(0.0F, 0.36F, 0.82F, 1.65F, 2.55F, 3.45F, 4.18F, 5.00F);
-        // True Genshin belly-collapse (-8.6px down, body rests flat on arena earth with limbs splayed wide!)
+        // Violent backward recoil (+62 deg at 0.34s!) -> heavy belly crash (0.98s) -> panting/groggy daze (0.98..3.75s) -> strained push-up + head-shake (3.75..5.00s)
+        float[] t = f(0.0F, 0.34F, 0.62F, 0.98F, 1.80F, 2.75F, 3.68F, 4.30F, 5.00F);
         c.pos("body", t,
-                f(0, 0, 1.4F, 1.2F, 0.8F, 1.2F, 0.4F, 0),
-                f(0, -1.4F, -8.6F, -8.8F, -8.3F, -8.6F, -3.4F, 0),
-                f(0, 5.6F, 7.6F, 7.4F, 7.2F, 6.8F, 2.8F, 0));
-        c.rot("torso", t, f(0, 36, -12, -14, -12, -13, -5, 0), f(0, 6, -10, -8, -10, -8, -3, 0), f(0, -5, 10, 10, 8, 9, 3, 0));
-        c.rot("neck", t, f(0, 26, -20, -24, -20, -22, -8, 0), f(0, 8, -14, 16, -16, 14, 0, 0), f(0, 0, 8, -6, 8, -5, 0, 0));
-        c.rot("head", t, f(0, 22, -14, -18, -14, -16, -6, 0), f(0, 10, -18, 22, -22, 18, 0, 0), f(0, 0, 10, -10, 10, -6, 0, 0));
-        c.rot("jaw", t, f(0, 52, 26, 22, 24, 20, 8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
-        // Splayed forelimbs collapsed flat on floor beside ribs
-        c.rot("arm_left", t, f(0, 64, 34, 32, 34, 30, 10, 0), f(0, 0, -16, -16, -16, -14, -4, 0), f(0, 38, 42, 40, 40, 36, 12, 0));
-        c.rot("forearm_left", t, f(0, 32, 16, 14, 16, 12, 4, 0), f(0,0,0,0,0,0,0,0), f(0, 0, -34, -34, -34, -30, -10, 0));
-        c.rot("arm_right", t, f(0, 64, 30, 28, 30, 26, 8, 0), f(0, 0, 16, 16, 16, 14, 4, 0), f(0, -38, -38, -36, -36, -32, -10, 0));
-        c.rot("forearm_right", t, f(0, 32, 14, 12, 14, 10, 4, 0), f(0,0,0,0,0,0,0,0), f(0, 0, 30, 30, 30, 26, 8, 0));
-        // Hind legs tucked wide & flat beside flanks so belly truly hits the floor without pushing body up!
-        c.rot("leg_left", t, f(0, -26, 54, 56, 54, 54, 18, 0), f(0,0,0,0,0,0,0,0), f(0, 8, 34, 34, 32, 32, 10, 0));
-        c.rot("shin_left", t, f(0, 14, -64, -66, -64, -62, -20, 0), f(0,0,0,0,0,0,0,0), f(0, 0, -24, -24, -24, -22, -8, 0));
-        c.rot("leg_right", t, f(0, -26, 54, 56, 54, 54, 18, 0), f(0,0,0,0,0,0,0,0), f(0, -8, -34, -34, -32, -32, -10, 0));
-        c.rot("shin_right", t, f(0, 14, -64, -66, -64, -62, -20, 0), f(0,0,0,0,0,0,0,0), f(0, 0, 24, 24, 24, 22, 8, 0));
-        // Tail drops limp onto the ground beside the hip
-        c.rot("tail_1", t, f(0, -36, 10, 12, 10, 10, 4, 0), f(0, 0, 16, 18, 16, 14, 4, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_2", t, f(0, -14, 4, 6, 4, 4, 2, 0), f(0, 0, 20, 22, 20, 18, 6, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_3", t, f(0,  -6, 0, 2, 0, 2, 0, 0), f(0, 0, 24, 26, 24, 20, 6, 0), f(0,0,0,0,0,0,0,0));
-        c.rot("tail_4", t, f(0,  -4, 0, 0, 0, 0, 0, 0), f(0, 0, 26, 28, 26, 22, 6, 0), f(0,0,0,0,0,0,0,0));
+                f(0, 0,  0.6F,  0.5F, -0.5F,  0.5F, -0.4F,  0.0F, 0),
+                f(0, 1.2F, -3.2F, -7.4F, -7.8F, -7.2F, -7.5F, -3.4F, 0),
+                f(0, 8.6F,  9.2F,  8.0F,  7.8F,  7.4F,  7.0F,  3.2F, 0));
+        c.rot("torso", t, f(0, 62, 18, -8, -10, -7, -9, -5, 0), f(0, 6, -4, -6, 6, -6, 5, -3, 0), f(0, -4, 3, 2.5F, -2.5F, 2.5F, -2.0F, 0, 0));
+        c.rot("neck", t, f(0, 38, 12, -20, -24, -18, -22, -10, 0), f(0, 8, -6, -16, 20, -20, 16, 4, 0), f(0, 0, 4, 8, -8, 8, -6, 0, 0));
+        c.rot("head", t, f(0, 32, 10, -14, -18, -12, -16, -6, 0), f(0, 10, -8, -20, 26, -26, 22, 6, 0), f(0, 0, 6, 10, -10, 10, -8, 0, 0));
+        c.rot("jaw", t, f(0, 60, 42, 26, 36, 20, 32, 10, 0), f(0,0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0,0));
+        // Arms flung wide outward on backward recoil -> splayed weakly flat on grass -> strained push-up
+        c.rot("arm_left", t, f(0, 42, 34, 34, 36, 34, 32, 14, 0), f(0, -44, -22, 14, 14, 14, 12, 4, 0), f(0, 74, 48, 38, 40, 38, 36, 14, 0));
+        c.rot("forearm_left", t, f(0, 18, 16, 14, 14, 14, 12, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, -16, -24, -32, -34, -32, -30, -10, 0));
+        c.rot("arm_right", t, f(0, 42, 34, 34, 36, 34, 32, 14, 0), f(0, 44, 22, -14, -14, -14, -12, -4, 0), f(0, -74, -48, -38, -40, -38, -36, -14, 0));
+        c.rot("forearm_right", t, f(0, 18, 16, 14, 14, 14, 12, 6, 0), f(0,0,0,0,0,0,0,0,0), f(0, 16, 24, 32, 34, 32, 30, 10, 0));
+        // Hind legs buckle cleanly -> symmetrically folded flat beside hips -> heave back up
+        c.rot("leg_left", t, f(0, -44, 12, 48, 50, 48, 48, 18, 0), f(0,0,0,0,0,0,0,0,0), f(0, 10, 18, 28, 28, 28, 26, 8, 0));
+        c.rot("shin_left", t, f(0, 24, -14, -56, -58, -56, -56, -20, 0), f(0,0,0,0,0,0,0,0,0), f(0, 0, -10, -20, -20, -20, -18, -6, 0));
+        c.rot("leg_right", t, f(0, -44, 12, 48, 50, 48, 48, 18, 0), f(0,0,0,0,0,0,0,0,0), f(0, -10, -18, -28, -28, -28, -26, -8, 0));
+        c.rot("shin_right", t, f(0, 24, -14, -56, -58, -56, -56, -20, 0), f(0,0,0,0,0,0,0,0,0), f(0, 0, 10, 20, 20, 20, 18, 6, 0));
+        // Tail counter-pitches strongly UP (-64 deg) during recoil so it NEVER stabs underground, then drops limp
+        c.rot("tail_1", t, f(0, -64, -18, 4, 6, 4, 5, 2, 0), f(0, 0, 8, 12, 16, 12, 10, 4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -24,  -8, 2, 3, 2, 2, 1, 0), f(0, 0, 12, 16, 20, 16, 14, 4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0, -10,  -2, 0, 1, 0, 1, 0, 0), f(0, 0, 16, 20, 24, 20, 16, 4, 0), f(0,0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  -6,   0, 0, 0, 0, 0, 0, 0), f(0, 0, 18, 22, 26, 22, 18, 4, 0), f(0,0,0,0,0,0,0,0,0));
         return c;
     }
 
     // =========================================================================
+    // 14. DEATH    // =========================================================================
     // 14. DEATH (3.60s): Agonized grounded rear-up -> heavy buckling crash sideways onto earth
     // =========================================================================
     private static Clip build_death() {
@@ -1184,6 +1204,75 @@ public final class PrimoGeovishapAnimations {
         c.rot("tail_2", t, f(2.0F, 2.5F, 3.0F, 2.5F, 2.0F), f(-26.0F, -25.0F, -24.0F, -25.0F, -26.0F), f(0,0,0,0,0));
         c.rot("tail_3", t, f(0.0F, 0.5F, 1.0F, 0.5F, 0.0F), f(-30.0F, -29.0F, -28.0F, -29.0F, -30.0F), f(0,0,0,0,0));
         c.rot("tail_4", t, f(-2.0F, -1.0F, -0.5F, -1.5F, -2.0F), f(-32.0F, -30.0F, -29.0F, -31.0F, -32.0F), f(0,0,0,0,0));
+        return c;
+    }
+
+    // =========================================================================
+    // 16. ATTACK REAR TAIL SLAM (2.40s — Anti-Flank Behind Tail):
+    //     Looks back over shoulder -> arches tail HIGH UP overhead behind hips (0.58s)
+    //     -> heavy vertical slam straight down onto ground behind boss (t=0.90s = tick 18) -> settle!
+    // =========================================================================
+    private static Clip build_attack_rear_tail_slam() {
+        Clip c = new Clip("attack_rear_tail_slam", 2.40F, false);
+        float[] t = f(0.0F, 0.34F, 0.62F, 0.78F, 0.90F, 1.32F, 1.85F, 2.40F);
+        c.pos("body", t,
+                f(0,  0.4F,  0.6F,  0.2F,  0.0F,  0.0F,  0.0F, 0),
+                f(0, -1.2F, -1.8F, -0.6F, -2.6F, -2.2F, -0.8F, 0),
+                f(0, -1.6F, -2.8F, -1.0F,  2.2F,  1.8F,  0.6F, 0));
+        c.rot("torso", t, f(0, -8, -14, -4, 6, 4, 1, 0), f(0, 10, 18, 12, 8, 6, 2, 0), f(0, -2, -4, -2, 2, 1, 0, 0));
+        c.rot("neck", t, f(0, 6, 12, 6, -4, -3, -1, 0), f(0, 14, 24, 18, 14, 10, 4, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, 4, 10, 6, -2, -2, 0, 0), f(0, 16, 28, 22, 16, 12, 4, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 10, 22, 32, 42, 24, 8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        // Forelimbs plant wide & solid to anchor the massive rear tail hammer
+        c.rot("arm_left", t, f(0, 8, 14, 4, -6, -4, -1, 0), f(0,0,0,0,0,0,0,0), f(0, 6, 10, 8, 10, 8, 3, 0));
+        c.rot("forearm_left", t, f(0, -4, -6, -2, 6, 4, 2, 0), f(0,0,0,0,0,0,0,0), f(0, -4, -8, -6, -8, -6, -2, 0));
+        c.rot("arm_right", t, f(0, 8, 14, 4, -6, -4, -1, 0), f(0,0,0,0,0,0,0,0), f(0, -6, -10, -8, -10, -8, -3, 0));
+        c.rot("forearm_right", t, f(0, -4, -6, -2, 6, 4, 2, 0), f(0,0,0,0,0,0,0,0), f(0, 4, 8, 6, 8, 6, 2, 0));
+        // Hind legs brace strongly on the ground throughout
+        c.rot("leg_left", t, f(0, 8, 12, 4, -6, -4, -1, 0), f(0,0,0,0,0,0,0,0), f(0,4,6,6,8,6,2,0));
+        c.rot("shin_left", t, f(0, -8, -12, -4, 6, 4, 1, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, 8, 12, 4, -6, -4, -1, 0), f(0,0,0,0,0,0,0,0), f(0,-4,-6,-6,-8,-6,-2,0));
+        c.rot("shin_right", t, f(0, -8, -12, -4, 6, 4, 1, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        // Tail curls HIGH UP (-vx) at 0.62s -> SLAMS flat straight down onto rear grass at 0.90s (Y ~ 21..23.5, zero underground!)
+        c.rot("tail_1", t, f(0, -28, -50, -32,   8,   6,  2, 0), f(0, -4, -6, -2, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0, -22, -38, -24,   2,   2,  1, 0), f(0, -4, -6, -2, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0, -14, -24, -14, -10,  -8, -2, 0), f(0, -4, -6, -2, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0, -10, -16,  -8, -14, -12, -4, 0), f(0, -4, -6, -2, 0, 0, 0, 0), f(0,0,0,0,0,0,0,0));
+        return c;
+    }
+
+    // =========================================================================
+    // 17. ATTACK VERTICAL TAIL CLEAVE (2.90s — Mid-Range Vertical Spine Curl + Overhead Forward Tail Chop):
+    //     Low spine coil (0.48s) -> steep vertical handstand curl hoisting hips & tail over back (0.96s)
+    //     -> explosive straight-overhead forward tail cleave (t=1.25s = tick 25) -> heavy impact hold -> uncurl!
+    // =========================================================================
+    private static Clip build_attack_vertical_tail_cleave() {
+        Clip c = new Clip("attack_vertical_tail_cleave", 2.90F, false);
+        float[] t = f(0.0F, 0.46F, 0.96F, 1.12F, 1.25F, 1.66F, 2.22F, 2.90F);
+        c.pos("body", t,
+                f(0, 0, 0, 0, 0, 0, 0, 0),
+                f(0, -3.4F, 5.2F, 6.2F, 5.4F, 4.4F, -2.2F, 0),
+                f(0,  2.0F, -2.4F, -3.8F, -5.8F, -5.2F, -1.6F, 0));
+        // Steep vertical forward curl: torso pitches deeply nose-down (-64 deg) so spine curls vertically over forepaws!
+        c.rot("torso", t, f(0, -18, -56, -68, -62, -56, -12, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("neck", t, f(0, -14, 24, 34, 38, 34, 8, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("head", t, f(0, -10, 14, 22, 26, 22, 5, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("jaw", t, f(0, 14, 30, 48, 56, 40, 12, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        // Forelimbs brace straight & powerful as vertical handstand pillars
+        c.rot("arm_left", t, f(0, 18, 54, 66, 60, 54, 12, 0), f(0,0,0,0,0,0,0,0), f(0, 12, 18, 20, 22, 20, 6, 0));
+        c.rot("forearm_left", t, f(0, 6, -16, -20, -18, -16, -4, 0), f(0,0,0,0,0,0,0,0), f(0, -10, -12, -14, -14, -12, -4, 0));
+        c.rot("arm_right", t, f(0, 18, 54, 66, 60, 54, 12, 0), f(0,0,0,0,0,0,0,0), f(0, -12, -18, -20, -22, -20, -6, 0));
+        c.rot("forearm_right", t, f(0, 6, -16, -20, -18, -16, -4, 0), f(0,0,0,0,0,0,0,0), f(0, 10, 12, 14, 14, 12, 4, 0));
+        // Hind legs tuck tightly curled into the vertical wheel, then replant firmly at 2.22s
+        c.rot("leg_left", t, f(0, 16, -34, -46, -42, -38, 10, 0), f(0,0,0,0,0,0,0,0), f(0, 8, 14, 16, 16, 14, 4, 0));
+        c.rot("shin_left", t, f(0, -20, -34, -44, -40, -36, -10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("leg_right", t, f(0, 16, -34, -46, -42, -38, 10, 0), f(0,0,0,0,0,0,0,0), f(0, -8, -14, -16, -16, -14, -4, 0));
+        c.rot("shin_right", t, f(0, -20, -34, -44, -40, -36, -10, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        // Tail coils high vertically at 0.96s -> CHOPS STRAIGHT OVERHEAD DOWN IN FRONT OF FACE (-Z) at 1.25s!
+        c.rot("tail_1", t, f(0, 10, -26, -46, -64, -58, 4, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_2", t, f(0,  8, -18, -34, -44, -40, 2, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_3", t, f(0,  4, -10, -20, -26, -24, 0, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
+        c.rot("tail_4", t, f(0,  2,  -6, -14, -18, -16, 0, 0), f(0,0,0,0,0,0,0,0), f(0,0,0,0,0,0,0,0));
         return c;
     }
 }
