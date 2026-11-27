@@ -241,10 +241,10 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
             double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
-            tFL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.15D,  1.25D, 1.35F, 1.10F);
-            tFR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.15D,  1.25D, 1.35F, 1.10F);
-            tBL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.05D, -1.25D, 1.35F, 1.10F);
-            tBR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.05D, -1.25D, 1.35F, 1.10F);
+            tFL = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw, -1.15D,  1.25D, 0.42D, 1.35F, 1.25F);
+            tFR = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw,  1.15D,  1.25D, 0.42D, 1.35F, 1.25F);
+            tBL = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw, -1.05D, -1.25D, 0.42D, 1.35F, 1.25F);
+            tBR = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw,  1.05D, -1.25D, 0.42D, 1.35F, 1.25F);
         }
         ws.ikFL = Mth.lerp(0.24F, ws.ikFL, tFL);
         ws.ikFR = Mth.lerp(0.24F, ws.ikFR, tFR);

@@ -8,22 +8,54 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * Lightweight 2-Bone Analytical Foot IK &amp; terrain height sampler for multi-legged bosses
+ * Lightweight 2-Bone Analytical Foot IK &amp; multi-point footprint terrain sampler for multi-legged bosses
  * ({@link RuinGuardRenderer} 2-leg bipedal IK and {@link PrimoGeovishapRenderer} 4-limb quadruped IK).
  *
- * <p>Prevents feet from clipping into 1-block grass steps, stairs, slabs, or floating over shallow
- * craters by solving exact Law-of-Cosines thigh/knee flexion and smooth pelvis height adaptation.
+ * <p>Solves true split-level stance (one foot on a 1-block ledge, the other on the lower floor)
+ * regardless of which Y-level Minecraft's single AABB hitbox currently snaps to.
  */
 public final class BossFootIK {
 
     private BossFootIK() {}
 
     /**
-     * Samples the vertical ground offset {@code (groundY - entityY)} directly beneath a foot offset
-     * in entity local space ({@code localRightBlocks > 0} = boss right, {@code localFwdBlocks > 0} = boss forward).
-     *
-     * @return clamped vertical offset in blocks within {@code [-maxDown, +maxUp]}, or {@code 0.0F} if no solid floor is found.
+     * Samples the highest solid floor offset {@code (groundY - entityY)} across a 5-point foot footprint
+     * (center + front/back/left/right rim of radius {@code footRadius}) so wide boots and paws never clip
+     * into block edges or stairs when their center sits just outside a ledge.
      */
+    public static float sampleFootFootprint(
+            Level level,
+            double entityX,
+            double entityY,
+            double entityZ,
+            float bodyYawDeg,
+            double localRightBlocks,
+            double localFwdBlocks,
+            double footRadius,
+            float maxUp,
+            float maxDown
+    ) {
+        if (level == null) return 0.0F;
+        float rad = bodyYawDeg * Mth.DEG_TO_RAD;
+        double fwdX = -Mth.sin(rad);
+        double fwdZ = Mth.cos(rad);
+        double rightX = -Mth.cos(rad);
+        double rightZ = -Mth.sin(rad);
+
+        double cx = entityX + fwdX * localFwdBlocks + rightX * localRightBlocks;
+        double cz = entityZ + fwdZ * localFwdBlocks + rightZ * localRightBlocks;
+
+        float best = sampleSinglePoint(level, cx, entityY, cz, maxUp, maxDown);
+        if (footRadius > 0.05D) {
+            best = Math.max(best, sampleSinglePoint(level, cx + fwdX * footRadius, entityY, cz + fwdZ * footRadius, maxUp, maxDown));
+            best = Math.max(best, sampleSinglePoint(level, cx - fwdX * footRadius, entityY, cz - fwdZ * footRadius, maxUp, maxDown));
+            best = Math.max(best, sampleSinglePoint(level, cx + rightX * footRadius, entityY, cz + rightZ * footRadius, maxUp, maxDown));
+            best = Math.max(best, sampleSinglePoint(level, cx - rightX * footRadius, entityY, cz - rightZ * footRadius, maxUp, maxDown));
+        }
+        return best == Float.NEGATIVE_INFINITY ? 0.0F : Mth.clamp(best, -maxDown, maxUp);
+    }
+
+    /** Single-point compatibility overload. */
     public static float sampleFootGroundOffset(
             Level level,
             double entityX,
@@ -35,15 +67,10 @@ public final class BossFootIK {
             float maxUp,
             float maxDown
     ) {
-        if (level == null) return 0.0F;
-        float rad = bodyYawDeg * Mth.DEG_TO_RAD;
-        double fwdX = -Mth.sin(rad);
-        double fwdZ = Mth.cos(rad);
-        double rightX = -Mth.cos(rad);
-        double rightZ = -Mth.sin(rad);
+        return sampleFootFootprint(level, entityX, entityY, entityZ, bodyYawDeg, localRightBlocks, localFwdBlocks, 0.0D, maxUp, maxDown);
+    }
 
-        double wx = entityX + fwdX * localFwdBlocks + rightX * localRightBlocks;
-        double wz = entityZ + fwdZ * localFwdBlocks + rightZ * localRightBlocks;
+    private static float sampleSinglePoint(Level level, double wx, double entityY, double wz, float maxUp, float maxDown) {
         int bx = Mth.floor(wx);
         int bz = Mth.floor(wz);
 
@@ -56,19 +83,18 @@ public final class BossFootIK {
             BlockState state = level.getBlockState(pos);
             VoxelShape shape = state.getCollisionShape(level, pos);
             if (!shape.isEmpty()) {
-                // Ensure the block above the surface is open enough for a foot
                 BlockState above = level.getBlockState(pos.above());
                 if (above.getCollisionShape(level, pos.above()).isEmpty()) {
                     double groundY = y + shape.max(Direction.Axis.Y);
                     double dy = groundY - entityY;
-                    if (dy <= maxUp + 0.05D && dy >= -maxDown - 0.05D) {
-                        return Mth.clamp((float) dy, -maxDown, maxUp);
+                    if (dy <= maxUp + 0.08D && dy >= -maxDown - 0.08D) {
+                        return (float) dy;
                     }
-                    return 0.0F;
+                    return Float.NEGATIVE_INFINITY;
                 }
             }
         }
-        return 0.0F;
+        return Float.NEGATIVE_INFINITY;
     }
 
     /**

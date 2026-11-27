@@ -237,7 +237,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
         // 2. Procedural secondary motion layer + 2-Bone Analytical Foot IK (prevents feet clipping into steps/craters!)
         applyProceduralSecondaryMotion(entity, animId, liveTick, currSec);
-        applyFootIK(entity, sm, animId, bodyYaw, partialTicks, evalSec);
+        applyFootIK(entity, sm, animId, bodyYaw, partialTicks, evalSec, currSec);
 
         // 3. Shortest-arc pose-snapshot cross-fade across all 28 bones
         float blendElapsed = liveTick - sm.blendStartTick;
@@ -305,9 +305,10 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
      * 2-Bone Analytical Bipedal Foot IK: adapts pelvis height and hip/knee/foot angles to uneven
      * 1-block grass steps, stairs, slabs, and shallow craters without clipping or floating.
      */
-    private void applyFootIK(RuinGuardEntity entity, AnimSM sm, int animId, float bodyYaw, float partialTicks, float evalSec) {
+    private void applyFootIK(RuinGuardEntity entity, AnimSM sm, int animId, float bodyYaw, float partialTicks, float evalSec, float currSec) {
+        boolean leapAirborne = (animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec < 1.78F);
         boolean allowIK = entity.onGround()
-                && animId != RuinGuardEntity.ANIM_LEAP_SLAM
+                && !leapAirborne
                 && animId != RuinGuardEntity.ANIM_DORMANT
                 && animId != RuinGuardEntity.ANIM_STUNNED
                 && animId != RuinGuardEntity.ANIM_DEATH;
@@ -317,13 +318,21 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
             double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
-            targetDyR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, 0.625D, 0.0D, 0.95F, 0.75F);
-            targetDyL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -0.625D, 0.0D, 0.95F, 0.75F);
+            double fwdR = 0.0D;
+            double fwdL = 0.0D;
+            if (animId == RuinGuardEntity.ANIM_WALK) {
+                float phase = (((evalSec % 2.40F) + 2.40F) % 2.40F) / 2.40F * Mth.TWO_PI;
+                fwdR = Mth.sin(phase) * 0.42D;
+                fwdL = -fwdR;
+            }
+            // 5-point boot footprint + full 1.10-block up/down range for true 1-block split-foot stance!
+            targetDyR = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw,  0.625D, fwdR, 0.36D, 1.12F, 1.08F);
+            targetDyL = BossFootIK.sampleFootFootprint(entity.level(), ex, ey, ez, bodyYaw, -0.625D, fwdL, 0.36D, 1.12F, 1.08F);
         }
-        sm.ikDyR = Mth.lerp(0.28F, sm.ikDyR, targetDyR);
-        sm.ikDyL = Mth.lerp(0.28F, sm.ikDyL, targetDyL);
-        float targetDrop = Math.min(0.0F, Math.min(sm.ikDyR, sm.ikDyL));
-        sm.ikPelvisDrop = Mth.lerp(0.28F, sm.ikPelvisDrop, targetDrop);
+        sm.ikDyR = Mth.lerp(0.32F, sm.ikDyR, targetDyR);
+        sm.ikDyL = Mth.lerp(0.32F, sm.ikDyL, targetDyL);
+        float targetDrop = Mth.clamp(Math.min(0.0F, Math.min(sm.ikDyR, sm.ikDyL)), -1.02F, 0.0F);
+        sm.ikPelvisDrop = Mth.lerp(0.32F, sm.ikPelvisDrop, targetDrop);
 
         if (Math.abs(sm.ikDyR) < 0.01F && Math.abs(sm.ikDyL) < 0.01F && Math.abs(sm.ikPelvisDrop) < 0.01F) {
             return;
@@ -333,8 +342,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         float wL = 1.0F;
         if (animId == RuinGuardEntity.ANIM_WALK) {
             float cyc = ((evalSec % 2.40F) + 2.40F) % 2.40F;
-            wR = (cyc < 0.55F) ? 0.30F : 1.0F;
-            wL = (cyc >= 1.20F && cyc < 1.75F) ? 0.30F : 1.0F;
+            wR = (cyc < 0.55F) ? 0.45F : 1.0F;
+            wL = (cyc >= 1.20F && cyc < 1.75F) ? 0.45F : 1.0F;
         }
 
         ModelPart pelvis = model.getBone("pelvis");

@@ -2,6 +2,8 @@ package com.velorise.teyvatbosses.client.model;
 
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.Mth;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -142,6 +144,57 @@ public final class PrimoGeovishapAnimations {
                 head.xRot += pitchRad * 0.48F;
             }
         }
+
+        // Exact Forward-Kinematics Floor Clamp: guarantees zero paw/knee sinking below Y=24.0 on flat ground
+        enforceFloorContact(model, clipName);
+    }
+
+    private static void mulBone(Matrix4f mat, ModelPart part) {
+        if (part == null) return;
+        mat.translate(part.x, part.y, part.z);
+        if (part.zRot != 0.0F) mat.rotateZ(part.zRot);
+        if (part.yRot != 0.0F) mat.rotateY(part.yRot);
+        if (part.xRot != 0.0F) mat.rotateX(part.xRot);
+    }
+
+    private static float sampleLimbLowestY(Matrix4f torsoMat, ModelPart upper, ModelPart lower, float soleY, float toeZ) {
+        if (upper == null || lower == null) return 24.0F;
+        Matrix4f m = new Matrix4f(torsoMat);
+        mulBone(m, upper);
+        mulBone(m, lower);
+        Vector4f v1 = new Vector4f(0.0F, soleY, 0.0F, 1.0F).mul(m);
+        Vector4f v2 = new Vector4f(0.0F, soleY, toeZ, 1.0F).mul(m);
+        return Math.max(v1.y, v2.y);
+    }
+
+    /**
+     * Computes exact FK world-model Y of all 4 paw soles against the Minecraft floor plane (Y = 24.0px).
+     * Lifts {@code body.y} by the exact penetration amount whenever any animation crouch, roar rear-up,
+     * or walk step would otherwise push a paw or knee beneath the floor.
+     */
+    private static void enforceFloorContact(PrimoGeovishapModel<?> model, String clipName) {
+        if ("attack_burrow".equals(clipName) || "dormant_sleep".equals(clipName) || "death".equals(clipName)) {
+            return;
+        }
+        ModelPart root = model.getBone("root");
+        ModelPart body = model.getBone("body");
+        ModelPart torso = model.getBone("torso");
+        if (root == null || body == null || torso == null) return;
+
+        Matrix4f torsoMat = new Matrix4f();
+        mulBone(torsoMat, root);
+        mulBone(torsoMat, body);
+        mulBone(torsoMat, torso);
+
+        float maxY = 24.0F;
+        maxY = Math.max(maxY, sampleLimbLowestY(torsoMat, model.getBone("arm_left"), model.getBone("forearm_left"), 12.2F, -3.5F));
+        maxY = Math.max(maxY, sampleLimbLowestY(torsoMat, model.getBone("arm_right"), model.getBone("forearm_right"), 12.2F, -3.5F));
+        maxY = Math.max(maxY, sampleLimbLowestY(torsoMat, model.getBone("leg_left"), model.getBone("shin_left"), 11.8F, -2.5F));
+        maxY = Math.max(maxY, sampleLimbLowestY(torsoMat, model.getBone("leg_right"), model.getBone("shin_right"), 11.8F, -2.5F));
+
+        if (maxY > 24.0F) {
+            body.y -= (maxY - 24.0F);
+        }
     }
 
     private static void captureSnapshot(PrimoGeovishapModel<?> model, BlendState state) {
@@ -185,7 +238,7 @@ public final class PrimoGeovishapAnimations {
         boolean isBurrow = "attack_burrow".equals(clipName);
 
         ModelPart body = model.getBone("body");
-        if (body != null && !isBurrow) body.y += 1.6F;
+        if (body != null && !isBurrow) body.y += 0.45F;
 
         ModelPart armL = model.getBone("arm_left");
         ModelPart armR = model.getBone("arm_right");
@@ -631,7 +684,7 @@ public final class PrimoGeovishapAnimations {
         float[] t = f(0.0F, 0.70F, 1.30F, 1.75F, 2.15F, 2.38F, 2.95F, 3.65F, 4.60F);
         c.pos("body", t,
                 f(0, 0, 0.9F, -0.9F, 1.0F, 0, 0, 0, 0),
-                f(0, -5.8F, -6.4F, -6.8F, -7.0F, 1.6F, 0.6F, -2.2F, 0),
+                f(0, -2.8F, -3.2F, -3.4F, -3.5F, 2.4F, 1.6F, -1.2F, 0),
                 f(0, 2.4F, 3.0F, 3.2F, 3.4F, -1.8F, -0.8F, 0.4F, 0));
         // True Genshin Primordial Shower: ultra-low trembling crouch (-20 deg) -> explosive sky-roar rear-up (+34 deg)!
         c.rot("torso", t, f(0, -16, -20, -22, -22, 34, 26, -6, 0), f(0, 0, 3, -3, 4, 0, 0, 0, 0), f(0, 0, 3, -3, 3, 0, 0, 0, 0));
