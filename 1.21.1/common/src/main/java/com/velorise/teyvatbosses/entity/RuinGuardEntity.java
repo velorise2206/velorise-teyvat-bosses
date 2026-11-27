@@ -1021,29 +1021,31 @@ public class RuinGuardEntity extends Monster {
     }
 
     /**
-     * Exact frame-matched Genshin Ruin Guard 3-Hit Combo (128 ticks = 6.40s):
-     * Fist-clap spark opener @ tick 7 (0.35s), Hit 1 sweep @ tick 28 (1.40s),
-     * Hit 2 360-deg spin-through cleave @ tick 50 (2.50s), crouch 58..68,
-     * feet-first parabolic jump 69..85 (0.80s), ground slam @ tick 86 (4.30s),
-     * crater hold 86..103, slow hydraulic stand-up 103..128.
+     * Exact frame-matched Genshin Ruin Guard 3-Hit NA Combo (156 ticks = 7.80s):
+     * Phase 0: 2-fist chest clap spark opener @ tick 8 (0.40s);
+     * Phase 1: Hit 1 right-arm forehand sweep @ tick 43 (2.15s);
+     * Phase 2: Hit 2 left-arm across-face -> outward backhand sweep @ tick 64 (3.20s);
+     * Phase 3: Deep crouch 69..81, high upright parabolic leap 82..103 (1.10s),
+     *          asymmetric superhero landing slam @ tick 104 (5.20s),
+     *          heavy ~1.2s kneel hold 104..128, slow left-shoulder-led stand-up 128..156.
      */
     private void tickMelee3Hit(ServerLevel sl, LivingEntity target) {
         Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot());
-        if (stateTick < 24 || (stateTick > 32 && stateTick < 45) || (stateTick >= 58 && stateTick < 69)) {
+        if (stateTick < 39 || (stateTick > 48 && stateTick < 60) || (stateTick >= 72 && stateTick < 86)) {
             faceTarget(target, 6.5F);
         }
 
         Vec3 cur = getDeltaMovement();
-        if (stateTick >= 25 && stateTick <= 28) {
+        if (stateTick >= 40 && stateTick <= 43) {
             setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.34D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.34D));
-        } else if (stateTick >= 47 && stateTick <= 50) {
+        } else if (stateTick >= 61 && stateTick <= 64) {
             setDeltaMovement(Mth.lerp(0.48D, cur.x, forward.x * 0.38D), cur.y, Mth.lerp(0.48D, cur.z, forward.z * 0.38D));
-        } else if (stateTick >= 58 && stateTick < 69) {
+        } else if (stateTick >= 72 && stateTick < 86) {
             setDeltaMovement(cur.x * 0.55D, cur.y, cur.z * 0.55D);
-            if (stateTick == 59) {
+            if (stateTick == 74) {
                 sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.25F, 0.56F);
             }
-            if (stateTick >= 59 && stateTick <= 67) {
+            if (stateTick >= 74 && stateTick <= 84) {
                 Vec3 toT = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
                 double dist = toT.length();
                 double maxHopDist = 6.5D;
@@ -1052,61 +1054,64 @@ public class RuinGuardEntity extends Monster {
                         : new Vec3(target.getX(), target.getY(), target.getZ());
                 double groundY = sampleGroundY(sl, rawDest.x, rawDest.z, target.getY());
                 leapTarget = new Vec3(rawDest.x, groundY, rawDest.z);
-                setTelegraph(leapTarget, 5.2F);
+                setTelegraph(leapTarget, 5.4F);
             }
             leapStart = position();
-        } else if (stateTick >= 69 && stateTick <= 85) {
-            if (stateTick == 69) {
+        } else if (stateTick >= 86 && stateTick <= 107) {
+            if (stateTick == 86) {
                 sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.70F);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.5F, 0.48F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.15D, getZ(), 14, 0.8D, 0.08D, 0.8D, 0.05D);
             }
-            float f = (stateTick - 69) / 16.0F;
+            float f = (stateTick - 86) / 21.0F;
             float horizF = f * f * (3.0F - 2.0F * f);
             double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
-            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.0D;
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.4D;
             double nx = Mth.lerp(horizF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(horizF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
             moveLeapStep(nx, ny, nz);
-        } else if (stateTick == 86) {
+        } else if (stateTick == 108) {
             clearTelegraph();
             finishLeapLanding(leapTarget.x, leapTarget.y, leapTarget.z);
-            dealRadialDamage(sl, 5.4D, 27.0F, 1.35D, 0.62D);
+            dealRadialDamage(sl, 5.5D, 27.0F, 1.35D, 0.62D);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.56F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.50F);
             sl.playSound(null, getX(), getY(), getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 0.46F);
             sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.4D, getZ(), 5, 2.0D, 0.25D, 2.0D, 0.0D);
-            spawnGroundDustRing(sl, 4.8D, 36);
+            spawnGroundDustRing(sl, 5.0D, 38);
         } else {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);
         }
 
-        if (stateTick == 7) {
-            sl.playSound(null, getX(), getY() + 2.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 0.85F, 0.82F);
+        if (stateTick == 8) {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.10F, 0.80F);
             playAttackSpeech(sl, 0.75F);
-            Vec3 clapSpot = position().add(forward.scale(1.4D));
-            sl.sendParticles(ParticleTypes.FLAME, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 10, 0.25D, 0.2D, 0.25D, 0.05D);
-            sl.sendParticles(ParticleTypes.CRIT, clapSpot.x, clapSpot.y + 1.85D, clapSpot.z, 8, 0.3D, 0.25D, 0.3D, 0.12D);
-        } else if (stateTick == 21 || stateTick == 42) {
+            Vec3 clapSpot = position().add(forward.scale(1.35D));
+            sl.sendParticles(ParticleTypes.FLAME, clapSpot.x, clapSpot.y + 2.05D, clapSpot.z, 12, 0.25D, 0.2D, 0.25D, 0.06D);
+            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, clapSpot.x, clapSpot.y + 2.05D, clapSpot.z, 10, 0.28D, 0.22D, 0.28D, 0.10D);
+            sl.sendParticles(ParticleTypes.CRIT, clapSpot.x, clapSpot.y + 2.05D, clapSpot.z, 10, 0.3D, 0.25D, 0.3D, 0.12D);
+        } else if (stateTick == 35 || stateTick == 56) {
             sl.playSound(null, getX(), getY() + 1.8D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.15F, 0.60F);
-        } else if (stateTick == 28) {
+        } else if (stateTick == 44) {
             dealArcDamage(sl, 5.2D, 155.0F, 18.5F, 1.00D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.65F, 0.52F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.35F, 0.64F);
             Vec3 front = position().add(forward.scale(2.8D));
-            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.6D, front.z, 3, 1.2D, 0.2D, 1.2D, 0.0D);
-        } else if (stateTick == 50) {
-            dealArcDamage(sl, 5.4D, 165.0F, 21.0F, 1.10D);
+            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.7D, front.z, 3, 1.2D, 0.2D, 1.2D, 0.0D);
+        } else if (stateTick == 64) {
+            dealArcDamage(sl, 5.5D, 165.0F, 21.5F, 1.25D);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.75F, 0.45F);
             sl.playSound(null, getX(), getY() + 1.6D, getZ(), SoundEvents.IRON_GOLEM_ATTACK, SoundSource.HOSTILE, 1.45F, 0.58F);
             Vec3 front = position().add(forward.scale(2.9D));
-            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.5D, front.z, 4, 1.3D, 0.25D, 1.3D, 0.0D);
-        } else if (stateTick == 103) {
-            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 0.9F, 0.52F);
+            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, front.x, front.y + 1.4D, front.z, 4, 1.3D, 0.25D, 1.3D, 0.0D);
+            sl.sendParticles(ParticleTypes.FLAME, front.x, front.y + 1.4D, front.z, 12, 0.9D, 0.25D, 0.9D, 0.08D);
+            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, front.x, front.y + 1.4D, front.z, 10, 0.9D, 0.25D, 0.9D, 0.12D);
+        } else if (stateTick == 130) {
+            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 0.95F, 0.52F);
         }
 
-        if (stateTick >= 128) {
+        if (stateTick >= 156) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
             attackCooldown = 46;
         }

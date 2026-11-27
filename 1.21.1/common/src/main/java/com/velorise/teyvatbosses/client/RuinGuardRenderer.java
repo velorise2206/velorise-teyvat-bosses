@@ -168,6 +168,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                     44.0D
             );
         } else if (((animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.78F && currSec <= 1.88F)
+                || (animId == RuinGuardEntity.ANIM_MELEE_3HIT && currSec >= 5.38F && currSec <= 5.48F)
                 || (animId == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && currSec >= 1.23F && currSec <= 1.33F))
                 && sm.lastSlamHitstopEpoch != epoch) {
             sm.lastSlamHitstopEpoch = epoch;
@@ -325,7 +326,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
      * 1-block grass steps, stairs, slabs, and shallow craters without clipping or floating.
      */
     private void applyFootIK(RuinGuardEntity entity, AnimSM sm, int animId, float bodyYaw, float partialTicks, float evalSec, float currSec) {
-        boolean leapAirborne = (animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec < 1.78F);
+        boolean leapAirborne = (animId == RuinGuardEntity.ANIM_LEAP_SLAM && currSec < 1.78F)
+                || (animId == RuinGuardEntity.ANIM_MELEE_3HIT && currSec >= 4.25F && currSec < 5.40F);
         boolean allowIK = entity.onGround()
                 && !leapAirborne
                 && animId != RuinGuardEntity.ANIM_DORMANT
@@ -430,8 +432,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
     }
 
     private static float computeImpactShudder(int animId, float sec) {
-        if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && sec >= 4.28F && sec <= 4.58F) {
-            return 0.12F * (1.0F - (sec - 4.28F) / 0.30F);
+        if (animId == RuinGuardEntity.ANIM_MELEE_3HIT && sec >= 5.38F && sec <= 5.72F) {
+            return 0.12F * (1.0F - (sec - 5.38F) / 0.34F);
         }
         if (animId == RuinGuardEntity.ANIM_LEAP_SLAM && sec >= 1.78F && sec <= 2.12F) {
             return 0.14F * (1.0F - (sec - 1.78F) / 0.34F);
@@ -482,7 +484,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             Matrix4f m = poseStack.last().pose();
             float tF = entity.getAnimTick() + partialTicks;
             float prog = switch (entity.getAnimId()) {
-                case RuinGuardEntity.ANIM_MELEE_3HIT -> Mth.clamp((tF - 59.0F) / 27.0F, 0.0F, 1.0F);
+                case RuinGuardEntity.ANIM_MELEE_3HIT -> Mth.clamp((tF - 74.0F) / 34.0F, 0.0F, 1.0F);
                 case RuinGuardEntity.ANIM_STOMP_SHOCKWAVE -> Mth.clamp((tF - 13.0F) / 7.0F, 0.0F, 1.0F);
                 case RuinGuardEntity.ANIM_LEAP_SLAM -> Mth.clamp(tF / 36.0F, 0.0F, 1.0F);
                 case RuinGuardEntity.ANIM_PHASE2_OVERDRIVE -> Mth.clamp((tF - 1.0F) / 22.0F, 0.0F, 1.0F);
@@ -517,12 +519,12 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         }
 
         if (anim == RuinGuardEntity.ANIM_MELEE_3HIT) {
-            if (currSec >= 1.28F && currSec <= 1.58F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.90D, (currSec - 1.28F) / 0.30F, true);
-            } else if (currSec >= 2.38F && currSec <= 2.70F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.75D, (currSec - 2.38F) / 0.32F, false);
-            } else if (currSec >= 4.28F && currSec <= 4.88F) {
-                drawExpandingShockwave(vc, poseStack, 5.8F, (currSec - 4.28F) / 0.60F);
+            if (currSec >= 2.05F && currSec <= 2.39F) {
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.95D, (currSec - 2.05F) / 0.34F, true);
+            } else if (currSec >= 3.04F && currSec <= 3.38F) {
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.65D, (currSec - 3.04F) / 0.34F, true);
+            } else if (currSec >= 5.38F && currSec <= 6.02F) {
+                drawExpandingShockwave(vc, poseStack, 6.0F, (currSec - 5.38F) / 0.64F);
             }
         }
 
@@ -584,18 +586,6 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                 vc.addVertex(arcMat, ex - w, ey, ez).setColor(160, 225, 255, 180);
             }
             poseStack.popPose();
-        }
-
-        // Live Weakpoint Beacon: subtle warm-gold eye star while EXPOSED/CRACKED (vanishes when IMMUNE/PARALYZED!)
-        int wpVfx = entity.getWeakpointState();
-        if (wpVfx == RuinGuardEntity.WP_EXPOSED || wpVfx == RuinGuardEntity.WP_CRACKED) {
-            float wpPulse = (wpVfx == RuinGuardEntity.WP_CRACKED)
-                    ? (0.45F + 0.40F * Math.abs(Mth.sin(liveTick * 0.75F)))
-                    : (0.28F + 0.14F * Mth.sin(liveTick * 0.20F));
-            int gr = 255;
-            int gg = (wpVfx == RuinGuardEntity.WP_CRACKED) ? 235 : 195;
-            int gb = (wpVfx == RuinGuardEntity.WP_CRACKED) ? 180 : 85;
-            drawEyeGlintStar(vc, poseStack, bodyYaw, 3.05D, 1.06D, wpPulse * 0.42F, gr, gg, gb);
         }
 
         // Pre-attack eye glint telegraph before heavy jump slam / Phase 2 overdrive finisher

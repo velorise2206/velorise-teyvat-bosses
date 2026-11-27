@@ -39,8 +39,10 @@ public final class BossFootIK {
         float rad = bodyYawDeg * Mth.DEG_TO_RAD;
         double fwdX = -Mth.sin(rad);
         double fwdZ = Mth.cos(rad);
-        double rightX = -Mth.cos(rad);
-        double rightZ = -Mth.sin(rad);
+        // Matches poseStack.mulPose(Axis.YP.rotationDegrees(180 - bodyYaw)); poseStack.scale(-1, -1, 1);
+        // where model +X (right limb bones) maps to world (+cos(yaw), +sin(yaw)).
+        double rightX = Mth.cos(rad);
+        double rightZ = Mth.sin(rad);
 
         double cx = entityX + fwdX * localFwdBlocks + rightX * localRightBlocks;
         double cz = entityZ + fwdZ * localFwdBlocks + rightZ * localRightBlocks;

@@ -237,13 +237,13 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                     cellScale = 0.56F;
                     beamAlpha = 1.0F;
                 } else if (animTicksF < 36.0F) {
-                    // Hydraulic slam straight into reactor chamber
+                    // Hydraulic slam deep inside the carved rear battery chamber
                     float p = easeOutExpo((animTicksF - 30.0F) / 6.0F);
-                    cellSlideZ = Mth.lerp(p, 8.5F, 0.0F);
+                    cellSlideZ = Mth.lerp(p, 8.5F, -2.6F);
                     cellScale = Mth.lerp(p, 0.56F, 0.44F);
                     beamAlpha = 1.0F - p;
                 } else {
-                    cellSlideZ = 0.0F;
+                    cellSlideZ = -2.6F;
                     cellScale = 0.44F;
                     beamAlpha = 0.0F;
                 }
@@ -348,10 +348,11 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
 
             if (socketGlow > 0.05F) {
                 poseStack.pushPose();
-                poseStack.translate(0.0D, 0.0D, -0.02D);
-                // Recessed hollowed dark battery chamber + internal copper power cables + brass contact coils
-                drawRecessedBatteryBay(bufferSource.getBuffer(RenderType.debugQuads()), poseStack.last().pose(), socketGlow);
-                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.28F * socketGlow);
+                float chargeRatio = Mth.clamp(entity.getEnergy() / RuinMechEntity.MAX_ENERGY, 0.0F, 1.0F);
+                // True 3D recessed interior chamber walls + internal power rails + live charge core inside carved torso bay
+                drawRecessedBatteryBay(bufferSource.getBuffer(RenderType.debugQuads()), poseStack.last().pose(), socketGlow, chargeRatio);
+                poseStack.translate(0.0D, 0.0D, -0.28D);
+                drawSocketGlow(bufferSource.getBuffer(RenderType.lightning()), poseStack.last().pose(), 0.24F * socketGlow);
                 poseStack.popPose();
             }
 
@@ -408,43 +409,75 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
     }
 
     /**
-     * Renders a recessed hollowed dark battery chamber inside the rear reactor bay,
-     * complete with dark inner cavity walls, 4 braided copper/redstone power cables,
-     * and glowing brass terminal rails so the bay visibly looks hollowed out.
+     * Renders the true 3D interior of the carved rear battery bay (spanning x: [-4.4, +4.4]px,
+     * y: [-3.9, +4.4]px relative to back_reactor pivot (0, -12, +11), depth z: -5.2px .. +1.0px).
+     * Includes dark armored inner walls, brass slide-rails, copper/redstone conduits, and a rear charge core.
      */
-    private static void drawRecessedBatteryBay(VertexConsumer vc, Matrix4f m, float openAlpha) {
-        int a = (int) (Mth.clamp(openAlpha, 0.0F, 1.0F) * 245.0F);
-        float r = 0.28F;
-        float depth = -0.22F;
-        // 1. Deep dark recessed backplate (gives strong hollowed-hole depth illusion)
-        vc.addVertex(m, -r, -r, 0.03F).setColor(10, 12, 16, a);
-        vc.addVertex(m,  r, -r, 0.03F).setColor(10, 12, 16, a);
-        vc.addVertex(m,  r,  r, 0.03F).setColor(16, 18, 24, a);
-        vc.addVertex(m, -r,  r, 0.03F).setColor(16, 18, 24, a);
+    private static void drawRecessedBatteryBay(VertexConsumer vc, Matrix4f m, float openAlpha, float chargeRatio) {
+        int a = (int) (Mth.clamp(openAlpha, 0.0F, 1.0F) * 255.0F);
+        float x0 = -4.45F / 16.0F;
+        float x1 =  4.45F / 16.0F;
+        float y0 = -3.95F / 16.0F;
+        float y1 =  4.45F / 16.0F;
+        float zBack = -5.25F / 16.0F;
+        float zFront = 1.05F / 16.0F;
 
-        // 2. Inner recessed metallic frame border (top, bottom, left, right walls)
-        float b = 0.045F;
-        // Top & bottom brass contact rails
-        drawBayQuad(vc, m, -r, -r, r, -r + b, 0.04F, 168, 124, 58, a);
-        drawBayQuad(vc, m, -r, r - b, r, r, 0.04F, 168, 124, 58, a);
-        // Left & right dark iron socket guides
-        drawBayQuad(vc, m, -r, -r, -r + b, r, 0.04F, 52, 56, 64, a);
-        drawBayQuad(vc, m, r - b, -r, r, r, 0.04F, 52, 56, 64, a);
+        // 1. Deep rear bulkhead wall inside the carved cavity
+        drawBayQuadXY(vc, m, x0, y0, x1, y1, zBack, 14, 16, 22, a);
 
-        // 3. 4 Internal Copper & Redstone Power Cables running from corners into the center core
-        drawBayQuad(vc, m, -r + b, -0.14F, -0.06F, -0.10F, 0.045F, 186, 98, 56, a);
-        drawBayQuad(vc, m,  0.06F, -0.14F,  r - b, -0.10F, 0.045F, 186, 98, 56, a);
-        drawBayQuad(vc, m, -r + b,  0.10F, -0.06F,  0.14F, 0.045F, 210, 48, 42, a);
-        drawBayQuad(vc, m,  0.06F,  0.10F,  r - b,  0.14F, 0.045F, 210, 48, 42, a);
-        // Vertical central power conduit busbar
-        drawBayQuad(vc, m, -0.025F, -r + b, 0.025F, r - b, 0.042F, 130, 82, 42, a);
+        // 2. Four recessed 3D side walls (top, bottom, left, right) giving genuine tunnel depth
+        // Top inner ceiling (y = y0)
+        drawBayQuad3D(vc, m, x0, y0, zBack,  x1, y0, zBack,  x1, y0, zFront,  x0, y0, zFront,  26, 28, 34, a);
+        // Bottom inner floor (y = y1)
+        drawBayQuad3D(vc, m, x0, y1, zFront, x1, y1, zFront, x1, y1, zBack,   x0, y1, zBack,   22, 24, 30, a);
+        // Left inner wall (x = x0)
+        drawBayQuad3D(vc, m, x0, y0, zFront, x0, y0, zBack,  x0, y1, zBack,   x0, y1, zFront,  30, 32, 38, a);
+        // Right inner wall (x = x1)
+        drawBayQuad3D(vc, m, x1, y0, zBack,  x1, y0, zFront, x1, y1, zFront,  x1, y1, zBack,   30, 32, 38, a);
+
+        // 3. Brass cartridge guide rails along left & right inner walls
+        float ry0 = -0.055F, ry1 = 0.055F;
+        drawBayQuad3D(vc, m, x0 + 0.008F, ry0, zFront, x0 + 0.008F, ry0, zBack, x0 + 0.008F, ry1, zBack, x0 + 0.008F, ry1, zFront, 178, 132, 62, a);
+        drawBayQuad3D(vc, m, x1 - 0.008F, ry0, zBack,  x1 - 0.008F, ry0, zFront, x1 - 0.008F, ry1, zFront, x1 - 0.008F, ry1, zBack,  178, 132, 62, a);
+
+        // 4. Internal copper/redstone power conduits on rear bulkhead
+        float zPipe = zBack + 0.012F;
+        drawBayQuadXY(vc, m, x0 + 0.03F, -0.14F, -0.08F, -0.10F, zPipe, 186, 98, 56, a);
+        drawBayQuadXY(vc, m,  0.08F, -0.14F, x1 - 0.03F, -0.10F, zPipe, 186, 98, 56, a);
+        drawBayQuadXY(vc, m, x0 + 0.03F,  0.10F, -0.08F,  0.14F, zPipe, 210, 48, 42, a);
+        drawBayQuadXY(vc, m,  0.08F,  0.10F, x1 - 0.03F,  0.14F, zPipe, 210, 48, 42, a);
+
+        // 5. Rear core battery cell socket + live charge level bar
+        int coreR = chargeRatio > 0.01F ? (int) Mth.lerp(chargeRatio, 180, 255) : 45;
+        int coreG = chargeRatio > 0.01F ? (int) Mth.lerp(chargeRatio, 40, 120) : 32;
+        int coreB = chargeRatio > 0.01F ? 36 : 36;
+        drawBayQuadXY(vc, m, -0.11F, -0.11F, 0.11F, 0.11F, zPipe + 0.008F, coreR, coreG, coreB, a);
+        if (chargeRatio > 0.01F) {
+            float barTop = Mth.lerp(chargeRatio, y1 - 0.04F, y0 + 0.04F);
+            drawBayQuadXY(vc, m, -0.035F, barTop, 0.035F, y1 - 0.04F, zPipe + 0.014F, 255, 78, 52, a);
+        }
     }
 
-    private static void drawBayQuad(VertexConsumer vc, Matrix4f m, float x0, float y0, float x1, float y1, float z, int r, int g, int b, int a) {
-        vc.addVertex(m, x0, y0, z).setColor(r, g, b, a);
-        vc.addVertex(m, x1, y0, z).setColor(r, g, b, a);
-        vc.addVertex(m, x1, y1, z).setColor(r, g, b, a);
-        vc.addVertex(m, x0, y1, z).setColor(r, g, b, a);
+    private static void drawBayQuadXY(VertexConsumer vc, Matrix4f m, float x0, float y0, float x1, float y1, float z, int r, int g, int b, int a) {
+        drawBayQuad3D(vc, m, x0, y0, z, x1, y0, z, x1, y1, z, x0, y1, z, r, g, b, a);
+    }
+
+    private static void drawBayQuad3D(
+            VertexConsumer vc, Matrix4f m,
+            float x0, float y0, float z0,
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3,
+            int r, int g, int b, int a
+    ) {
+        vc.addVertex(m, x0, y0, z0).setColor(r, g, b, a);
+        vc.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
+        vc.addVertex(m, x2, y2, z2).setColor(r, g, b, a);
+        vc.addVertex(m, x3, y3, z3).setColor(r, g, b, a);
+        vc.addVertex(m, x3, y3, z3).setColor(r, g, b, a);
+        vc.addVertex(m, x2, y2, z2).setColor(r, g, b, a);
+        vc.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
+        vc.addVertex(m, x0, y0, z0).setColor(r, g, b, a);
     }
 
     private static void drawSocketGlow(VertexConsumer vc, Matrix4f m, float s) {
