@@ -1,6 +1,6 @@
 package com.velorise.teyvatbosses.client;
 
-import com.velorise.teyvatbosses.item.AnemoBootsItem;
+import com.velorise.teyvatbosses.item.AnemoDoubleJumpHelper;
 import com.velorise.teyvatbosses.network.AnemoDoubleJumpPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -47,7 +47,7 @@ public final class AnemoBootsClientController {
 
         airborneTicks++;
         if (jumpDown && !wasJumpDown && airborneTicks >= 2 && airJumpsRemaining > 0
-                && !player.isFallFlying() && AnemoBootsItem.isWearing(player) && mc.screen == null) {
+                && !player.isFallFlying() && AnemoDoubleJumpHelper.isWearingInfusedBoots(player) && mc.screen == null) {
             airJumpsRemaining--;
             Vec3 v = player.getDeltaMovement();
             player.setDeltaMovement(v.x * 1.12D, 0.56D, v.z * 1.12D);

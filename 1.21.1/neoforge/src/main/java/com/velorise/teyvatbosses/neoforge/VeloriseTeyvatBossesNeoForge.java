@@ -25,9 +25,10 @@ import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
-import com.velorise.teyvatbosses.item.AnemoBootsItem;
+import com.velorise.teyvatbosses.item.AnemoDoubleJumpHelper;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.network.AnemoDoubleJumpPayload;
+import com.velorise.teyvatbosses.recipe.AnemoBootsInfusionRecipe;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.GeovishapArmorItem;
@@ -58,6 +59,8 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.PoweredBlock;
@@ -69,7 +72,9 @@ import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.DeferredSpawnEggItem;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -93,6 +98,8 @@ public class VeloriseTeyvatBossesNeoForge {
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<StructureType<?>> STRUCTURE_TYPES =
             DeferredRegister.create(Registries.STRUCTURE_TYPE, TeyvatBossesConstants.MOD_ID);
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS =
+            DeferredRegister.create(Registries.RECIPE_SERIALIZER, TeyvatBossesConstants.MOD_ID);
 
     private static BlockBehaviour.Properties trophyProps() {
         return BlockBehaviour.Properties.of()
@@ -229,10 +236,8 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("cryo_turret_corolla", () -> new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> ANEMO_PRISM_CUBE =
             ITEMS.register("anemo_prism_cube", () -> new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
-    public static final DeferredHolder<ArmorMaterial, ArmorMaterial> ANEMO_ARMOR_MATERIAL =
-            ARMOR_MATERIALS.register("anemo", AnemoBootsItem::createArmorMaterial);
-    public static final DeferredHolder<Item, Item> ANEMO_BOOTS =
-            ITEMS.register("anemo_boots", () -> new AnemoBootsItem(ANEMO_ARMOR_MATERIAL, new Item.Properties()));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<AnemoBootsInfusionRecipe>> ANEMO_BOOTS_INFUSION_SERIALIZER =
+            RECIPE_SERIALIZERS.register("anemo_boots_infusion", () -> new SimpleCraftingRecipeSerializer<>(AnemoBootsInfusionRecipe::new));
     public static final DeferredHolder<Item, Item> RUIN_SUB_HULL =
             ITEMS.register("ruin_sub_hull", () -> new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final DeferredHolder<Item, Item> RUIN_SUB_PROPELLER =
@@ -400,7 +405,6 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(CRYO_TURRET_STEM.get());
                         output.accept(CRYO_TURRET_COROLLA.get());
                         output.accept(ANEMO_PRISM_CUBE.get());
-                        output.accept(ANEMO_BOOTS.get());
                         output.accept(RUIN_SUB_HULL.get());
                         output.accept(RUIN_SUB_PROPELLER.get());
                         output.accept(RUIN_SUB_TORPEDO_POD.get());
@@ -432,6 +436,7 @@ public class VeloriseTeyvatBossesNeoForge {
         SOUNDS.register(modEventBus);
         TABS.register(modEventBus);
         STRUCTURE_TYPES.register(modEventBus);
+        RECIPE_SERIALIZERS.register(modEventBus);
         TeyvatBossesStructures.bind(FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 SOUND_MECH_ENGINE_HUM, SOUND_MECH_LOCKON_BEEP, SOUND_MECH_VISOR_SEAL,
@@ -458,7 +463,12 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesItems.bindGeovishapGear(
                 PRIMORDIAL_JADE, PRIMORDIAL_GEO_INGOT,
                 GEOVISHAP_HELMET, GEOVISHAP_CHESTPLATE, GEOVISHAP_LEGGINGS, GEOVISHAP_BOOTS);
-        TeyvatBossesItems.bindAnemoBoots(ANEMO_BOOTS);
+        AnemoBootsInfusionRecipe.bindSerializer(ANEMO_BOOTS_INFUSION_SERIALIZER::get);
+        NeoForge.EVENT_BUS.addListener((PlayerTickEvent.Post event) -> {
+            if (event.getEntity() instanceof ServerPlayer sp) {
+                AnemoDoubleJumpHelper.tickServerPlayer(sp);
+            }
+        });
         TeyvatBossesItems.bind(
                 MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
                 MUSIC_DISC_RUIN_NAUTILUS, MUSIC_DISC_PRIMO_GEOVISHAP,

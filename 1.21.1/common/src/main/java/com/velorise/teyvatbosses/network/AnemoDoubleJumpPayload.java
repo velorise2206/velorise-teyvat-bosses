@@ -1,7 +1,7 @@
 package com.velorise.teyvatbosses.network;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
-import com.velorise.teyvatbosses.item.AnemoBootsItem;
+import com.velorise.teyvatbosses.item.AnemoDoubleJumpHelper;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.codec.StreamCodec;
@@ -30,13 +30,13 @@ public record AnemoDoubleJumpPayload() implements CustomPacketPayload {
     }
 
     public static void handleOnServer(AnemoDoubleJumpPayload payload, ServerPlayer player) {
-        if (!AnemoBootsItem.isWearing(player)) return;
+        if (!AnemoDoubleJumpHelper.isWearingInfusedBoots(player)) return;
         if (player.onGround() || player.isInWater() || player.isInLava()
                 || player.onClimbable() || player.isFallFlying()
                 || player.getAbilities().flying || player.isPassenger()) {
             return;
         }
-        if (!AnemoBootsItem.tryConsumeAirJump(player.getUUID())) {
+        if (!AnemoDoubleJumpHelper.tryConsumeAirJump(player.getUUID())) {
             return;
         }
 

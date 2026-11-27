@@ -42,9 +42,8 @@ public final class TeyvatBossesJeiPlugin implements IModPlugin {
         addInfo(registration, TeyvatBossesItems.cryoTurretStem(), "jei.velorise_teyvat_bosses.cryo_turret");
         addInfo(registration, TeyvatBossesItems.cryoTurretCorolla(), "jei.velorise_teyvat_bosses.cryo_turret");
 
-        // 4. Anemo Cube Companion (8 cubes assembled on 1 block) & Anemo Gale Boots
+        // 4. Anemo Cube Companion (8 cubes assembled on 1 block) & Anemo Boots Infusion
         addInfo(registration, TeyvatBossesItems.anemoPrismCube(), "jei.velorise_teyvat_bosses.anemo_cube");
-        addInfo(registration, TeyvatBossesItems.anemoBoots(), "jei.velorise_teyvat_bosses.anemo_boots");
 
         // 5. Geo Tunnel Driller (crafted from Primordial Jade + 1-2 vanilla Chests)
         addInfo(registration, TeyvatBossesItems.geoDrillerChassis(), "jei.velorise_teyvat_bosses.geo_driller");

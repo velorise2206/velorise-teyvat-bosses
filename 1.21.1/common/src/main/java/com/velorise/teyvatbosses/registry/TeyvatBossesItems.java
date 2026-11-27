@@ -23,7 +23,6 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> cryoTurretStem;
     private static Supplier<Item> cryoTurretCorolla;
     private static Supplier<Item> anemoPrismCube;
-    private static Supplier<Item> anemoBoots;
     private static Supplier<Item> ruinSubHull;
     private static Supplier<Item> ruinSubPropeller;
     private static Supplier<Item> ruinSubTorpedoPod;
@@ -135,6 +134,4 @@ public final class TeyvatBossesItems {
     public static Item geovishapChestplate() { return geovishapChestplate != null ? geovishapChestplate.get() : null; }
     public static Item geovishapLeggings() { return geovishapLeggings != null ? geovishapLeggings.get() : null; }
     public static Item geovishapBoots() { return geovishapBoots != null ? geovishapBoots.get() : null; }
-    public static void bindAnemoBoots(Supplier<Item> supplier) { anemoBoots = supplier; }
-    public static Item anemoBoots() { return anemoBoots != null ? anemoBoots.get() : null; }
 }

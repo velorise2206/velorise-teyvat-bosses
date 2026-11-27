@@ -25,9 +25,10 @@ import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
-import com.velorise.teyvatbosses.item.AnemoBootsItem;
+import com.velorise.teyvatbosses.item.AnemoDoubleJumpHelper;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.network.AnemoDoubleJumpPayload;
+import com.velorise.teyvatbosses.recipe.AnemoBootsInfusionRecipe;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.GeovishapArmorItem;
@@ -48,6 +49,7 @@ import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.registry.TeyvatBossesStructures;
 import com.velorise.teyvatbosses.worldgen.FlatArenaStructure;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -57,7 +59,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
@@ -229,12 +234,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ANEMO_PRISM_CUBE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_prism_cube"),
             new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
-    public static final Holder<ArmorMaterial> ANEMO_ARMOR_MATERIAL = Registry.registerForHolder(
-            BuiltInRegistries.ARMOR_MATERIAL, TeyvatBossesConstants.id("anemo"),
-            AnemoBootsItem.createArmorMaterial());
-    public static final Item ANEMO_BOOTS = Registry.register(
-            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_boots"),
-            new AnemoBootsItem(ANEMO_ARMOR_MATERIAL, new Item.Properties()));
+    public static final RecipeSerializer<AnemoBootsInfusionRecipe> ANEMO_BOOTS_INFUSION_SERIALIZER = Registry.register(
+            BuiltInRegistries.RECIPE_SERIALIZER, TeyvatBossesConstants.id("anemo_boots_infusion"),
+            new SimpleCraftingRecipeSerializer<>(AnemoBootsInfusionRecipe::new));
     public static final Item RUIN_SUB_HULL = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_hull"),
             new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
@@ -461,7 +463,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(CRYO_TURRET_STEM);
                         output.accept(CRYO_TURRET_COROLLA);
                         output.accept(ANEMO_PRISM_CUBE);
-                        output.accept(ANEMO_BOOTS);
                         output.accept(RUIN_SUB_HULL);
                         output.accept(RUIN_SUB_PROPELLER);
                         output.accept(RUIN_SUB_TORPEDO_POD);
@@ -504,7 +505,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         TeyvatBossesItems.bindGeovishapGear(
                 () -> PRIMORDIAL_JADE, () -> PRIMORDIAL_GEO_INGOT,
                 () -> GEOVISHAP_HELMET, () -> GEOVISHAP_CHESTPLATE, () -> GEOVISHAP_LEGGINGS, () -> GEOVISHAP_BOOTS);
-        TeyvatBossesItems.bindAnemoBoots(() -> ANEMO_BOOTS);
+        AnemoBootsInfusionRecipe.bindSerializer(() -> ANEMO_BOOTS_INFUSION_SERIALIZER);
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
@@ -539,6 +540,11 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(AnemoDoubleJumpPayload.TYPE, AnemoDoubleJumpPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(AnemoDoubleJumpPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> AnemoDoubleJumpPayload.handleOnServer(payload, ctx.player())));
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            for (ServerPlayer sp : server.getPlayerList().getPlayers()) {
+                AnemoDoubleJumpHelper.tickServerPlayer(sp);
+            }
+        });
         ServerPlayNetworking.registerGlobalReceiver(RuinSubControlPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> RuinSubControlPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(GeoDrillerControlPayload.TYPE, (payload, ctx) ->
