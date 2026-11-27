@@ -1,10 +1,11 @@
 package com.velorise.teyvatbosses.entity;
 
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.effect.MobEffectInstance;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.BossCameraShake;
-import com.velorise.teyvatbosses.client.BossMusicManager;
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
@@ -45,6 +46,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -109,6 +111,12 @@ public class PrimoGeovishapEntity extends Monster {
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_CLEAVE_TX =
+            SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_CLEAVE_TY =
+            SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_CLEAVE_TZ =
+            SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<CompoundTag> DATA_STONES_NBT =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.COMPOUND_TAG);
     private static final EntityDataAccessor<CompoundTag> DATA_COUNTER_BEAM =
@@ -137,6 +145,10 @@ public class PrimoGeovishapEntity extends Monster {
     private int noTargetTicks = 0;
     private boolean showerCountered = false;
     private boolean spawnedBlossom = false;
+    @Nullable
+    private PrimoGeovishapPartEntity headPart;
+    @Nullable
+    private PrimoGeovishapPartEntity tailPart;
     private final BossDamageCap damageCap = new BossDamageCap();
     private static final double ARENA_SOFT_LEASH_RADIUS = 54.0D;
     private Vec3 homePos = null;
@@ -205,6 +217,9 @@ public class PrimoGeovishapEntity extends Monster {
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_INFUSION, INFUSION_PYRO);
         builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
+        builder.define(DATA_CLEAVE_TX, 0.0F);
+        builder.define(DATA_CLEAVE_TY, 0.0F);
+        builder.define(DATA_CLEAVE_TZ, 0.0F);
         builder.define(DATA_STONES_NBT, new CompoundTag());
         builder.define(DATA_COUNTER_BEAM, new CompoundTag());
     }
@@ -237,6 +252,9 @@ public class PrimoGeovishapEntity extends Monster {
     }
     public int getInfusion() { return entityData.get(DATA_INFUSION); }
     public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
+    public float getCleaveTargetX() { return entityData.get(DATA_CLEAVE_TX); }
+    public float getCleaveTargetY() { return entityData.get(DATA_CLEAVE_TY); }
+    public float getCleaveTargetZ() { return entityData.get(DATA_CLEAVE_TZ); }
     public CompoundTag getStonesTag() { return entityData.get(DATA_STONES_NBT); }
     public CompoundTag getCounterBeamTag() { return entityData.get(DATA_COUNTER_BEAM); }
 
@@ -463,8 +481,7 @@ public class PrimoGeovishapEntity extends Monster {
             } else {
                 clientAnimTick++;
             }
-            BossMusicManager.update(this, BOSS_MUSIC_ID,
-                    getBossState() == STATE_AWAKEN || getBossState() == STATE_COMBAT || getBossState() == STATE_STAGGER);
+            // Boss music is updated strictly client-side in PrimoGeovishapRenderer to keep entity server-safe
             triggerClientCameraShake();
             if (tickCount % 5 == 0 && getBossState() != STATE_DEATH) {
                 ParticleOptions p = infusionParticle();
@@ -491,6 +508,7 @@ public class PrimoGeovishapEntity extends Monster {
         entityData.set(DATA_ANIM_TICK, stateTick);
         tickCooldowns();
         tickElementalHazards(sl);
+        tickMultipartHitboxes(sl);
 
         int st = getBossState();
         if (st == STATE_DEATH) {
@@ -617,10 +635,10 @@ public class PrimoGeovishapEntity extends Monster {
                 range = 30.0D;
             } else if (anim == ANIM_LEFT_CLAW && t == 28) {
                 intensity = 0.48F;
-            } else if (anim == ANIM_REAR_TAIL_SLAM && t == 18) {
+            } else if (anim == ANIM_REAR_TAIL_SLAM && t == 12) {
                 intensity = 0.56F;
                 range = 26.0D;
-            } else if (anim == ANIM_VERTICAL_TAIL_CLEAVE && t == 25) {
+            } else if (anim == ANIM_VERTICAL_TAIL_CLEAVE && (t == 24 || t == 27)) {
                 intensity = 0.68F;
                 range = 30.0D;
             }
@@ -805,7 +823,7 @@ public class PrimoGeovishapEntity extends Monster {
         double dx = target.getX() - getX();
         double dz = target.getZ() - getZ();
         float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
-        return Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
+        return Math.abs(Mth.wrapDegrees(desiredYaw - this.yBodyRot));
     }
 
     private void tickReturnHome(ServerLevel sl) {
@@ -827,22 +845,28 @@ public class PrimoGeovishapEntity extends Monster {
         BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
         if (phase == BossReturnHomeHelper.PHASE_RETURN) {
             if (getAnimId() != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
-            if (getNavigation() instanceof BossGroundNavigation bnav) {
-                if (stateTick % 8 == 0 || bnav.isDone()) {
-                    bnav.computePathTo(homePos);
+            Vec3 directHome = new Vec3(homePos.x - getX(), 0.0D, homePos.z - getZ());
+            Vec3 dir;
+            if (hDist < 16.0D && !this.horizontalCollision && directHome.lengthSqr() > 1.0E-4D) {
+                dir = directHome.normalize();
+            } else {
+                if (getNavigation() instanceof BossGroundNavigation bnav) {
+                    if (stateTick % 32 == 0 || bnav.isDone()) {
+                        bnav.computePathTo(homePos);
+                    }
+                    dir = bnav.getSteerDirection(homePos);
+                } else {
+                    dir = directHome.lengthSqr() > 1.0E-4D ? directHome.normalize() : Vec3.ZERO;
                 }
             }
-            Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
-                    ? bnav.getSteerDirection(homePos)
-                    : new Vec3(homePos.x - getX(), 0.0D, homePos.z - getZ()).normalize();
             if (dir.lengthSqr() > 1.0E-4D) {
                 float moveYaw = (float) (Math.atan2(dir.z, dir.x) * (180.0D / Math.PI)) - 90.0F;
-                float ny = Mth.approachDegrees(getYRot(), moveYaw, 6.5F);
+                float ny = Mth.approachDegrees(getYRot(), moveYaw, 7.5F);
                 setYRot(ny); yBodyRot = ny; yHeadRot = ny;
             }
             Vec3 cur = getDeltaMovement();
             double jumpY = (this.horizontalCollision && this.onGround()) ? 0.46D : cur.y;
-            setDeltaMovement(Mth.lerp(0.35D, cur.x, dir.x * 0.21D), jumpY, Mth.lerp(0.35D, cur.z, dir.z * 0.21D));
+            setDeltaMovement(Mth.lerp(0.50D, cur.x, dir.x * 0.26D), jumpY, Mth.lerp(0.50D, cur.z, dir.z * 0.26D));
             returnHelper.checkReturnProgress(sl, this, homePos, hDist, 2.8D);
             return;
         }
@@ -871,19 +895,23 @@ public class PrimoGeovishapEntity extends Monster {
             // Smooth head look-tracking toward target even before body finishes turning
             lookAtTargetHead(target);
 
-            // Canonical Genshin Anti-Flank AI: Rear Tail Slam or Whirlwind when player runs behind tail!
-            if (dist <= 9.8D && relAngle >= 120.0F && (rearTailSlamCooldown <= 0 || whirlwindCooldown <= 0)) {
-                boolean pickRearSlam = (rearTailSlamCooldown <= 0) && (whirlwindCooldown > 0 || lastAttackAnim == ANIM_WHIRLWIND || random.nextFloat() < 0.62F);
+            // Canonical Genshin Anti-Flank AI: Rear Tail Slam ONLY when player is strictly behind the tail (>= 142 deg & 2.2..8.5 blocks);
+            // side-flanks (115..141 deg) only trigger 360-degree Whirlwind so Rear Tail Slam never fires when player is in front!
+            if (dist <= 9.5D && relAngle >= 115.0F && (rearTailSlamCooldown <= 0 || whirlwindCooldown <= 0)) {
+                boolean strictlyBehindTail = (relAngle >= 142.0F && dist >= 2.2D && dist <= 8.5D);
+                boolean pickRearSlam = strictlyBehindTail && (rearTailSlamCooldown <= 0)
+                        && (whirlwindCooldown > 0 || lastAttackAnim == ANIM_WHIRLWIND || random.nextFloat() < 0.65F);
                 if (pickRearSlam) {
                     rearTailSlamCooldown = 110;
                     lastAttackAnim = ANIM_REAR_TAIL_SLAM;
                     transitionTo(STATE_COMBAT, ANIM_REAR_TAIL_SLAM);
-                } else {
+                    return;
+                } else if (whirlwindCooldown <= 0) {
                     whirlwindCooldown = 100;
                     lastAttackAnim = ANIM_WHIRLWIND;
                     transitionTo(STATE_COMBAT, ANIM_WHIRLWIND);
+                    return;
                 }
-                return;
             }
 
             // Responsive turn rate so boss locks on briskly without wasting seconds rotating
@@ -1042,6 +1070,15 @@ public class PrimoGeovishapEntity extends Monster {
                 p.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.primo_geovishap.shower_warn")
                         .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
             }
+        } else if (chosen == ANIM_VERTICAL_TAIL_CLEAVE) {
+            Vec3 toT = new Vec3(target.getX() - getX(), 0.0D, target.getZ() - getZ());
+            double d = toT.length();
+            Vec3 dir = (d > 0.01D) ? toT.scale(1.0D / d) : Vec3.directionFromRotation(0.0F, this.yBodyRot);
+            double lockDist = Mth.clamp(d, 4.8D, 9.2D);
+            Vec3 locked = position().add(dir.scale(lockDist));
+            entityData.set(DATA_CLEAVE_TX, (float) locked.x);
+            entityData.set(DATA_CLEAVE_TY, (float) getY());
+            entityData.set(DATA_CLEAVE_TZ, (float) locked.z);
         } else if (chosen == ANIM_BURROW) {
             burrowStart = position();
             // Predictive target leading so Burrow intercepts moving players
@@ -1140,7 +1177,7 @@ public class PrimoGeovishapEntity extends Monster {
     private void tickRearTailSlam(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
         // Stay facing forward so the tail hammer lands squarely on the player behind the boss!
-        if (stateTick == 18) {
+        if (stateTick == 12) {
             Vec3 back = Vec3.directionFromRotation(0.0F, getYRot()).scale(-5.2D);
             Vec3 impactPos = position().add(back);
             sl.playSound(null, impactPos.x, getY(), impactPos.z, sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 1.9F, 0.88F);
@@ -1150,32 +1187,53 @@ public class PrimoGeovishapEntity extends Monster {
                     impactPos.x, getY() + 0.5D, impactPos.z, 38, 2.2D, 0.6D, 2.2D, 0.16D);
             sl.sendParticles(ParticleTypes.EXPLOSION, impactPos.x, getY() + 0.6D, impactPos.z, 4, 1.6D, 0.3D, 1.6D, 0.0D);
         }
-        if (stateTick >= 48) finishAttack(40);
+        if (stateTick >= 37) finishAttack(36);
     }
 
-    /** Mid-range Vertical Spine-Curl Overhead Tail Cleave: curls vertically on forepaws and chops tail straight overhead forward (tick 25). */
+    /** Mid-range Forward Leap Somersault + Momentum Overhead Tail Slam: leaps toward & slams the FIXED locked ground target (tick 27). */
     private void tickVerticalTailCleave(ServerLevel sl, LivingEntity target) {
-        setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
-        if (stateTick < 18) faceTargetSmooth(target, 7.5F);
-        if (stateTick >= 19 && stateTick <= 24) {
-            Vec3 lunge = Vec3.directionFromRotation(0.0F, getYRot()).scale(0.30D);
-            setDeltaMovement(lunge.x, getDeltaMovement().y, lunge.z);
+        Vec3 impactPos = new Vec3(getCleaveTargetX(), getCleaveTargetY(), getCleaveTargetZ());
+        Vec3 toImpact = new Vec3(impactPos.x - getX(), 0.0D, impactPos.z - getZ());
+        double distToImpact = toImpact.length();
+        Vec3 dir = (distToImpact > 0.05D) ? toImpact.scale(1.0D / distToImpact) : Vec3.directionFromRotation(0.0F, this.yBodyRot);
+
+        if (stateTick < 8) {
+            setDeltaMovement(getDeltaMovement().x * 0.60D, getDeltaMovement().y, getDeltaMovement().z * 0.60D);
+            // Smoothly face the locked ground impact spot (never drag the target zone!)
+            float targetYaw = (float) (Mth.atan2(dir.z, dir.x) * Mth.RAD_TO_DEG) - 90.0F;
+            float diff = Mth.wrapDegrees(targetYaw - getYRot());
+            float step = Mth.clamp(diff, -11.0F, 11.0F);
+            setYRot(getYRot() + step);
+            yBodyRot = getYRot();
+            yHeadRot = getYRot();
+        } else if (stateTick == 8) {
+            // Land ~4.0 blocks short of the fixed impact center so the overhead tail tip hits dead-center!
+            double desiredTravel = Mth.clamp(distToImpact - 4.0D, 0.8D, 5.2D);
+            double launchSpd = Mth.clamp(desiredTravel / 11.5D, 0.10D, 0.44D);
+            setDeltaMovement(dir.x * launchSpd, 0.28D, dir.z * launchSpd);
+            sl.playSound(null, getX(), getY() + 1.4D, getZ(), sfx(TeyvatBossesSounds.primoRoar(), SoundEvents.RAVAGER_ROAR), SoundSource.HOSTILE, 1.5F, 1.05F);
+            spawnGroundRing(sl, 3.6D, 24, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()));
+        } else if (stateTick >= 9 && stateTick <= 20) {
+            double spd = (distToImpact > 4.0D) ? Mth.clamp((distToImpact - 3.6D) * 0.11D, 0.08D, 0.38D) : 0.04D;
+            setDeltaMovement(dir.x * spd, getDeltaMovement().y, dir.z * spd);
+        } else {
+            setDeltaMovement(getDeltaMovement().x * 0.55D, getDeltaMovement().y, getDeltaMovement().z * 0.55D);
         }
-        if (stateTick == 25) {
-            Vec3 dir = Vec3.directionFromRotation(0.0F, getYRot());
-            Vec3 impactPos = position().add(dir.scale(5.6D));
-            sl.playSound(null, impactPos.x, getY(), impactPos.z, sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 2.0F, 0.85F);
-            sl.playSound(null, impactPos.x, getY(), impactPos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.9F, 0.46F);
-            dealPointRadialDamage(sl, impactPos, 5.0D, 25.0F, 1.50D, 0.72D, false);
-            dealConeDamage(sl, 9.6D, 34.0D, 21.0F, 1.35D, false);
-            // Linear Geo fissure burst along the forward tail chop line
-            for (int d = 3; d <= 9; d += 2) {
-                Vec3 pt = position().add(dir.scale(d));
+        if (stateTick == 24) {
+            sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoStep(), SoundEvents.RAVAGER_STEP), SoundSource.HOSTILE, 1.8F, 0.55F);
+            spawnGroundRing(sl, 4.4D, 26, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DIRT.defaultBlockState()));
+        }
+        if (stateTick == 27) {
+            sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, sfx(TeyvatBossesSounds.primoSlam(), SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 2.0F, 0.85F);
+            sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.9F, 0.46F);
+            dealPointRadialDamage(sl, impactPos, 5.2D, 26.0F, 1.50D, 0.72D, false);
+            for (int d = -2; d <= 2; d += 2) {
+                Vec3 pt = impactPos.add(dir.scale(d));
                 sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
-                        pt.x, getY() + 0.5D, pt.z, 16, 1.1D, 0.5D, 1.1D, 0.14D);
-                sl.sendParticles(infusionParticle(), pt.x, getY() + 0.6D, pt.z, 6, 0.8D, 0.4D, 0.8D, 0.08D);
+                        pt.x, impactPos.y + 0.5D, pt.z, 18, 1.3D, 0.5D, 1.3D, 0.14D);
+                sl.sendParticles(infusionParticle(), pt.x, impactPos.y + 0.6D, pt.z, 8, 1.0D, 0.4D, 1.0D, 0.08D);
             }
-            sl.sendParticles(ParticleTypes.EXPLOSION, impactPos.x, getY() + 0.6D, impactPos.z, 5, 1.8D, 0.3D, 1.8D, 0.0D);
+            sl.sendParticles(ParticleTypes.EXPLOSION, impactPos.x, impactPos.y + 0.6D, impactPos.z, 5, 1.8D, 0.3D, 1.8D, 0.0D);
         }
         if (stateTick >= 58) finishAttack(44);
     }
@@ -1630,6 +1688,86 @@ public class PrimoGeovishapEntity extends Monster {
         return null;
     }
 
+    /** Forwards hits landing on Head (1.12x weakspot) or Tail (0.95x armored) child hitboxes to the main boss. */
+    public boolean hurtFromPart(PrimoGeovishapPartEntity part, DamageSource source, float amount) {
+        if (source.getEntity() == this || source.getDirectEntity() == this) return false;
+        float mult = (part.getPartKind() == PrimoGeovishapPartEntity.PART_HEAD) ? 1.12F : 0.95F;
+        return this.hurt(source, amount * mult);
+    }
+
+    private void discardParts() {
+        if (headPart != null) {
+            if (!headPart.isRemoved()) headPart.discard();
+            headPart = null;
+        }
+        if (tailPart != null) {
+            if (!tailPart.isRemoved()) tailPart.discard();
+            tailPart = null;
+        }
+    }
+
+    private void tickMultipartHitboxes(ServerLevel sl) {
+        int st = getBossState();
+        if (st == STATE_DEATH || !isAlive()) {
+            discardParts();
+            return;
+        }
+        if (headPart == null || headPart.isRemoved()) {
+            headPart = PrimoGeovishapPartEntity.spawn(sl, this, PrimoGeovishapPartEntity.PART_HEAD);
+        }
+        if (tailPart == null || tailPart.isRemoved()) {
+            tailPart = PrimoGeovishapPartEntity.spawn(sl, this, PrimoGeovishapPartEntity.PART_TAIL);
+        }
+        int anim = getAnimId();
+        float yawRad = this.yBodyRot * Mth.DEG_TO_RAD;
+        double fwdX = -Math.sin(yawRad);
+        double fwdZ = Math.cos(yawRad);
+
+        double headFwd = 2.65D;
+        double headY = 0.55D;
+        double tailFwd = -3.55D;
+        double tailY = 0.15D;
+
+        if (st == STATE_DORMANT || st == STATE_STAGGER) {
+            headY = 0.05D;
+            tailY = 0.0D;
+        } else if (anim == ANIM_BURROW && stateTick >= 22 && stateTick <= 55) {
+            headY = -2.4D;
+            tailY = -2.4D;
+        } else if (anim == ANIM_REAR_TAIL_SLAM) {
+            if (stateTick >= 4 && stateTick <= 11) {
+                tailFwd = -2.6D;
+                tailY = 2.65D;
+            } else if (stateTick >= 12 && stateTick <= 20) {
+                tailFwd = -4.2D;
+                tailY = 0.05D;
+            }
+        } else if (anim == ANIM_VERTICAL_TAIL_CLEAVE) {
+            if (stateTick >= 9 && stateTick <= 22) {
+                headY = 1.85D;
+                tailY = 2.15D;
+                tailFwd = -1.6D;
+            } else if (stateTick >= 25 && stateTick <= 34) {
+                headY = 0.35D;
+                tailFwd = 3.2D;
+                tailY = 0.45D;
+            }
+        } else if ((anim == ANIM_COMBO_SLASH && stateTick >= 36 && stateTick <= 45)
+                || (anim == ANIM_PRIMORDIAL_SHOWER && stateTick >= 45 && stateTick <= 64)) {
+            headFwd = 1.85D;
+            headY = 2.35D;
+        }
+
+        headPart.moveTo(getX() + fwdX * headFwd, getY() + headY, getZ() + fwdZ * headFwd, this.yBodyRot, 0.0F);
+        tailPart.moveTo(getX() + fwdX * tailFwd, getY() + tailY, getZ() + fwdZ * tailFwd, this.yBodyRot, 0.0F);
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        discardParts();
+        super.remove(reason);
+    }
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
@@ -1663,5 +1801,36 @@ public class PrimoGeovishapEntity extends Monster {
         attackCooldown = tag.getInt("AttackCooldown");
         showerCooldown = tag.getInt("ShowerCooldown");
         if (tag.contains("SpringCooldown")) springCooldown = tag.getInt("SpringCooldown");
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        return false;
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return false;
+    }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance effect) {
+        if (effect.getEffect().equals(MobEffects.LEVITATION)) {
+            return false;
+        }
+        if (effect.getEffect().equals(MobEffects.MOVEMENT_SLOWDOWN) && effect.getAmplifier() >= 3) {
+            return false;
+        }
+        return super.canBeAffected(effect);
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(6.0D);
     }
 }

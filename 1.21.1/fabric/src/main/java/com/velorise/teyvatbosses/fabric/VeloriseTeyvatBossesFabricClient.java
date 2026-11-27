@@ -14,6 +14,7 @@ import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
+import com.velorise.teyvatbosses.client.PrimoGeovishapPartRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
 import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
@@ -90,6 +91,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP, PrimoGeovishapRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GEO_DRILLER, GeoDrillerRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_INFUSED_STONE, PrimoInfusedStoneRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP_PART, PrimoGeovishapPartRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
 

@@ -58,6 +58,10 @@ public final class BossMusicManager {
             stopAll(mc);
             return;
         }
+        // Ignore dummy/preview entities rendered inside GUIs (JEI, Better Stats, JER) that are not in the live world
+        if (boss == null || boss.level() != mc.level || boss.getId() <= 0 || mc.level.getEntity(boss.getId()) != boss) {
+            return;
+        }
 
         // Clean up immediately if the player changed dimensions / worlds
         if (activeLevel != null && activeLevel != mc.level) {

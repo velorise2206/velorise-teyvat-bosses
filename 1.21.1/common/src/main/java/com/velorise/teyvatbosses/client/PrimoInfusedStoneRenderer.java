@@ -29,6 +29,8 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
 
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/primo_infused_stone.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_stone_emissive.png");
+    private static final ResourceLocation BLAST_ZONE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone.png");
+    private static final ResourceLocation BLAST_ZONE_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_emissive.png");
 
     private final PrimoInfusedStoneModel model;
 
@@ -50,15 +52,21 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
         float age = entity.tickCount + partialTicks;
         float clientSec = age / 20.0F;
         int[] rgb = entity.getInfusionRgb();
-        VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
 
         if (entity.getPhase() == PrimoInfusedStoneEntity.PHASE_LAVA_POOL) {
-            // Bubbling Pyro lava pool after detonation
+            // Static cracked volcanic basalt crater (fixed radius, zero wobble!) with gentle magma glow pulse
+            float glowPulse = 0.82F + 0.18F * Mth.sin(clientSec * 6.5F);
+            float radius = 2.85F;
             poseStack.pushPose();
-            Matrix4f mat = poseStack.last().pose();
-            float pulse = 0.88F + 0.12F * Mth.sin(clientSec * 12.0F);
-            drawGroundRing(lvc, mat, 0.2F, 2.55F * pulse, 28, 255, 85, 20, 155);
-            drawGroundRing(lvc, mat, 1.9F * pulse, 2.70F * pulse, 28, 255, 195, 60, 190);
+            poseStack.mulPose(Axis.YP.rotationDegrees(entity.getSpinYaw()));
+            PoseStack.Pose pose = poseStack.last();
+            // Pass 1: Completely static cracked basalt & lava decal anchored cleanly to the ground
+            VertexConsumer dvc = buf.getBuffer(RenderType.entityTranslucent(BLAST_ZONE));
+            drawTexturedGroundQuad(dvc, pose, radius, 0.055F, 255, 255, 255, 240, packedLight);
+            // Pass 2: Gentle emissive glow pulse inside the cracks (geometry never scales or wobbles)
+            VertexConsumer evc = buf.getBuffer(RenderType.eyes(BLAST_ZONE_EMISSIVE));
+            int ea = Mth.clamp((int) (235 * glowPulse), 0, 255);
+            drawTexturedGroundQuad(evc, pose, radius, 0.068F, 255, 225, 175, ea, LightTexture.FULL_BRIGHT);
             poseStack.popPose();
             super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
             return;
@@ -70,6 +78,7 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
         // 1. Rotating 6-pointed star ground rune + outer blast warning ring
         poseStack.pushPose();
         Matrix4f mat = poseStack.last().pose();
+        VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
         float runeR = 1.55F + urgency * 0.45F;
         drawStarRune(lvc, mat, runeR, clientSec * (1.2F + urgency * 3.0F), rgb[0], rgb[1], rgb[2], (int) (195 * pulse));
         drawGroundRing(lvc, mat, runeR - 0.14F, runeR + 0.04F, 28, 255, 255, 255, (int) (155 * pulse));
@@ -163,6 +172,21 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
             vc.addVertex(mat, c0 * rOut, 0.06F, s0 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c0 * rIn, 0.06F, s0 * rIn).setColor(r, g, b, a);
         }
+    }
+
+    private static void drawTexturedGroundQuad(VertexConsumer vc, PoseStack.Pose pose, float r, float y,
+                                               int red, int green, int blue, int alpha, int light) {
+        Matrix4f mat = pose.pose();
+        // Top face
+        vc.addVertex(mat, -r, y, -r).setColor(red, green, blue, alpha).setUv(0.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, -r, y,  r).setColor(red, green, blue, alpha).setUv(0.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat,  r, y,  r).setColor(red, green, blue, alpha).setUv(1.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat,  r, y, -r).setColor(red, green, blue, alpha).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        // Bottom face (double-sided)
+        vc.addVertex(mat,  r, y, -r).setColor(red, green, blue, alpha).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat,  r, y,  r).setColor(red, green, blue, alpha).setUv(1.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, -r, y,  r).setColor(red, green, blue, alpha).setUv(0.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, -r, y, -r).setColor(red, green, blue, alpha).setUv(0.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0.0F, 1.0F, 0.0F);
     }
 
     @Override

@@ -1224,16 +1224,27 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
     private Vec3 findExplorationLanding(float yawDeg, double maxDist, int maxClimb, int maxDrop) {
         Vec3 fwd = Vec3.directionFromRotation(0.0F, yawDeg);
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int startY = Mth.floor(getY()) + maxClimb;
+        int minY = Math.max(level().getMinBuildHeight() + 2, Mth.floor(getY()) - maxDrop);
         for (double dist = maxDist; dist >= 3.0D; dist -= 1.0D) {
-            double tx = getX() + fwd.x * dist;
-            double tz = getZ() + fwd.z * dist;
-            int bx = Mth.floor(tx);
-            int bz = Mth.floor(tz);
-            int startY = Mth.floor(getY()) + maxClimb;
-            int minY = Math.max(level().getMinBuildHeight() + 2, Mth.floor(getY()) - maxDrop);
+            int bx = Mth.floor(getX() + fwd.x * dist);
+            int bz = Mth.floor(getZ() + fwd.z * dist);
+            cursor.set(bx, Mth.floor(getY()), bz);
+            if (!level().isLoaded(cursor)) {
+                continue;
+            }
             for (int y = startY; y >= minY; y--) {
-                BlockPos floorPos = new BlockPos(bx, y - 1, bz);
-                if (level().getBlockState(floorPos).blocksMotion() && hasMechClearance(bx, y, bz)) {
+                cursor.set(bx, y - 1, bz);
+                if (!level().getBlockState(cursor).blocksMotion()) {
+                    continue;
+                }
+                // Fast-reject buried columns before checking full 3x3x4 mech volume
+                cursor.set(bx, y, bz);
+                if (level().getBlockState(cursor).blocksMotion()) {
+                    continue;
+                }
+                if (hasMechClearance(bx, y, bz, cursor)) {
                     return new Vec3(bx + 0.5D, y, bz + 0.5D);
                 }
             }
@@ -1242,10 +1253,15 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     }
 
     private boolean hasMechClearance(int bx, int y, int bz) {
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                for (int dy = 0; dy <= 3; dy++) {
-                    if (level().getBlockState(new BlockPos(bx + dx, y + dy, bz + dz)).blocksMotion()) {
+        return hasMechClearance(bx, y, bz, new BlockPos.MutableBlockPos());
+    }
+
+    private boolean hasMechClearance(int bx, int y, int bz, BlockPos.MutableBlockPos cursor) {
+        for (int dy = 0; dy <= 3; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    cursor.set(bx + dx, y + dy, bz + dz);
+                    if (level().getBlockState(cursor).blocksMotion()) {
                         return false;
                     }
                 }
@@ -1433,5 +1449,10 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         if (tag.contains("MechArmor")) entityData.set(DATA_ARMOR, tag.getFloat("MechArmor"));
         if (tag.contains("MechMissiles")) entityData.set(DATA_MISSILE_AMMO, Mth.clamp(tag.getInt("MechMissiles"), 0, MAX_MISSILE_AMMO));
         updateAssemblyLabel();
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(4.5D);
     }
 }

@@ -29,6 +29,8 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Teyvat Boss Locator Compass — reusable survival structure locator with live 360-degree needle tracking.
@@ -57,6 +59,11 @@ public class TeyvatBossLocatorItem extends Item {
             new BossTarget("ruin_nautilus_arena", "entity.velorise_teyvat_bosses.ruin_nautilus", ChatFormatting.DARK_AQUA),
             new BossTarget("primo_geovishap_arena", "entity.velorise_teyvat_bosses.primo_geovishap", ChatFormatting.YELLOW)
     };
+
+    private record CachedScan(@Nullable BlockPos pos, long expiresMs) {}
+    private static final Map<String, CachedScan> LOCATOR_CACHE = new ConcurrentHashMap<>();
+    private static final long CACHE_TTL_MS = 300_000L; // 5 minutes per 256x256 block region
+    private static long lastGlobalScanGameTime = Long.MIN_VALUE;
 
     private final int fixedTargetIndex;
 
@@ -140,9 +147,32 @@ public class TeyvatBossLocatorItem extends Item {
             BossTarget target = TARGETS[idx];
             TagKey<Structure> tagKey = TagKey.create(Registries.STRUCTURE, TeyvatBossesConstants.id(target.tagName()));
             int radiusChunks = TeyvatBossesConfig.get().locatorSearchRadiusChunks;
-            BlockPos found = sl.findNearestMapStructure(tagKey, player.blockPosition(), radiusChunks, false);
+            int regionX = player.blockPosition().getX() >> 8;
+            int regionZ = player.blockPosition().getZ() >> 8;
+            String cacheKey = sl.dimension().location() + "|" + target.tagName() + "|" + regionX + "|" + regionZ + "|" + radiusChunks;
+            long nowMs = System.currentTimeMillis();
+            CachedScan cached = LOCATOR_CACHE.get(cacheKey);
+            BlockPos found;
+            if (cached != null && cached.expiresMs() > nowMs) {
+                found = cached.pos();
+            } else {
+                long gameTime = sl.getGameTime();
+                if (gameTime - lastGlobalScanGameTime < 20L) {
+                    player.getCooldowns().addCooldown(this, 25);
+                    player.displayClientMessage(
+                            Component.literal("Boss Compass is resonating — please try again in a moment.")
+                                    .withStyle(ChatFormatting.YELLOW),
+                            true
+                    );
+                    return InteractionResultHolder.sidedSuccess(stack, false);
+                }
+                lastGlobalScanGameTime = gameTime;
+                found = sl.findNearestMapStructure(tagKey, player.blockPosition(), radiusChunks, false);
+                if (LOCATOR_CACHE.size() > 256) LOCATOR_CACHE.clear();
+                LOCATOR_CACHE.put(cacheKey, new CachedScan(found, nowMs + CACHE_TTL_MS));
+            }
 
-            player.getCooldowns().addCooldown(this, 40);
+            player.getCooldowns().addCooldown(this, 120);
             if (found != null) {
                 setLockedTarget(stack, sl.dimension(), found);
 

@@ -11,6 +11,26 @@
     "minecraft:snowy_plains",
     "minecraft:snowy_taiga",
     "minecraft:snowy_slopes",
-    "minecraft:grove"
+    "minecraft:grove",
+    {
+      "id": "#c:is_snowy",
+      "required": false
+    },
+    {
+      "id": "#c:is_cold/overworld",
+      "required": false
+    },
+    {
+      "id": "#c:is_taiga",
+      "required": false
+    },
+    {
+      "id": "#c:is_plains",
+      "required": false
+    },
+    {
+      "id": "#minecraft:is_taiga",
+      "required": false
+    }
   ]
 }

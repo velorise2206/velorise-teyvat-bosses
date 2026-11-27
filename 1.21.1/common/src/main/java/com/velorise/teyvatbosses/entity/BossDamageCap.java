@@ -1,6 +1,8 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
@@ -21,6 +23,7 @@ public final class BossDamageCap {
     private long windowStartTick = Long.MIN_VALUE;
     private float playerDamageInWindow = 0.0F;
     private float mobDamageInWindow = 0.0F;
+    private long lastRangeWarnTick = Long.MIN_VALUE;
 
     /**
      * Applies Range Cap, Soft Per-Hit Cap, 1-second Rolling DPS Cap, and strict shared non-player mob-army cap.
@@ -49,6 +52,15 @@ public final class BossDamageCap {
                 if (!boss.level().isClientSide()) {
                     boss.level().playSound(null, boss.getX(), boss.getY() + 2.0D, boss.getZ(),
                             SoundEvents.SHIELD_BLOCK, SoundSource.HOSTILE, 0.85F, 1.35F);
+                    long gt = boss.level().getGameTime();
+                    if (attacker instanceof Player p && (lastRangeWarnTick == Long.MIN_VALUE || gt - lastRangeWarnTick >= 60L)) {
+                        lastRangeWarnTick = gt;
+                        p.displayClientMessage(
+                                Component.literal("Too far! Move within " + (int) immuneDist + " blocks to damage this boss.")
+                                        .withStyle(ChatFormatting.GOLD),
+                                true
+                        );
+                    }
                 }
                 return 0.0F;
             }

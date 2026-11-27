@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "velorise_teyvat_bosses:cryo_regisvine",
+    "velorise_teyvat_bosses:anemo_hypostasis",
+    "velorise_teyvat_bosses:ruin_guard",
+    "velorise_teyvat_bosses:ruin_nautilus",
+    "velorise_teyvat_bosses:primo_geovishap"
+  ]
+}

@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.effect.MobEffectInstance;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
@@ -552,29 +554,36 @@ public class RuinGuardEntity extends Monster {
         }
         BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
         if (phase == BossReturnHomeHelper.PHASE_RETURN) {
-            tickAntiTrapBlockBreak(sl);
+            // Do NOT break arena architecture during calm return-home
             if (getAnimId() != ANIM_WALK && onGround()) {
                 transitionTo(STATE_COMBAT, ANIM_WALK);
             }
-            if (getNavigation() instanceof BossGroundNavigation bnav) {
-                if (stateTick % 8 == 0 || bnav.isDone()) {
-                    bnav.computePathTo(arenaCenter);
+            Vec3 directToCenter = new Vec3(arenaCenter.x - getX(), 0.0D, arenaCenter.z - getZ());
+            Vec3 dir;
+            if (hDist < 16.0D && !this.horizontalCollision && directToCenter.lengthSqr() > 1.0E-4D) {
+                dir = directToCenter.normalize();
+            } else {
+                if (getNavigation() instanceof BossGroundNavigation bnav) {
+                    if (stateTick % 32 == 0 || bnav.isDone()) {
+                        bnav.computePathTo(arenaCenter);
+                    }
+                    dir = bnav.getSteerDirection(arenaCenter);
+                } else {
+                    dir = directToCenter.lengthSqr() > 1.0E-4D ? directToCenter.normalize() : Vec3.ZERO;
                 }
             }
-            Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
-                    ? bnav.getSteerDirection(arenaCenter)
-                    : new Vec3(arenaCenter.x - getX(), 0.0D, arenaCenter.z - getZ()).normalize();
             if (dir.lengthSqr() > 1.0E-4D) {
                 float moveYaw = (float) (Math.atan2(dir.z, dir.x) * (180.0D / Math.PI)) - 90.0F;
-                float ny = Mth.approachDegrees(getYRot(), moveYaw, 6.5F);
+                float ny = Mth.approachDegrees(getYRot(), moveYaw, 7.5F);
                 setYRot(ny); yBodyRot = ny; yHeadRot = ny;
             }
             Vec3 cur = getDeltaMovement();
             double stepPhase = (stateTick % 24) / 24.0D;
-            double cadence = 0.84D + 0.16D * Math.sin(stepPhase * Math.PI * 2.0D);
-            double speed = 0.135D * cadence;
+            double cadence = 0.86D + 0.14D * Math.sin(stepPhase * Math.PI * 2.0D);
+            // Compensate vanilla ground friction (0.546) so return-home stride matches walk animation & never false-stucks
+            double speed = 0.22D * cadence;
             double jumpY = (this.horizontalCollision && this.onGround()) ? 0.46D : cur.y;
-            setDeltaMovement(Mth.lerp(0.42D, cur.x, dir.x * speed), jumpY, Mth.lerp(0.42D, cur.z, dir.z * speed));
+            setDeltaMovement(Mth.lerp(0.55D, cur.x, dir.x * speed), jumpY, Mth.lerp(0.55D, cur.z, dir.z * speed));
             if (stateTick % 24 == 12) {
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.15F, 0.48F);
                 sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), 6, 0.50D, 0.05D, 0.50D, 0.02D);
@@ -1491,5 +1500,41 @@ public class RuinGuardEntity extends Monster {
             savedSpawnYaw = tag.getFloat("SavedYaw");
         }
         entityData.set(DATA_PHASE2, tag.getBoolean("Phase2"));
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        return false;
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return false;
+    }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance effect) {
+        if (effect.getEffect().equals(MobEffects.LEVITATION)) {
+            return false;
+        }
+        if (effect.getEffect().equals(MobEffects.MOVEMENT_SLOWDOWN) && effect.getAmplifier() >= 3) {
+            return false;
+        }
+        return super.canBeAffected(effect);
+    }
+
+    @Override
+    protected int decreaseAirSupply(int currentAir) {
+        return currentAir;
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(5.0D);
     }
 }

@@ -118,6 +118,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                  RuinGuardEntity.ANIM_STOMP_SHOCKWAVE,
                  RuinGuardEntity.ANIM_LEAP_SLAM -> 3.5F;
             case RuinGuardEntity.ANIM_WALK -> 3.0F;
+            case RuinGuardEntity.ANIM_DORMANT -> 16.0F;
             case RuinGuardEntity.ANIM_WEAKPOINT_FLINCH,
                  RuinGuardEntity.ANIM_CYCLONE_ACTIVE,
                  RuinGuardEntity.ANIM_CYCLONE_RECOVER -> 1.5F;

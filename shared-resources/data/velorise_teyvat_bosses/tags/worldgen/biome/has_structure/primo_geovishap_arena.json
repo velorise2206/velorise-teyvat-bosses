@@ -11,6 +11,30 @@
     "minecraft:badlands",
     "minecraft:wooded_badlands",
     "minecraft:eroded_badlands",
-    "minecraft:forest"
+    "minecraft:forest",
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    },
+    {
+      "id": "#c:is_mountain",
+      "required": false
+    },
+    {
+      "id": "#c:is_plains",
+      "required": false
+    },
+    {
+      "id": "#minecraft:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#minecraft:is_savanna",
+      "required": false
+    }
   ]
 }

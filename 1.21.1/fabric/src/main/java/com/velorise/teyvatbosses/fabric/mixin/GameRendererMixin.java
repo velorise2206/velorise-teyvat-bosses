@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
-    @Inject(method = "bobHurt", at = @At("TAIL"))
+    @Inject(require = 0, method = "bobHurt", at = @At("TAIL"))
     private void velorise$applyVehicleCameraRoll(PoseStack poseStack, float partialTicks, CallbackInfo ci) {
         float roll = 0.0F;
         if (RuinMechCameraController.getPilotedMech() != null) {

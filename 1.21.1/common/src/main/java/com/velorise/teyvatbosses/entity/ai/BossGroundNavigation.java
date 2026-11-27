@@ -28,6 +28,7 @@ public class BossGroundNavigation extends GroundPathNavigation {
         Path p = this.createPath(target, 1);
         if (p != null) {
             this.path = p;
+            advanceWaypoints();
         }
     }
 
@@ -38,6 +39,7 @@ public class BossGroundNavigation extends GroundPathNavigation {
         Path p = this.createPath(BlockPos.containing(pos.x, pos.y, pos.z), 1);
         if (p != null) {
             this.path = p;
+            advanceWaypoints();
         }
     }
 
@@ -49,15 +51,17 @@ public class BossGroundNavigation extends GroundPathNavigation {
     }
 
     private void advanceWaypoints() {
-        this.maxDistanceToWaypoint = Math.max(1.25F, this.mob.getBbWidth() * 0.62F);
+        this.maxDistanceToWaypoint = Math.max(1.35F, this.mob.getBbWidth() * 0.68F);
         Path current = this.path;
-        if (current != null && !current.isDone()) {
+        while (current != null && !current.isDone()) {
             Vec3 nodePos = current.getNextEntityPos(this.mob);
             double dx = Math.abs(this.mob.getX() - nodePos.x);
             double dy = Math.abs(this.mob.getY() - nodePos.y);
             double dz = Math.abs(this.mob.getZ() - nodePos.z);
-            if (dx < this.maxDistanceToWaypoint && dz < this.maxDistanceToWaypoint && dy < 1.8D) {
+            if (dx < this.maxDistanceToWaypoint && dz < this.maxDistanceToWaypoint && dy < 2.0D) {
                 current.advance();
+            } else {
+                break;
             }
         }
     }

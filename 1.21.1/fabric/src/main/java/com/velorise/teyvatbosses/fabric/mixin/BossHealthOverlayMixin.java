@@ -29,7 +29,7 @@ public abstract class BossHealthOverlayMixin {
 
     @Shadow protected abstract void drawBar(GuiGraphics guiGraphics, int x, int y, BossEvent bossEvent);
 
-    @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(require = 0, method = "render(Lnet/minecraft/client/gui/GuiGraphics;)V", at = @At("HEAD"), cancellable = true)
     private void velorise$renderTeyvatBossBars(GuiGraphics guiGraphics, CallbackInfo ci) {
         if (this.events.isEmpty()) return;
 

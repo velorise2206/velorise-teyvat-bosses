@@ -15,12 +15,8 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
-import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -74,29 +70,6 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         int lastImpactEpoch = -1;
         final Map<String, BonePose> from = new HashMap<>();
         final Map<String, BonePose> last = new HashMap<>();
-        BossMusicInstance musicInstance = null;
-    }
-
-    private static final class BossMusicInstance extends AbstractTickableSoundInstance {
-        private final AnemoHypostasisEntity boss;
-
-        BossMusicInstance(SoundEvent event, AnemoHypostasisEntity boss) {
-            super(event, SoundSource.MUSIC, SoundInstance.createUnseededRandom());
-            this.boss = boss;
-            this.looping = true;
-            this.delay = 0;
-            this.volume = 0.72F;
-            this.pitch = 1.0F;
-            this.relative = true;
-        }
-
-        @Override
-        public void tick() {
-            int st = boss.getBossState();
-            if (boss.isRemoved() || !boss.isAlive() || st == AnemoHypostasisEntity.STATE_DORMANT || st == AnemoHypostasisEntity.STATE_DEATH) {
-                this.stop();
-            }
-        }
     }
 
     private final AnemoHypostasisModel<AnemoHypostasisEntity> model;

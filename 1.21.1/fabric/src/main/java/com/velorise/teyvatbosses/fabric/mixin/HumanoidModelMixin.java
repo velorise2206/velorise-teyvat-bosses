@@ -30,7 +30,7 @@ public abstract class HumanoidModelMixin<T extends LivingEntity> {
     @Shadow @Final public ModelPart rightLeg;
     @Shadow @Final public ModelPart leftLeg;
 
-    @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("TAIL"))
+    @Inject(require = 0, method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("TAIL"))
     private void velorise$applyGeoDrillerDrivingPose(
             T entity, float limbSwing, float limbSwingAmount, float ageInTicks,
             float netHeadYaw, float headPitch, CallbackInfo ci

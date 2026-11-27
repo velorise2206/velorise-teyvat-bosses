@@ -14,6 +14,7 @@ import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
+import com.velorise.teyvatbosses.client.PrimoGeovishapPartRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
 import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
 import com.velorise.teyvatbosses.client.RuinGuardRenderer;
@@ -93,6 +94,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP.get(), PrimoGeovishapRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GEO_DRILLER.get(), GeoDrillerRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_INFUSED_STONE.get(), PrimoInfusedStoneRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP_PART.get(), PrimoGeovishapPartRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }

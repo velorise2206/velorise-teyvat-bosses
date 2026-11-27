@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.entity;
 
+import net.minecraft.world.level.GameRules;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
@@ -728,6 +729,9 @@ public class GeoDrillerEntity extends Mob {
     }
 
     private void mineAndBridge(ServerLevel sl, Player pilot, Vec3 fwd) {
+        if (!sl.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {
+            return;
+        }
         Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
         ItemStack virtualPick = buildVirtualPickaxe(sl);
 
@@ -750,6 +754,7 @@ public class GeoDrillerEntity extends Mob {
             for (int dy = 0; dy < height; dy++) {
                 for (double dx = minDx; dx <= maxDx; dx += 0.5D) {
                     BlockPos bp = BlockPos.containing(slice.x + right.x * dx, baseY + dy + 0.1D, slice.z + right.z * dx);
+                    if (!sl.mayInteract(pilot, bp) || !pilot.mayInteract(sl, bp)) continue;
                     BlockState state = sl.getBlockState(bp);
                     if (state.getFluidState().is(FluidTags.LAVA)) {
                         tryPlaceBridgeBlock(sl, bp); // Seal lava pockets directly ahead

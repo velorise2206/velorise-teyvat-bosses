@@ -1,5 +1,8 @@
 package com.velorise.teyvatbosses.entity;
 
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.effect.MobEffectInstance;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
@@ -775,5 +778,41 @@ public class AnemoHypostasisEntity extends Monster {
             savedSpawnYaw = tag.getFloat("SavedYaw");
         }
         revivalUsed = tag.getBoolean("RevivalUsed");
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        return false;
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return false;
+    }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance effect) {
+        if (effect.getEffect().equals(MobEffects.LEVITATION)) {
+            return false;
+        }
+        if (effect.getEffect().equals(MobEffects.MOVEMENT_SLOWDOWN) && effect.getAmplifier() >= 3) {
+            return false;
+        }
+        return super.canBeAffected(effect);
+    }
+
+    @Override
+    protected int decreaseAirSupply(int currentAir) {
+        return currentAir;
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(5.5D);
     }
 }

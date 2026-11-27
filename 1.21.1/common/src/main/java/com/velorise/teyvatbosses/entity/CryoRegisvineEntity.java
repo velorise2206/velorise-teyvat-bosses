@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.effect.MobEffectInstance;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
@@ -938,5 +940,36 @@ public class CryoRegisvineEntity extends Monster {
         }
         entityData.set(DATA_COROLLA_PHASE, tag.getInt("CorollaPhase"));
         if (tag.contains("RootYaw")) entityData.set(DATA_ROOT_YAW, tag.getFloat("RootYaw"));
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        return false;
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return false;
+    }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance effect) {
+        if (effect.getEffect().equals(MobEffects.LEVITATION)) {
+            return false;
+        }
+        if (effect.getEffect().equals(MobEffects.MOVEMENT_SLOWDOWN) && effect.getAmplifier() >= 3) {
+            return false;
+        }
+        return super.canBeAffected(effect);
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(5.5D);
     }
 }

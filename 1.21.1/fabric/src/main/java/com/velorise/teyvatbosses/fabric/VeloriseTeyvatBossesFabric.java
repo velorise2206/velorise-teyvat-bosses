@@ -15,6 +15,7 @@ import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
+import com.velorise.teyvatbosses.entity.PrimoGeovishapPartEntity;
 import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
@@ -144,6 +145,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final EntityType<PrimoInfusedStoneEntity> PRIMO_INFUSED_STONE = Registry.register(
             BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("primo_infused_stone"),
             EntityType.Builder.<PrimoInfusedStoneEntity>of(PrimoInfusedStoneEntity::new, MobCategory.MISC).sized(1.3F, 2.2F).clientTrackingRange(14).updateInterval(2).build("primo_infused_stone"));
+    public static final EntityType<PrimoGeovishapPartEntity> PRIMO_GEOVISHAP_PART = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE, TeyvatBossesConstants.id("primo_geovishap_part"),
+            EntityType.Builder.<PrimoGeovishapPartEntity>of(PrimoGeovishapPartEntity::new, MobCategory.MISC).sized(2.4F, 2.2F).noSave().noSummon().clientTrackingRange(16).updateInterval(1).build("primo_geovishap_part"));
 
     // 5 Boss Trophy Blocks
     public static final BossTrophyBlock CRYO_REGISVINE_TROPHY = Registry.register(
@@ -456,6 +460,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> RUIN_NAUTILUS, () -> RUIN_TORPEDO, () -> RUIN_SUBMERSIBLE, () -> ANEMO_COMPANION,
                 () -> PRIMO_GEOVISHAP, () -> GEO_DRILLER, () -> PRIMO_INFUSED_STONE
         );
+        TeyvatBossesEntities.bindPrimoPart(() -> PRIMO_GEOVISHAP_PART);
         TeyvatBossesBlocks.bind(
                 () -> CRYO_REGISVINE_TROPHY, () -> ANEMO_HYPOSTASIS_TROPHY,
                 () -> RUIN_GUARD_TROPHY, () -> RUIN_NAUTILUS_TROPHY, () -> PRIMO_GEOVISHAP_TROPHY, () -> BOSS_TROPHY_BE

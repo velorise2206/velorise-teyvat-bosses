@@ -38,7 +38,7 @@ public abstract class CameraMixin {
         return originalDistance;
     }
 
-    @Inject(method = "setup", at = @At("TAIL"))
+    @Inject(require = 0, method = "setup", at = @At("TAIL"))
     private void velorise$applyMechCameraShake(BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci) {
         if (RuinMechCameraController.getPilotedMech() != null) {
             float[] off = RuinMechCameraController.computeOffsets(partialTick);

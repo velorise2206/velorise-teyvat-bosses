@@ -166,5 +166,6 @@
   "enchantment.velorise_teyvat_bosses.core_capacity": "Dung Tích Lõi",
   "enchantment.velorise_teyvat_bosses.core_capacity.desc": "Tăng dung tích năng lượng Redstone tối đa cho lõi thiết bị (+900 mỗi cấp).",
   "enchantment.velorise_teyvat_bosses.energy_conservation": "Tiết Kiệm Năng Lượng",
-  "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Giảm lượng năng lượng Redstone tiêu thụ của thiết bị (-15% mỗi cấp)."
+  "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Giảm lượng năng lượng Redstone tiêu thụ của thiết bị (-15% mỗi cấp).",
+  "entity.velorise_teyvat_bosses.primo_geovishap_part": "Rồng Đất Cổ Đại"
 }

@@ -12,6 +12,7 @@ import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
+import com.velorise.teyvatbosses.entity.PrimoGeovishapPartEntity;
 import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
 import com.velorise.teyvatbosses.entity.RuinGuardEntity;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
@@ -52,6 +53,7 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<PrimoGeovishapEntity>> primoGeovishap;
     private static Supplier<EntityType<GeoDrillerEntity>> geoDriller;
     private static Supplier<EntityType<PrimoInfusedStoneEntity>> primoInfusedStone;
+    private static Supplier<EntityType<PrimoGeovishapPartEntity>> primoGeovishapPart;
 
     private TeyvatBossesEntities() {}
 
@@ -122,4 +124,6 @@ public final class TeyvatBossesEntities {
     public static EntityType<PrimoGeovishapEntity> primoGeovishap() { return primoGeovishap.get(); }
     public static EntityType<GeoDrillerEntity> geoDriller() { return geoDriller.get(); }
     public static EntityType<PrimoInfusedStoneEntity> primoInfusedStone() { return primoInfusedStone.get(); }
+    public static void bindPrimoPart(Supplier<EntityType<PrimoGeovishapPartEntity>> supplier) { primoGeovishapPart = supplier; }
+    public static EntityType<PrimoGeovishapPartEntity> primoGeovishapPart() { return primoGeovishapPart.get(); }
 }

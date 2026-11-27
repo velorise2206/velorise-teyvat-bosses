@@ -39,6 +39,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
 
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_geovishap_boss_emissive.png");
+    private static final ResourceLocation BOSS_MUSIC_ID = TeyvatBossesConstants.id("music.primo_geovishap_theme");
 
     private final PrimoGeovishapModel<PrimoGeovishapEntity> model;
     private final PrimoGeovishapModel<PrimoGeovishapEntity> emissiveModel;
@@ -74,6 +75,10 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     @Override
     public void render(PrimoGeovishapEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buf, int packedLight) {
         int bossState = entity.getBossState();
+        BossMusicManager.update(entity, BOSS_MUSIC_ID,
+                bossState == PrimoGeovishapEntity.STATE_AWAKEN
+                        || bossState == PrimoGeovishapEntity.STATE_COMBAT
+                        || bossState == PrimoGeovishapEntity.STATE_STAGGER);
         int animId = entity.getAnimId();
         int animTick = entity.getAnimTick();
         float clipSec = (animTick + partialTicks) / 20.0F;
@@ -218,6 +223,44 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             drawRing(lvc, mat, 0.10F, Math.max(0.12F, teleRadius - 0.36F), 44, 0.09F, 200, 18, 24, 42);
             drawRing(lvc, mat, 0.10F, fillR, 44, 0.10F, 255, 42, 48, 86);
             drawRing(lvc, mat, Math.max(0.10F, fillR - 0.28F), fillR, 52, 0.12F, 255, 85, 78, 210);
+            poseStack.popPose();
+        }
+
+        // 2b. Crisp red expanding ground warning zones for Rear Tail Slam (behind boss) & Vertical Tail Cleave (forward leap slam)
+        if (animId == PrimoGeovishapEntity.ANIM_REAR_TAIL_SLAM && animTick < 12) {
+            float prog = Mth.clamp((animTick + partialTicks) / 12.0F, 0.0F, 1.0F);
+            float yawRad = bodyYaw * Mth.DEG_TO_RAD;
+            // Impact center is 5.2 blocks directly behind the boss
+            double bx = Math.sin(yawRad) * 5.2D;
+            double bz = -Math.cos(yawRad) * 5.2D;
+            float rMax = 5.6F;
+            float fillR = Math.max(0.25F, rMax * prog);
+            poseStack.pushPose();
+            poseStack.translate(bx, 0.0D, bz);
+            Matrix4f mat = poseStack.last().pose();
+            drawRing(lvc, mat, rMax - 0.34F, rMax, 44, 0.11F, 235, 28, 36, 230);
+            drawRing(lvc, mat, 0.10F, Math.max(0.12F, rMax - 0.34F), 40, 0.09F, 200, 18, 24, 48);
+            drawRing(lvc, mat, 0.10F, fillR, 40, 0.10F, 255, 42, 48, 92);
+            drawRing(lvc, mat, Math.max(0.10F, fillR - 0.26F), fillR, 44, 0.12F, 255, 95, 82, 220);
+            poseStack.popPose();
+        } else if (animId == PrimoGeovishapEntity.ANIM_VERTICAL_TAIL_CLEAVE && animTick < 27) {
+            // World-pinned fixed red warning circle at exact locked impact point (never slides with jumping boss!)
+            float prog = Mth.clamp((animTick + partialTicks) / 27.0F, 0.0F, 1.0F);
+            double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
+            double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            double ox = entity.getCleaveTargetX() - ex;
+            double oy = entity.getCleaveTargetY() - ey;
+            double oz = entity.getCleaveTargetZ() - ez;
+            float rMax = 5.2F;
+            float fillR = Math.max(0.25F, rMax * prog);
+            poseStack.pushPose();
+            poseStack.translate(ox, oy, oz);
+            Matrix4f cMat = poseStack.last().pose();
+            drawRing(lvc, cMat, rMax - 0.34F, rMax, 48, 0.11F, 235, 28, 36, 230);
+            drawRing(lvc, cMat, 0.10F, Math.max(0.12F, rMax - 0.34F), 44, 0.09F, 200, 18, 24, 46);
+            drawRing(lvc, cMat, 0.10F, fillR, 44, 0.10F, 255, 42, 48, 92);
+            drawRing(lvc, cMat, Math.max(0.10F, fillR - 0.26F), fillR, 48, 0.12F, 255, 95, 82, 220);
             poseStack.popPose();
         }
 
@@ -414,15 +457,15 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             if (animTick >= 10 && animTick <= 17) {
                 float raw = Mth.clamp((animTick - 10 + partialTicks) / 7.0F, 0.0F, 1.0F);
                 float p = 1.0F - (1.0F - raw) * (1.0F - raw);
-                drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.9F, -96.0F, 76.0F, p, 22.0F);
+                drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.9F, 96.0F, -76.0F, p, -22.0F);
             } else if (animTick >= 24 && animTick <= 31) {
                 float raw = Mth.clamp((animTick - 24 + partialTicks) / 7.0F, 0.0F, 1.0F);
                 float p = 1.0F - (1.0F - raw) * (1.0F - raw);
-                drawSlashArc(poseStack, lvc, bodyYaw, 2.05F, 7.1F, 96.0F, -76.0F, p, -22.0F);
+                drawSlashArc(poseStack, lvc, bodyYaw, 2.05F, 7.1F, -96.0F, 76.0F, p, 22.0F);
             }
-        } else if (animId == PrimoGeovishapEntity.ANIM_WHIRLWIND && animTick >= 11 && animTick <= 23) {
-            // Synced 1:1 with body.yRot (+422 deg world-Y spin from 0.55s..1.15s = tick 11..23)
-            float p = Mth.clamp((animTick - 11 + partialTicks) / 12.0F, 0.0F, 1.0F);
+        } else if (animId == PrimoGeovishapEntity.ANIM_WHIRLWIND && animTick >= 11 && animTick <= 24) {
+            // Synced 1:1 with body.yRot 360-deg spin (0.52s..1.16s = tick 11..24)
+            float p = Mth.clamp((animTick - 11 + partialTicks) / 13.0F, 0.0F, 1.0F);
             float fade = (p < 0.15F) ? (p / 0.15F) : (1.0F - (p - 0.15F) / 0.85F * 0.78F);
             poseStack.pushPose();
             poseStack.translate(0.0D, 1.35D, 0.0D);
@@ -591,27 +634,28 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         poseStack.pushPose();
         // Offset beam origin slightly along swung neck/snout axis so torrent emerges dead-center from open jaws
         float sweepRelDeg = Mth.lerp(progress, 46.0F, -46.0F);
-        float pivotYawRad = (float) Math.toRadians(bodyYaw + sweepRelDeg * 0.45F);
-        double mouthAnchorX = -Math.sin(pivotYawRad) * 1.15D;
-        double mouthAnchorZ = Math.cos(pivotYawRad) * 1.15D;
-        poseStack.translate(mouthAnchorX, 2.18D, mouthAnchorZ);
+        // Anchor directly inside the open snout tip (follows neck+head sweep yaw with zero floating gap!)
+        float pivotYawRad = (float) Math.toRadians(bodyYaw + sweepRelDeg * 0.68F);
+        double mouthAnchorX = -Math.sin(pivotYawRad) * 2.05D;
+        double mouthAnchorZ = Math.cos(pivotYawRad) * 2.05D;
+        poseStack.translate(mouthAnchorX, 1.82D, mouthAnchorZ);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - sweepYaw));
-        poseStack.mulPose(Axis.XP.rotationDegrees(-7.5F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-11.0F));
         Matrix4f mat = poseStack.last().pose();
 
         int lr = Math.min(255, rgb[0] + 65);
         int lg = Math.min(255, rgb[1] + 65);
         int lb = Math.min(255, rgb[2] + 65);
 
-        // 1. Silky 4-layer undulating volumetric torrent (outer vapor mist -> mid elemental surge -> bright plasma -> white-hot jet core)
-        drawUndulatingBreathStream(lvc, mat, 1.35F, 16.2F, 0.60F, 3.05F, 10, 20, clientSec, 0.16F, rgb[0], rgb[1], rgb[2], (int) (82 * fade));
-        drawUndulatingBreathStream(lvc, mat, 1.40F, 15.5F, 0.40F, 1.95F, 10, 18, clientSec * 1.15F, 0.13F, lr, lg, lb, (int) (145 * fade));
-        drawUndulatingBreathStream(lvc, mat, 1.46F, 14.6F, 0.24F, 1.05F, 10, 16, clientSec * 1.32F, 0.10F, 230, 248, 255, (int) (180 * fade));
-        drawUndulatingBreathStream(lvc, mat, 1.52F, 13.4F, 0.13F, 0.48F, 8, 12, clientSec * 1.50F, 0.07F, 255, 255, 255, (int) (220 * fade));
+        // 1. Silky 4-layer undulating volumetric torrent starting directly at the open jaws (zStart ~ 0.05..0.15)
+        drawUndulatingBreathStream(lvc, mat, 0.05F, 15.2F, 0.42F, 2.95F, 10, 20, clientSec, 0.15F, rgb[0], rgb[1], rgb[2], (int) (84 * fade));
+        drawUndulatingBreathStream(lvc, mat, 0.08F, 14.6F, 0.28F, 1.90F, 10, 18, clientSec * 1.15F, 0.12F, lr, lg, lb, (int) (148 * fade));
+        drawUndulatingBreathStream(lvc, mat, 0.12F, 13.8F, 0.18F, 1.02F, 10, 16, clientSec * 1.32F, 0.09F, 230, 248, 255, (int) (185 * fade));
+        drawUndulatingBreathStream(lvc, mat, 0.16F, 12.6F, 0.10F, 0.46F, 8, 12, clientSec * 1.50F, 0.07F, 255, 255, 255, (int) (225 * fade));
 
-        // 2. Dual counter-flowing twisting helical vortex ribbons (eliminates flat geometric hoops!)
-        drawHelicalBreathRibbons(lvc, mat, 1.45F, 15.4F, 0.44F, 2.45F, 22, clientSec, rgb[0], rgb[1], rgb[2], (int) (155 * fade));
-        drawHelicalBreathRibbons(lvc, mat, 1.55F, 14.8F, 0.26F, 1.55F, 20, -clientSec * 0.85F, lr, lg, lb, (int) (135 * fade));
+        // 2. Dual counter-flowing twisting helical vortex ribbons emerging directly from the mouth
+        drawHelicalBreathRibbons(lvc, mat, 0.10F, 14.5F, 0.34F, 2.35F, 22, clientSec, rgb[0], rgb[1], rgb[2], (int) (155 * fade));
+        drawHelicalBreathRibbons(lvc, mat, 0.15F, 13.8F, 0.20F, 1.48F, 20, -clientSec * 0.85F, lr, lg, lb, (int) (135 * fade));
         poseStack.popPose();
     }
 
@@ -695,9 +739,9 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             start = 64; maxR = 10.2F;
         } else if (animId == PrimoGeovishapEntity.ANIM_PRIMEVAL_SPRING && animTick >= 24 && animTick <= 39) {
             start = 24; maxR = 10.5F; goldenGeo = false;
-        } else if (animId == PrimoGeovishapEntity.ANIM_REAR_TAIL_SLAM && animTick >= 18 && animTick <= 32) {
+        } else if (animId == PrimoGeovishapEntity.ANIM_REAR_TAIL_SLAM && animTick >= 12 && animTick <= 26) {
             start = 18; maxR = 6.2F; fwdOffset = -5.2D;
-        } else if (animId == PrimoGeovishapEntity.ANIM_VERTICAL_TAIL_CLEAVE && animTick >= 25 && animTick <= 40) {
+        } else if (animId == PrimoGeovishapEntity.ANIM_VERTICAL_TAIL_CLEAVE && animTick >= 27 && animTick <= 42) {
             start = 25; maxR = 7.4F; fwdOffset = 5.6D;
         }
         if (start < 0) return;
@@ -825,6 +869,17 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         vc.addVertex(mat, x0 + halfW, y0, z0).setColor(r, g, b, a);
         vc.addVertex(mat, x1 + halfW, y1, z1).setColor(r, g, b, a);
         vc.addVertex(mat, x1 - halfW, y1, z1).setColor(r, g, b, a);
+    }
+
+    private static void drawGroundQuad(VertexConsumer vc, Matrix4f mat, float x0, float x1, float z0, float z1, float y, int r, int g, int b, int a) {
+        vc.addVertex(mat, x0, y, z0).setColor(r, g, b, a);
+        vc.addVertex(mat, x0, y, z1).setColor(r, g, b, a);
+        vc.addVertex(mat, x1, y, z1).setColor(r, g, b, a);
+        vc.addVertex(mat, x1, y, z0).setColor(r, g, b, a);
+        vc.addVertex(mat, x1, y, z0).setColor(r, g, b, a);
+        vc.addVertex(mat, x1, y, z1).setColor(r, g, b, a);
+        vc.addVertex(mat, x0, y, z1).setColor(r, g, b, a);
+        vc.addVertex(mat, x0, y, z0).setColor(r, g, b, a);
     }
 
     private static void drawRing(VertexConsumer vc, Matrix4f mat, float rIn, float rOut, int segs, float y, int r, int g, int b, int a) {
