@@ -53,6 +53,8 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         boolean hasPos = false;
         float ikFL = 0.0F, ikFR = 0.0F, ikBL = 0.0F, ikBR = 0.0F;
         float ikBodyDrop = 0.0F;
+        float ikPitch = 0.0F;
+        float ikRoll = 0.0F;
         int lastStaggerStartTick = -1;
         float frozenClipSec = 0.0F;
         boolean wasHitstop = false;
@@ -212,8 +214,9 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     }
 
     /**
-     * 4-Limb 2-Bone Analytical Quadruped Foot IK: bends each forelimb and hind leg onto uneven
-     * terrain steps/slabs/craters so Primo Geovishap's massive paws never clip into blocks.
+     * 4-Limb Quadruped Terrain Pitch/Roll + 2-Bone Residual Foot IK (Alex's Caves style):
+     * Tilts the entire torso smoothly to hug 1–2 block hills and side-slopes, counter-levels the neck
+     * slightly so the gaze stays natural, and solves residual 2-bone limb flexion per paw.
      */
     private void applyQuadrupedFootIK(PrimoGeovishapEntity entity, WalkStrideState ws, int animId, float bodyYaw, float partialTicks) {
         boolean allowIK = entity.onGround()
@@ -226,33 +229,62 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
             double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
-            tFL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.15D,  1.25D, 1.05F, 0.70F);
-            tFR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.15D,  1.25D, 1.05F, 0.70F);
-            tBL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.05D, -1.25D, 1.05F, 0.70F);
-            tBR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.05D, -1.25D, 1.05F, 0.70F);
+            tFL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.15D,  1.25D, 1.35F, 1.10F);
+            tFR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.15D,  1.25D, 1.35F, 1.10F);
+            tBL = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw, -1.05D, -1.25D, 1.35F, 1.10F);
+            tBR = BossFootIK.sampleFootGroundOffset(entity.level(), ex, ey, ez, bodyYaw,  1.05D, -1.25D, 1.35F, 1.10F);
         }
-        ws.ikFL = Mth.lerp(0.26F, ws.ikFL, tFL);
-        ws.ikFR = Mth.lerp(0.26F, ws.ikFR, tFR);
-        ws.ikBL = Mth.lerp(0.26F, ws.ikBL, tBL);
-        ws.ikBR = Mth.lerp(0.26F, ws.ikBR, tBR);
-        float minFoot = Math.min(Math.min(ws.ikFL, ws.ikFR), Math.min(ws.ikBL, ws.ikBR));
-        ws.ikBodyDrop = Mth.lerp(0.26F, ws.ikBodyDrop, Math.min(0.0F, minFoot * 0.55F));
+        ws.ikFL = Mth.lerp(0.24F, ws.ikFL, tFL);
+        ws.ikFR = Mth.lerp(0.24F, ws.ikFR, tFR);
+        ws.ikBL = Mth.lerp(0.24F, ws.ikBL, tBL);
+        ws.ikBR = Mth.lerp(0.24F, ws.ikBR, tBR);
+
+        float frontAvg = 0.5F * (ws.ikFL + ws.ikFR);
+        float backAvg  = 0.5F * (ws.ikBL + ws.ikBR);
+        float leftAvg  = 0.5F * (ws.ikFL + ws.ikBL);
+        float rightAvg = 0.5F * (ws.ikFR + ws.ikBR);
+        float avgFoot  = 0.25F * (ws.ikFL + ws.ikFR + ws.ikBL + ws.ikBR);
+        float minFoot  = Math.min(Math.min(ws.ikFL, ws.ikFR), Math.min(ws.ikBL, ws.ikBR));
+
+        // Model space: -Z = forward, +X = right, +Y = down -> negative xRot lifts front UP; negative zRot lifts right UP
+        float targetPitch = allowIK ? Mth.clamp((float) Math.atan2(backAvg - frontAvg, 2.50D), -0.44F, 0.44F) : 0.0F;
+        float targetRoll  = allowIK ? Mth.clamp((float) Math.atan2(leftAvg - rightAvg, 2.20D), -0.32F, 0.32F) : 0.0F;
+        float targetDrop  = allowIK ? Mth.clamp(avgFoot * 0.55F + Math.min(0.0F, minFoot) * 0.30F, -0.75F, 0.55F) : 0.0F;
+
+        ws.ikPitch = Mth.lerp(0.20F, ws.ikPitch, targetPitch);
+        ws.ikRoll  = Mth.lerp(0.20F, ws.ikRoll, targetRoll);
+        ws.ikBodyDrop = Mth.lerp(0.24F, ws.ikBodyDrop, targetDrop);
 
         if (Math.abs(ws.ikFL) < 0.01F && Math.abs(ws.ikFR) < 0.01F
-                && Math.abs(ws.ikBL) < 0.01F && Math.abs(ws.ikBR) < 0.01F) {
+                && Math.abs(ws.ikBL) < 0.01F && Math.abs(ws.ikBR) < 0.01F
+                && Math.abs(ws.ikPitch) < 0.005F && Math.abs(ws.ikRoll) < 0.005F) {
             return;
         }
 
         net.minecraft.client.model.geom.ModelPart body = model.getBone("body");
         if (body != null) {
             body.y += (-ws.ikBodyDrop) * (16.0F / BOSS_SCALE);
+            body.xRot += ws.ikPitch;
+            body.zRot += ws.ikRoll;
+        }
+        // Subtle neck counter-leveling so head maintains natural gaze on hills
+        net.minecraft.client.model.geom.ModelPart neck = model.getBone("neck");
+        if (neck != null) {
+            neck.xRot -= ws.ikPitch * 0.35F;
         }
 
+        float sinP = Mth.sin(ws.ikPitch);
+        float sinR = Mth.sin(ws.ikRoll);
+        float planeFL = ws.ikBodyDrop + (-1.25F * sinP) + ( 1.15F * sinR);
+        float planeFR = ws.ikBodyDrop + (-1.25F * sinP) + (-1.15F * sinR);
+        float planeBL = ws.ikBodyDrop + ( 1.25F * sinP) + ( 1.05F * sinR);
+        float planeBR = ws.ikBodyDrop + ( 1.25F * sinP) + (-1.05F * sinR);
+
         float[] solve = new float[2];
-        applyLimbIK("arm_left", "forearm_left", Math.max(0.0F, ws.ikFL - ws.ikBodyDrop), 0.92F, 0.85F, solve);
-        applyLimbIK("arm_right", "forearm_right", Math.max(0.0F, ws.ikFR - ws.ikBodyDrop), 0.92F, 0.85F, solve);
-        applyLimbIK("leg_left", "shin_left", Math.max(0.0F, ws.ikBL - ws.ikBodyDrop), 0.84F, 0.78F, solve);
-        applyLimbIK("leg_right", "shin_right", Math.max(0.0F, ws.ikBR - ws.ikBodyDrop), 0.84F, 0.78F, solve);
+        applyLimbIK("arm_left", "forearm_left", Math.max(0.0F, ws.ikFL - planeFL), 0.92F, 0.85F, solve);
+        applyLimbIK("arm_right", "forearm_right", Math.max(0.0F, ws.ikFR - planeFR), 0.92F, 0.85F, solve);
+        applyLimbIK("leg_left", "shin_left", Math.max(0.0F, ws.ikBL - planeBL), 0.84F, 0.78F, solve);
+        applyLimbIK("leg_right", "shin_right", Math.max(0.0F, ws.ikBR - planeBR), 0.84F, 0.78F, solve);
     }
 
     private void applyLimbIK(String upperName, String lowerName, float liftBlocks, float upperLen, float lowerLen, float[] solve) {
