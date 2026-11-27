@@ -1111,6 +1111,22 @@ public class PrimoGeovishapEntity extends Monster {
         if (stateTick >= 84) finishAttack(48);
     }
 
+    /**
+     * Detects Velorise's Staves Elemental/Jade/Crystallize shields (via API, Absorption hearts,
+     * or any active shield/jade MobEffect) so Zhongli's Jade Shield reliably counters Primordial Shower.
+     */
+    private static boolean hasElementalOrModShield(LivingEntity e) {
+        if (StavesElementBridge.hasElementalShield(e)) return true;
+        if (e.getAbsorptionAmount() > 0.0F) return true;
+        for (net.minecraft.world.effect.MobEffectInstance inst : e.getActiveEffects()) {
+            String key = inst.getEffect().getRegisteredName().toLowerCase(java.util.Locale.ROOT);
+            if (key.contains("shield") || key.contains("jade") || key.contains("crystallize")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void tickPrimordialShower(ServerLevel sl, LivingEntity target) {
         setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
         if (stateTick < 38) faceTargetSmooth(target, 5.0F);
@@ -1129,7 +1145,7 @@ public class PrimoGeovishapEntity extends Monster {
             boolean counterUsedElemShield = false;
             for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box)) {
                 if (e == this || !e.isAlive() || e.distanceToSqr(this) > 16.0D * 16.0D) continue;
-                boolean hasElemShield = StavesElementBridge.hasElementalShield(e);
+                boolean hasElemShield = hasElementalOrModShield(e);
                 boolean hasVanillaShield = (e instanceof Player p && p.isBlocking());
                 if (hasElemShield || hasVanillaShield) {
                     if (counterSource == null || (hasElemShield && !counterUsedElemShield)) {
