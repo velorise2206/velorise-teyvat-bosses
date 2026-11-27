@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
 import net.minecraft.ChatFormatting;
@@ -132,6 +134,7 @@ public class CryoRegisvineEntity extends Monster {
 
     public CryoRegisvineEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
+        TeyvatBossesConfig.applyBossScaling(this, "cryo_regisvine");
         this.xpReward = 600;
         this.setPersistenceRequired();
         this.addTag("VeloriseInnateChecked");

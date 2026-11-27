@@ -662,7 +662,6 @@ public class GeoDrillerEntity extends Mob {
             if (Math.abs(side) > 0.05F) {
                 float turn = -side * 3.6F;
                 this.setYRot(this.getYRot() + turn);
-                this.yRotO = this.getYRot();
                 this.yBodyRot = this.getYRot();
                 this.yHeadRot = this.getYRot();
             }

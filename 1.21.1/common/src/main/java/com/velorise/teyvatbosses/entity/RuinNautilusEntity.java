@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import net.minecraft.core.particles.ParticleTypes;
@@ -130,6 +132,7 @@ public class RuinNautilusEntity extends Mob {
 
     public RuinNautilusEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
+        TeyvatBossesConfig.applyBossScaling(this, "ruin_nautilus");
         this.xpReward = 180;
         this.setPersistenceRequired();
         this.setNoGravity(true);

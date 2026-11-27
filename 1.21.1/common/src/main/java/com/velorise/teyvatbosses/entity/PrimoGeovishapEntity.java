@@ -164,6 +164,7 @@ public class PrimoGeovishapEntity extends Monster {
 
     public PrimoGeovishapEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
+        TeyvatBossesConfig.applyBossScaling(this, "primo_geovishap");
         this.xpReward = 240;
         this.setPersistenceRequired();
         this.bossEvent.setVisible(false);
@@ -1269,7 +1270,7 @@ public class PrimoGeovishapEntity extends Monster {
                 StavesElementBridge.dealElementalDamage(target, this, "GEO", dmg, 1.0F, false, 0.22F);
             }
         } else {
-            target.hurt(sl.damageSources().mobAttack(this), dmg);
+            target.hurt(sl.damageSources().mobAttack(this), TeyvatBossesConfig.scaleDamage("primo_geovishap", dmg));
         }
     }
 

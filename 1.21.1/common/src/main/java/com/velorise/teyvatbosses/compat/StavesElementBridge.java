@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.compat;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -127,6 +129,14 @@ public final class StavesElementBridge {
             boolean bypassIcd,
             float magicPierceRatio
     ) {
+        if (attacker != null) {
+            String _bCls = attacker.getClass().getSimpleName();
+            if ("CryoRegisvineEntity".equals(_bCls)) damage = TeyvatBossesConfig.scaleDamage("cryo_regisvine", damage);
+            else if ("AnemoHypostasisEntity".equals(_bCls)) damage = TeyvatBossesConfig.scaleDamage("anemo_hypostasis", damage);
+            else if ("RuinGuardEntity".equals(_bCls)) damage = TeyvatBossesConfig.scaleDamage("ruin_guard", damage);
+            else if ("RuinNautilusEntity".equals(_bCls)) damage = TeyvatBossesConfig.scaleDamage("ruin_nautilus", damage);
+            else if ("PrimoGeovishapEntity".equals(_bCls)) damage = TeyvatBossesConfig.scaleDamage("primo_geovishap", damage);
+        }
         if (target == null || target.level().isClientSide()) return;
         float ratio = Math.max(0.0F, Math.min(0.65F, magicPierceRatio));
         float mainDmg = damage * (1.0F - ratio);

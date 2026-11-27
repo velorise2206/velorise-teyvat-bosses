@@ -142,6 +142,7 @@ public class RuinGuardEntity extends Monster {
 
     public RuinGuardEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
+        TeyvatBossesConfig.applyBossScaling(this, "ruin_guard");
         this.xpReward = 700;
     }
 

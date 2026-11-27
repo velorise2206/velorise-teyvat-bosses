@@ -150,8 +150,8 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
             Matrix4f mat = poseStack.last().pose();
             if (entity.isHeadlightOn()) {
-                drawDrillerCone(lvc, mat, 1.35F, 1.35F, 10.5F, 0.24F, 2.35F, 16, 255, 232, 165, 58);
-                drawDrillerCone(lvc, mat, 1.35F, 1.35F, 7.5F, 0.14F, 1.15F, 14, 255, 250, 220, 82);
+                // Clean, short, subtle headlamp halo (1.6 blocks) that never slices awkwardly through terrain or water
+                drawDrillerCone(lvc, mat, 1.32F, 1.32F, 2.90F, 0.14F, 0.44F, 14, 255, 240, 195, 28);
             }
             if (smoothDrillSpool > 0.15F && hasDrill) {
                 boolean surge = entity.isSurging();

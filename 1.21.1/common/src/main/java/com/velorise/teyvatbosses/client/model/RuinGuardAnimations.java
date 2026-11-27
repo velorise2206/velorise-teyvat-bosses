@@ -330,107 +330,96 @@ public final class RuinGuardAnimations {
     private static void initClip_5() {
         Clip c = new Clip("melee_combo_3hit", 6.4000F, false);
         c.add("pelvis", CH_POS,
-                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 4.50F, 5.15F, 5.78F, 6.40F},
+                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 4.55F, 5.20F, 5.80F, 6.40F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-2.2F, -3.8F, -3.6F, -3.0F, -5.8F, -4.0F, -3.2F, -6.8F, -5.4F, -11.6F, 5.2F, 1.6F, -14.4F, -12.8F, -13.2F, -6.4F, -2.2F},
-                new float[]{0.0F, 0.6F, 0.6F, 2.0F, -4.0F, -1.5F, 1.4F, -4.8F, -1.8F, 2.4F, -1.6F, -2.6F, -4.4F, -4.0F, -4.2F, -1.8F, 0.0F},
+                new float[]{-2.2F, -3.2F, -3.0F, -3.0F, -4.4F, -3.2F, -3.2F, -4.8F, -3.6F, -9.2F, 4.8F, 1.4F, -11.5F, -10.4F, -10.2F, -5.2F, -2.2F},
+                new float[]{0.0F, 0.4F, 0.4F, 1.2F, -2.6F, -1.0F, 1.2F, -3.0F, -1.2F, 1.6F, -0.8F, -1.4F, -2.4F, -2.2F, -2.0F, -0.8F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0});
-        // Hit 1 twists RIGHT (+44 -> -78 deg); Hit 2 counter-whips strongly LEFT (-88 -> +112 deg), then centers for jump
+        // Genshin-faithful waist twist: Hit 1 right-arm sweep (-44 -> +54), Hit 2 left-arm sweep (+54 -> -56), centers cleanly for jump
         c.add("waist", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.15F, 3.45F, 4.30F, 6.40F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 36.0F, 46.0F, -78.0F, -90.0F, -96.0F, 112.0F, 24.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new int[]{0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0});
+                new float[]{0.0F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.10F, 3.45F, 4.30F, 6.40F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, -36.0F, -44.0F, 54.0F, 58.0F, 60.0F, -56.0F, -16.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0});
+        // Upright commanding torso (max +22 deg on landing slam — NEVER face-planting into the ground!)
         c.add("torso", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 4.50F, 5.15F, 5.78F, 6.40F},
-                new float[]{7.0F, 14.0F, 14.0F, 4.0F, 20.0F, 10.0F, 2.0F, 26.0F, 32.0F, 18.0F, 24.0F, 48.0F, 44.0F, 44.0F, 22.0F, 7.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 10.0F, -14.0F, -6.0F, -12.0F, 18.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, -8.0F, 10.0F, 4.0F, 10.0F, -14.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 4.55F, 5.20F, 5.80F, 6.40F},
+                new float[]{7.0F, 9.0F, 8.0F, 6.0F, 11.0F, 8.0F, 6.0F, 12.0F, 16.0F, 6.0F, 10.0F, 22.0F, 20.0F, 18.0F, 12.0F, 7.0F},
+                new float[]{0.0F, 0.0F, 0.0F, -8.0F, 10.0F, 6.0F, 8.0F, -12.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 4.0F, -5.0F, -2.0F, -4.0F, 6.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0});
         c.add("shoulder_r", CH_ROT,
-                new float[]{0.0F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 6.40F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, -12.0F, -18.0F, -14.0F, 0.0F, 0.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0});
-        c.add("shoulder_l", CH_ROT,
                 new float[]{0.0F, 0.55F, 1.25F, 1.45F, 1.95F, 3.45F, 6.40F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 14.0F, 14.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, -10.0F, -10.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 0});
-        // RIGHT ARM: tucks on Hit 1 -> extends straight at shoulder height (zRot -88) on Hit 2 -> spreads wide & downward during jump/landing
+        c.add("shoulder_l", CH_ROT,
+                new float[]{0.0F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 6.40F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 10.0F, 12.0F, 10.0F, 0.0F, 0.0F},
+                new int[]{0, 0, 0, 0, 0, 0, 0});
+        // RIGHT ARM: Hit 1 straight horizontal clothesline sweep (zRot -86) -> tucks on Hit 2 -> clean wide-out stance on jump & landing
         c.add("upper_arm_r", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, 14.0F, 20.0F, -6.0F, -4.0F, -8.0F, -4.0F, 22.0F, -16.0F, -18.0F, -22.0F, -20.0F, -14.0F, -8.0F},
-                new float[]{0.0F, 34.0F, 34.0F, 0.0F, 0.0F, -14.0F, -18.0F, 22.0F, 6.0F, 0.0F, -8.0F, -8.0F, -6.0F, -6.0F, 0.0F, 0.0F},
-                new float[]{-15.0F, -8.0F, -8.0F, -22.0F, -26.0F, -82.0F, -88.0F, -86.0F, -34.0F, -22.0F, -62.0F, -66.0F, -56.0F, -52.0F, -24.0F, -15.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0});
-        c.add("upper_arm_r", CH_SCALE,
-                new float[]{0.0F, 1.95F, 2.58F, 3.00F, 6.40F},
-                new float[]{1.0F, 1.0F, 1.0F, 1.0F, 1.0F},
-                new float[]{1.0F, 1.08F, 1.12F, 1.0F, 1.0F},
-                new float[]{1.0F, 1.0F, 1.0F, 1.0F, 1.0F},
-                new int[]{0, 0, 0, 0, 0});
-        c.add("forearm_r", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.30F, 5.15F, 6.40F},
-                new float[]{-18.0F, -42.0F, -42.0F, -6.0F, -4.0F, -8.0F, -20.0F, -16.0F, -18.0F, -18.0F, -18.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new int[]{0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0});
-        // LEFT ARM: sweeps outside-in horizontally on Hit 1 (zRot +84) -> tucks on Hit 2 -> spreads wide & downward during jump/landing
-        c.add("upper_arm_l", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-8.0F, -52.0F, -52.0F, -8.0F, -10.0F, -12.0F, 18.0F, 24.0F, 28.0F, 22.0F, -16.0F, -18.0F, -22.0F, -20.0F, -14.0F, -8.0F},
-                new float[]{0.0F, -34.0F, -34.0F, 12.0F, 16.0F, -22.0F, 0.0F, 0.0F, 0.0F, 0.0F, 8.0F, 8.0F, 6.0F, 6.0F, 0.0F, 0.0F},
-                new float[]{15.0F, 8.0F, 8.0F, 78.0F, 84.0F, 76.0F, 26.0F, 24.0F, 28.0F, 22.0F, 62.0F, 66.0F, 56.0F, 52.0F, 24.0F, 15.0F},
+                new float[]{0.0F, 0.35F, 0.55F, 1.05F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{-8.0F, -24.0F, -22.0F, -10.0F, -12.0F, -14.0F, 10.0F, 14.0F, 16.0F, 16.0F, -10.0F, -14.0F, -24.0F, -20.0F, -12.0F, -8.0F},
+                new float[]{0.0F, 14.0F, 14.0F, -14.0F, -18.0F, 20.0F, 0.0F, 0.0F, 0.0F, 0.0F, -6.0F, -6.0F, -4.0F, -4.0F, 0.0F, 0.0F},
+                new float[]{-15.0F, -16.0F, -16.0F, -80.0F, -86.0F, -78.0F, -22.0F, -20.0F, -22.0F, -22.0F, -42.0F, -46.0F, -36.0F, -32.0F, -20.0F, -15.0F},
                 new int[]{0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
-        c.add("upper_arm_l", CH_SCALE,
-                new float[]{0.0F, 1.05F, 1.45F, 1.95F, 6.40F},
-                new float[]{1.0F, 1.0F, 1.0F, 1.0F, 1.0F},
-                new float[]{1.0F, 1.08F, 1.10F, 1.0F, 1.0F},
-                new float[]{1.0F, 1.0F, 1.0F, 1.0F, 1.0F},
-                new int[]{0, 0, 0, 0, 0});
+        c.add("forearm_r", CH_ROT,
+                new float[]{0.0F, 0.35F, 1.25F, 1.45F, 1.95F, 3.45F, 3.88F, 4.30F, 5.20F, 6.40F},
+                new float[]{-18.0F, -26.0F, -6.0F, -8.0F, -22.0F, -18.0F, -14.0F, -18.0F, -18.0F, -18.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new int[]{0, 0, 1, 1, 0, 0, 0, 1, 0, 0});
+        // LEFT ARM: tucks on Hit 1 -> Hit 2 straight horizontal clothesline sweep (zRot +86) -> clean wide-out stance on jump & landing
+        c.add("upper_arm_l", CH_ROT,
+                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{-8.0F, -24.0F, -22.0F, 10.0F, 14.0F, -10.0F, -12.0F, -14.0F, -8.0F, 16.0F, -10.0F, -14.0F, -24.0F, -20.0F, -12.0F, -8.0F},
+                new float[]{0.0F, -14.0F, -14.0F, 0.0F, 0.0F, 14.0F, 18.0F, -20.0F, -6.0F, 0.0F, 6.0F, 6.0F, 4.0F, 4.0F, 0.0F, 0.0F},
+                new float[]{15.0F, 16.0F, 16.0F, 20.0F, 22.0F, 80.0F, 86.0F, 80.0F, 28.0F, 22.0F, 42.0F, 46.0F, 36.0F, 32.0F, 20.0F, 15.0F},
+                new int[]{0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("forearm_l", CH_ROT,
-                new float[]{0.0F, 0.35F, 0.55F, 1.25F, 1.45F, 1.95F, 3.45F, 3.88F, 4.30F, 5.15F, 6.40F},
-                new float[]{-18.0F, -42.0F, -42.0F, -8.0F, -10.0F, -26.0F, -20.0F, -16.0F, -18.0F, -18.0F, -18.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new int[]{0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0});
+                new float[]{0.0F, 0.35F, 1.95F, 2.35F, 2.58F, 3.45F, 3.88F, 4.30F, 5.20F, 6.40F},
+                new float[]{-18.0F, -26.0F, -6.0F, -6.0F, -8.0F, -18.0F, -14.0F, -18.0F, -18.0F, -18.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                new int[]{0, 0, 0, 1, 1, 0, 0, 1, 0, 0});
         c.add("hip_r", CH_ROT,
-                new float[]{0.0F, 1.25F, 1.45F, 2.20F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-12.0F, 10.0F, -24.0F, -18.0F, 14.0F, -18.0F, -48.0F, -52.0F, -36.0F, -58.0F, -52.0F, -26.0F, -12.0F},
+                new float[]{0.0F, 1.25F, 1.45F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{-12.0F, -20.0F, 10.0F, -10.0F, -24.0F, -16.0F, -44.0F, -48.0F, -32.0F, -54.0F, -48.0F, -24.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-7.0F, -8.0F, -11.0F, -9.0F, -8.0F, -8.0F, -10.0F, -8.0F, -8.0F, -16.0F, -15.0F, -9.0F, -7.0F},
+                new float[]{-7.0F, -9.0F, -8.0F, -8.0F, -10.0F, -8.0F, -10.0F, -8.0F, -8.0F, -15.0F, -14.0F, -9.0F, -7.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("knee_r", CH_ROT,
-                new float[]{0.0F, 1.25F, 1.45F, 2.20F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{24.0F, 18.0F, 46.0F, 36.0F, 16.0F, 36.0F, 84.0F, 96.0F, 66.0F, 98.0F, 90.0F, 48.0F, 24.0F},
+                new float[]{0.0F, 1.25F, 1.45F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{24.0F, 38.0F, 18.0F, 24.0F, 44.0F, 32.0F, 78.0F, 88.0F, 58.0F, 92.0F, 82.0F, 44.0F, 24.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("foot_r", CH_ROT,
-                new float[]{0.0F, 1.45F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 6.40F},
-                new float[]{-12.0F, -22.0F, -30.0F, -34.0F, 16.0F, 10.0F, -40.0F, -36.0F, -12.0F},
+                new float[]{0.0F, 1.45F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 6.40F},
+                new float[]{-12.0F, -24.0F, -22.0F, -32.0F, 14.0F, 8.0F, -36.0F, -32.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{4.0F, 4.0F, 4.0F, 4.0F, 0.0F, 0.0F, 6.0F, 6.0F, 4.0F},
                 new int[]{0, 0, 0, 0, 0, 1, 1, 0, 0});
         c.add("hip_l", CH_ROT,
-                new float[]{0.0F, 1.25F, 1.45F, 2.20F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{-12.0F, -22.0F, 14.0F, -10.0F, -26.0F, -18.0F, -48.0F, -52.0F, -36.0F, -58.0F, -52.0F, -26.0F, -12.0F},
+                new float[]{0.0F, 1.25F, 1.45F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{-12.0F, 10.0F, -22.0F, -16.0F, 12.0F, -16.0F, -44.0F, -48.0F, -32.0F, -54.0F, -48.0F, -24.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{7.0F, 9.0F, 8.0F, 9.0F, 11.0F, 8.0F, 10.0F, 8.0F, 8.0F, 16.0F, 15.0F, 9.0F, 7.0F},
+                new float[]{7.0F, 8.0F, 10.0F, 8.0F, 8.0F, 8.0F, 10.0F, 8.0F, 8.0F, 15.0F, 14.0F, 9.0F, 7.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("knee_l", CH_ROT,
-                new float[]{0.0F, 1.25F, 1.45F, 2.20F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 5.78F, 6.40F},
-                new float[]{24.0F, 42.0F, 16.0F, 24.0F, 50.0F, 36.0F, 84.0F, 96.0F, 66.0F, 98.0F, 90.0F, 48.0F, 24.0F},
+                new float[]{0.0F, 1.25F, 1.45F, 2.35F, 2.58F, 3.00F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 5.80F, 6.40F},
+                new float[]{24.0F, 18.0F, 42.0F, 32.0F, 16.0F, 32.0F, 78.0F, 88.0F, 58.0F, 92.0F, 82.0F, 44.0F, 24.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0});
         c.add("foot_l", CH_ROT,
-                new float[]{0.0F, 1.45F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.15F, 6.40F},
-                new float[]{-12.0F, -28.0F, -24.0F, -34.0F, 16.0F, 10.0F, -40.0F, -36.0F, -12.0F},
+                new float[]{0.0F, 1.45F, 2.58F, 3.45F, 3.88F, 4.16F, 4.30F, 5.20F, 6.40F},
+                new float[]{-12.0F, -22.0F, -24.0F, -32.0F, 14.0F, 8.0F, -36.0F, -32.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{-4.0F, -4.0F, -4.0F, -4.0F, 0.0F, 0.0F, -6.0F, -6.0F, -4.0F},
                 new int[]{0, 0, 0, 0, 0, 1, 1, 0, 0});
@@ -442,37 +431,40 @@ public final class RuinGuardAnimations {
         Clip c = new Clip("double_clap", 2.6000F, false);
         c.add("pelvis", CH_POS, new float[]{0.0F, 0.72F, 1.00F, 1.15F, 1.50F, 2.05F, 2.60F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-2.2F, -4.2F, -4.8F, -7.8F, -6.8F, -4.2F, -2.2F},
-                new float[]{0.0F, 2.0F, 2.4F, -4.6F, -3.8F, -1.6F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
+                new float[]{-2.2F, -4.0F, -4.6F, -6.2F, -5.6F, -3.6F, -2.2F},
+                new float[]{0.0F, 1.2F, 1.4F, -2.6F, -2.2F, -0.8F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
         c.add("torso", CH_ROT, new float[]{0.0F, 0.72F, 1.00F, 1.15F, 1.50F, 2.05F, 2.60F},
-                new float[]{7.0F, 26.0F, 38.0F, 48.0F, 42.0F, 22.0F, 7.0F},
+                new float[]{7.0F, 12.0F, 16.0F, 20.0F, 18.0F, 12.0F, 7.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
-        // Wide wing spread using zRot +/-76 deg -> slams both massive arms together in front (-58 xRot, +/-6 zRot)
         c.add("upper_arm_r", CH_ROT, new float[]{0.0F, 0.72F, 1.00F, 1.15F, 1.50F, 2.05F, 2.60F},
-                new float[]{-8.0F, -10.0F, -12.0F, -58.0F, -54.0F, -28.0F, -8.0F},
-                new float[]{0.0F, -16.0F, -22.0F, 34.0F, 28.0F, 10.0F, 0.0F},
-                new float[]{-15.0F, -66.0F, -76.0F, 6.0F, 2.0F, -12.0F, -15.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
+                new float[]{-8.0F, -16.0F, -20.0F, -74.0F, -70.0F, -34.0F, -8.0F},
+                new float[]{0.0F, -16.0F, -20.0F, 26.0F, 22.0F, 8.0F, 0.0F},
+                new float[]{-15.0F, -72.0F, -82.0F, 8.0F, 4.0F, -12.0F, -15.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
         c.add("forearm_r", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-18.0F, -8.0F, -24.0F, -22.0F, -18.0F}, new float[]{0.0F, -6.0F, 16.0F, 12.0F, 0.0F}, new float[]{0.0F, 0.0F, 8.0F, 6.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-18.0F, -10.0F, -20.0F, -18.0F, -18.0F},
+                new float[]{0.0F, -4.0F, 14.0F, 10.0F, 0.0F},
+                new float[]{0.0F, 0.0F, 6.0F, 4.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("upper_arm_l", CH_ROT, new float[]{0.0F, 0.72F, 1.00F, 1.15F, 1.50F, 2.05F, 2.60F},
-                new float[]{-8.0F, -10.0F, -12.0F, -58.0F, -54.0F, -28.0F, -8.0F},
-                new float[]{0.0F, 16.0F, 22.0F, -34.0F, -28.0F, -10.0F, 0.0F},
-                new float[]{15.0F, 66.0F, 76.0F, -6.0F, -2.0F, 12.0F, 15.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
+                new float[]{-8.0F, -16.0F, -20.0F, -74.0F, -70.0F, -34.0F, -8.0F},
+                new float[]{0.0F, 16.0F, 20.0F, -26.0F, -22.0F, -8.0F, 0.0F},
+                new float[]{15.0F, 72.0F, 82.0F, -8.0F, -4.0F, 12.0F, 15.0F}, new int[]{0, 0, 1, 1, 0, 0, 0});
         c.add("forearm_l", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-18.0F, -8.0F, -24.0F, -22.0F, -18.0F}, new float[]{0.0F, 6.0F, -16.0F, -12.0F, 0.0F}, new float[]{0.0F, 0.0F, -8.0F, -6.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-18.0F, -10.0F, -20.0F, -18.0F, -18.0F},
+                new float[]{0.0F, 4.0F, -14.0F, -10.0F, 0.0F},
+                new float[]{0.0F, 0.0F, -6.0F, -4.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("hip_r", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-12.0F, -22.0F, -34.0F, -30.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-7.0F, -9.0F, -12.0F, -11.0F, -7.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-12.0F, -20.0F, -30.0F, -26.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-7.0F, -9.0F, -12.0F, -11.0F, -7.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("knee_r", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{24.0F, 42.0F, 64.0F, 58.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{24.0F, 38.0F, 56.0F, 50.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("foot_r", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-12.0F, -20.0F, -30.0F, -28.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{4.0F, 4.0F, 4.0F, 4.0F, 4.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-12.0F, -18.0F, -26.0F, -24.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{4.0F, 4.0F, 4.0F, 4.0F, 4.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("hip_l", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-12.0F, -22.0F, -34.0F, -30.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{7.0F, 9.0F, 12.0F, 11.0F, 7.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-12.0F, -20.0F, -30.0F, -26.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{7.0F, 9.0F, 12.0F, 11.0F, 7.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("knee_l", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{24.0F, 42.0F, 64.0F, 58.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{24.0F, 38.0F, 56.0F, 50.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("foot_l", CH_ROT, new float[]{0.0F, 1.00F, 1.15F, 1.50F, 2.60F},
-                new float[]{-12.0F, -20.0F, -30.0F, -28.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-4.0F, -4.0F, -4.0F, -4.0F, -4.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-12.0F, -18.0F, -26.0F, -24.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-4.0F, -4.0F, -4.0F, -4.0F, -4.0F}, new int[]{0, 1, 1, 0, 0});
         CLIPS.put("double_clap", c);
     }
 
@@ -481,39 +473,37 @@ public final class RuinGuardAnimations {
     private static void initClip_7() {
         Clip c = new Clip("stomp_shockwave", 2.2000F, false);
         c.add("pelvis", CH_POS, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{0.0F, -0.6F, -0.8F, 0.0F, 0.0F, 0.0F},
-                new float[]{-2.2F, -1.6F, -1.4F, -6.2F, -5.0F, -2.2F},
-                new float[]{0.0F, 0.2F, 0.3F, -1.4F, -1.0F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
+                new float[]{0.0F, -0.8F, -1.0F, 0.0F, 0.0F, 0.0F},
+                new float[]{-2.2F, -1.4F, -1.2F, -5.8F, -4.6F, -2.2F},
+                new float[]{0.0F, 0.3F, 0.4F, -1.2F, -0.8F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
         c.add("pelvis", CH_ROT, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{0.0F, -2.0F, -2.5F, 6.0F, 4.0F, 0.0F},
+                new float[]{0.0F, -3.0F, -4.0F, 5.0F, 3.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, -2.0F, -2.5F, 1.5F, 0.5F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
+                new float[]{0.0F, -3.5F, -4.5F, 1.5F, 0.5F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
         c.add("torso", CH_ROT, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{7.0F, 2.0F, 1.0F, 16.0F, 12.0F, 7.0F},
+                new float[]{7.0F, -2.0F, -3.0F, 12.0F, 10.0F, 7.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{0.0F, -1.5F, -2.0F, 1.5F, 0.5F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
-        // Right leg lifts cleanly & holds briefly at peak (0.56s..0.86s) before vertical piledriver stomp @ 1.00s
+                new float[]{0.0F, -2.5F, -3.5F, 1.5F, 0.5F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
         c.add("hip_r", CH_ROT, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{-12.0F, -54.0F, -58.0F, -16.0F, -14.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-7.0F, -7.0F, -7.0F, -7.0F, -7.0F, -7.0F}, new int[]{0, 0, 1, 1, 0, 0});
+                new float[]{-12.0F, -64.0F, -68.0F, -16.0F, -14.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-7.0F, -10.0F, -11.0F, -7.0F, -7.0F, -7.0F}, new int[]{0, 0, 1, 1, 0, 0});
         c.add("knee_r", CH_ROT, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{24.0F, 74.0F, 80.0F, 32.0F, 28.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
+                new float[]{24.0F, 82.0F, 86.0F, 32.0F, 28.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 0, 1, 1, 0, 0});
         c.add("foot_r", CH_ROT, new float[]{0.0F, 0.56F, 0.86F, 1.00F, 2.20F},
-                new float[]{-12.0F, -20.0F, -22.0F, -16.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{4.0F, 4.0F, 4.0F, 4.0F, 4.0F}, new int[]{0, 0, 1, 1, 0});
+                new float[]{-12.0F, -18.0F, -18.0F, -16.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{4.0F, 4.0F, 4.0F, 4.0F, 4.0F}, new int[]{0, 0, 1, 1, 0});
         c.add("hip_l", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 1.38F, 2.20F},
                 new float[]{-12.0F, -13.0F, -24.0F, -20.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{7.0F, 7.0F, 8.0F, 7.5F, 7.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("knee_l", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 1.38F, 2.20F},
                 new float[]{24.0F, 26.0F, 46.0F, 38.0F, 24.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("foot_l", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 2.20F},
                 new float[]{-12.0F, -13.0F, -22.0F, -12.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-4.0F, -4.0F, -4.0F, -4.0F}, new int[]{0, 1, 1, 0});
-        // Arms stay low & relaxed at sides (+/-22 deg) matching Genshin's grounded silhouette
         c.add("upper_arm_r", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{-8.0F, -4.0F, -14.0F, -12.0F, -8.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-15.0F, -22.0F, -18.0F, -16.0F, -15.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-8.0F, -4.0F, -14.0F, -12.0F, -8.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{-15.0F, -28.0F, -20.0F, -18.0F, -15.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("forearm_r", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 2.20F},
-                new float[]{-18.0F, -16.0F, -22.0F, -18.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0});
+                new float[]{-18.0F, -14.0F, -20.0F, -18.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0});
         c.add("upper_arm_l", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 1.38F, 2.20F},
-                new float[]{-8.0F, -4.0F, -14.0F, -12.0F, -8.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{15.0F, 22.0F, 18.0F, 16.0F, 15.0F}, new int[]{0, 1, 1, 0, 0});
+                new float[]{-8.0F, -4.0F, -14.0F, -12.0F, -8.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F}, new float[]{15.0F, 28.0F, 20.0F, 18.0F, 15.0F}, new int[]{0, 1, 1, 0, 0});
         c.add("forearm_l", CH_ROT, new float[]{0.0F, 0.86F, 1.00F, 2.20F},
-                new float[]{-18.0F, -16.0F, -22.0F, -18.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0});
+                new float[]{-18.0F, -14.0F, -20.0F, -18.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new float[]{0.0F, 0.0F, 0.0F, 0.0F}, new int[]{0, 1, 1, 0});
         CLIPS.put("stomp_shockwave", c);
     }
 
@@ -652,63 +642,63 @@ public final class RuinGuardAnimations {
         Clip c = new Clip("leap_slam", 3.9000F, false);
         c.add("pelvis", CH_POS, new float[]{0.0F, 0.72F, 0.85F, 1.32F, 1.65F, 1.80F, 2.02F, 2.65F, 3.28F, 3.90F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-2.2F, -11.4F, -11.8F, 5.4F, 1.8F, -14.4F, -12.8F, -13.4F, -6.8F, -2.2F},
-                new float[]{0.0F, 2.8F, 2.8F, -2.0F, -3.2F, -5.8F, -5.2F, -5.4F, -2.2F, 0.0F},
+                new float[]{-2.2F, -9.2F, -9.6F, 4.8F, 1.4F, -11.5F, -10.4F, -10.4F, -5.4F, -2.2F},
+                new float[]{0.0F, 1.6F, 1.6F, -0.8F, -1.4F, -2.6F, -2.2F, -2.2F, -1.0F, 0.0F},
                 new int[]{0, 0, 0, 0, 1, 1, 0, 0, 0, 0});
         c.add("torso", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.02F, 2.65F, 3.28F, 3.90F},
-                new float[]{7.0F, 32.0F, 18.0F, 24.0F, 48.0F, 44.0F, 44.0F, 24.0F, 7.0F},
+                new float[]{7.0F, 16.0F, 6.0F, 10.0F, 22.0F, 20.0F, 18.0F, 12.0F, 7.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0, 0});
         c.add("upper_arm_r", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{-8.0F, 22.0F, -16.0F, -18.0F, -22.0F, -20.0F, -14.0F, -8.0F},
-                new float[]{0.0F, 0.0F, -8.0F, -8.0F, -6.0F, -6.0F, 0.0F, 0.0F},
-                new float[]{-15.0F, -22.0F, -64.0F, -68.0F, -58.0F, -54.0F, -24.0F, -15.0F},
+                new float[]{-8.0F, 16.0F, -10.0F, -14.0F, -24.0F, -20.0F, -12.0F, -8.0F},
+                new float[]{0.0F, 0.0F, -6.0F, -6.0F, -4.0F, -4.0F, 0.0F, 0.0F},
+                new float[]{-15.0F, -22.0F, -44.0F, -48.0F, -36.0F, -34.0F, -20.0F, -15.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("forearm_r", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.90F},
-                new float[]{-18.0F, -20.0F, -16.0F, -16.0F, -18.0F, -18.0F, -18.0F},
+                new float[]{-18.0F, -18.0F, -14.0F, -14.0F, -18.0F, -18.0F, -18.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0});
         c.add("upper_arm_l", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{-8.0F, 22.0F, -16.0F, -18.0F, -22.0F, -20.0F, -14.0F, -8.0F},
-                new float[]{0.0F, 0.0F, 8.0F, 8.0F, 6.0F, 6.0F, 0.0F, 0.0F},
-                new float[]{15.0F, 22.0F, 64.0F, 68.0F, 58.0F, 54.0F, 24.0F, 15.0F},
+                new float[]{-8.0F, 16.0F, -10.0F, -14.0F, -24.0F, -20.0F, -12.0F, -8.0F},
+                new float[]{0.0F, 0.0F, 6.0F, 6.0F, 4.0F, 4.0F, 0.0F, 0.0F},
+                new float[]{15.0F, 22.0F, 44.0F, 48.0F, 36.0F, 34.0F, 20.0F, 15.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("forearm_l", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.90F},
-                new float[]{-18.0F, -20.0F, -16.0F, -16.0F, -18.0F, -18.0F, -18.0F},
+                new float[]{-18.0F, -18.0F, -14.0F, -14.0F, -18.0F, -18.0F, -18.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0});
         c.add("hip_r", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{-12.0F, -52.0F, -54.0F, -36.0F, -62.0F, -58.0F, -30.0F, -12.0F},
+                new float[]{-12.0F, -44.0F, -48.0F, -32.0F, -54.0F, -48.0F, -24.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-7.0F, -10.0F, -8.0F, -8.0F, -16.0F, -15.0F, -9.0F, -7.0F},
+                new float[]{-7.0F, -10.0F, -8.0F, -8.0F, -15.0F, -14.0F, -9.0F, -7.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("knee_r", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{24.0F, 88.0F, 98.0F, 66.0F, 102.0F, 96.0F, 54.0F, 24.0F},
+                new float[]{24.0F, 78.0F, 88.0F, 58.0F, 92.0F, 82.0F, 44.0F, 24.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("foot_r", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.90F},
-                new float[]{-12.0F, -36.0F, 22.0F, 14.0F, -40.0F, -38.0F, -12.0F},
+                new float[]{-12.0F, -32.0F, 14.0F, 8.0F, -36.0F, -32.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{4.0F, 4.0F, 0.0F, 0.0F, 4.0F, 4.0F, 4.0F},
+                new float[]{4.0F, 4.0F, 0.0F, 0.0F, 6.0F, 6.0F, 4.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0});
         c.add("hip_l", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{-12.0F, -52.0F, -54.0F, -36.0F, -62.0F, -58.0F, -30.0F, -12.0F},
+                new float[]{-12.0F, -44.0F, -48.0F, -32.0F, -54.0F, -48.0F, -24.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{7.0F, 10.0F, 8.0F, 8.0F, 16.0F, 15.0F, 9.0F, 7.0F},
+                new float[]{7.0F, 10.0F, 8.0F, 8.0F, 15.0F, 14.0F, 9.0F, 7.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("knee_l", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.28F, 3.90F},
-                new float[]{24.0F, 88.0F, 98.0F, 66.0F, 102.0F, 96.0F, 54.0F, 24.0F},
+                new float[]{24.0F, 78.0F, 88.0F, 58.0F, 92.0F, 82.0F, 44.0F, 24.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0, 0});
         c.add("foot_l", CH_ROT, new float[]{0.0F, 0.76F, 1.32F, 1.65F, 1.80F, 2.65F, 3.90F},
-                new float[]{-12.0F, -36.0F, 22.0F, 14.0F, -40.0F, -38.0F, -12.0F},
+                new float[]{-12.0F, -32.0F, 14.0F, 8.0F, -36.0F, -32.0F, -12.0F},
                 new float[]{0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
-                new float[]{-4.0F, -4.0F, 0.0F, 0.0F, -4.0F, -4.0F, -4.0F},
+                new float[]{-4.0F, -4.0F, 0.0F, 0.0F, -6.0F, -6.0F, -4.0F},
                 new int[]{0, 0, 0, 1, 1, 0, 0});
         CLIPS.put("leap_slam", c);
     }

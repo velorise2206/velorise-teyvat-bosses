@@ -143,45 +143,53 @@ public final class AnemoHypostasisAnimations {
     }
 
     // Attack 1: Butterfly / Winged Gust Sweep (4.5s = 90 ticks)
+    // Attack 1: Butterfly / Winged Gust Sweep (4.5s = 90 ticks) — Snappy whip flaps + recoil kickback
     private static void applyButterfly(ModelPart body, ModelPart core, ModelPart frame, ModelPart ring, AnemoHypostasisModel<?> model, float sec) {
         float rise = smoothstep(sec / 0.85F);
         float endFade = sec > 3.8F ? smoothstep((4.5F - sec) / 0.7F) : 1.0F;
-        body.y = Mth.lerp(rise * endFade, -28.0F, -52.0F);
-
-        // 3 powerful wing flaps during sec = 1.0 .. 3.6
+        float recoilZ = 0.0F;
         float flap = 0.0F;
         if (sec >= 0.9F && sec <= 3.75F) {
             float cycle = ((sec - 0.9F) / 0.95F) % 1.0F;
-            // Anticipation (pull wings back) -> Snap forward -> Follow-through
-            if (cycle < 0.42F) {
-                flap = -0.65F * smoothstep(cycle / 0.42F);
-            } else if (cycle < 0.62F) {
-                flap = Mth.lerp((cycle - 0.42F) / 0.20F, -0.65F, 0.85F);
+            // Deep anticipation pull-back -> ultra-fast 0.13s whip forward -> recoil follow-through
+            if (cycle < 0.44F) {
+                float p = smoothstep(cycle / 0.44F);
+                flap = -0.95F * p;
+                recoilZ = -2.2F * p;
+            } else if (cycle < 0.58F) {
+                float p = (cycle - 0.44F) / 0.14F;
+                flap = Mth.lerp(p * p * p, -0.95F, 1.15F);
+                recoilZ = Mth.lerp(p * p, -2.2F, 5.2F);
             } else {
-                flap = Mth.lerp(smoothstep((cycle - 0.62F) / 0.38F), 0.85F, 0.0F);
+                float p = smoothstep((cycle - 0.58F) / 0.42F);
+                flap = Mth.lerp(p, 1.15F, 0.0F);
+                recoilZ = Mth.lerp(p, 5.2F, 0.0F);
             }
         }
+        body.y = Mth.lerp(rise * endFade, -28.0F, -52.0F);
+        body.z = recoilZ;
 
-        // Left wing (0..3) and Right wing (4..7)
         float[][] wingBase = {
-                {-22.0F, -14.0F, -3.0F}, {-35.0F, -6.0F, -1.0F}, {-30.0F, 8.0F, 2.0F}, {-18.0F, 12.0F, 4.0F},
-                { 22.0F, -14.0F, -3.0F}, { 35.0F, -6.0F, -1.0F}, { 30.0F, 8.0F, 2.0F}, { 18.0F, 12.0F, 4.0F}
+                {-22.0F, -14.0F, -3.0F}, {-36.0F, -6.0F, -1.0F}, {-31.0F, 8.0F, 2.0F}, {-18.0F, 12.0F, 4.0F},
+                { 22.0F, -14.0F, -3.0F}, { 36.0F, -6.0F, -1.0F}, { 31.0F, 8.0F, 2.0F}, { 18.0F, 12.0F, 4.0F}
         };
+        float stretch = 0.92F + Math.max(0.0F, flap) * 0.14F;
         for (int i = 0; i < 8; i++) {
             ModelPart s = model.getBone("shell_" + i);
             float side = (i < 4) ? -1.0F : 1.0F;
             float wx = wingBase[i][0];
             float wy = wingBase[i][1];
             float wz = wingBase[i][2];
-            // Swing wing around Y axis for realistic butterfly flap
             float cosF = Mth.cos(flap * side);
             float sinF = Mth.sin(flap * side);
             s.x = wx * cosF;
-            s.z = wz - Math.abs(wx) * sinF * 0.55F;
-            s.y = wy + flap * 4.0F;
-            s.yRot = -flap * side * 0.75F;
-            s.zRot = side * (0.28F + flap * 0.22F);
-            s.xScale = s.yScale = s.zScale = 0.92F;
+            s.z = wz - Math.abs(wx) * sinF * 0.62F;
+            s.y = wy + flap * 4.8F;
+            s.yRot = -flap * side * 0.85F;
+            s.zRot = side * (0.28F + flap * 0.28F);
+            s.xScale = stretch;
+            s.yScale = 0.92F;
+            s.zScale = 0.92F;
         }
     }
 
@@ -204,18 +212,51 @@ public final class AnemoHypostasisAnimations {
     }
 
     // Attack 3: Ground Wind Pillar Eruptions (5.0s = 100 ticks)
+    // Attack 3: Ground Wind Pillar Eruptions (5.0s = 100 ticks) — 3 Hydraulic Ground-Slam Beats!
     private static void applyPillarEruption(ModelPart body, ModelPart core, ModelPart frame, ModelPart ring, AnemoHypostasisModel<?> model, float sec) {
-        body.y = -22.0F + Mth.sin(sec * 4.0F) * 2.0F;
-        ring.yRot = sec * 2.4F;
-        float pulse = 1.0F + 0.22F * Math.abs(Mth.sin(sec * Mth.PI));
+        // 3 rhythmic hydraulic rises -> brutal downward ground slams @ ~1.0s, 2.35s, 3.70s
+        float beatPeriod = 1.35F;
+        float phase = (sec % beatPeriod) / beatPeriod;
+        float liftY;
+        float rad;
+        float xzScale = 0.86F;
+        float yScale = 0.86F;
+        if (phase < 0.62F) {
+            // Anticipation: rise high & gather shells overhead
+            float p = smoothstep(phase / 0.62F);
+            liftY = Mth.lerp(p, -22.0F, -37.0F);
+            rad = Mth.lerp(p, 21.0F, 15.5F);
+            xzScale = Mth.lerp(p, 0.86F, 0.80F);
+            yScale = Mth.lerp(p, 0.86F, 1.05F);
+        } else if (phase < 0.74F) {
+            // Explosive downward hydraulic slam!
+            float p = (phase - 0.62F) / 0.12F;
+            float snap = p * p * p;
+            liftY = Mth.lerp(snap, -37.0F, -14.5F);
+            rad = Mth.lerp(snap, 15.5F, 30.0F);
+            xzScale = Mth.lerp(snap, 0.80F, 1.28F);
+            yScale = Mth.lerp(snap, 1.05F, 0.68F);
+        } else {
+            // Impact shudder & rebound back to neutral
+            float p = smoothstep((phase - 0.74F) / 0.26F);
+            float shudder = (1.0F - p) * Mth.sin(sec * 75.0F) * 1.4F;
+            liftY = Mth.lerp(p, -14.5F, -22.0F) + shudder;
+            rad = Mth.lerp(p, 30.0F, 21.0F);
+            xzScale = Mth.lerp(p, 1.28F, 0.86F);
+            yScale = Mth.lerp(p, 0.68F, 0.86F);
+        }
+        body.y = liftY;
+        ring.yRot = sec * 2.8F;
         for (int i = 0; i < 8; i++) {
             ModelPart s = model.getBone("shell_" + i);
             float a = i * (Mth.PI * 0.25F);
-            s.x = Mth.cos(a) * 20.0F * pulse;
-            s.z = Mth.sin(a) * 20.0F * pulse;
-            s.y = -12.0F + ((i % 2 == 0) ? -4.0F : 4.0F);
-            s.xRot = 0.4F;
-            s.xScale = s.yScale = s.zScale = 0.78F;
+            s.x = Mth.cos(a) * rad;
+            s.z = Mth.sin(a) * rad;
+            s.y = ((i % 2 == 0) ? -5.0F : 5.0F);
+            s.xRot = (phase >= 0.62F && phase < 0.82F) ? 0.15F : 0.45F;
+            s.xScale = xzScale;
+            s.yScale = yScale;
+            s.zScale = xzScale;
         }
     }
 
@@ -243,37 +284,73 @@ public final class AnemoHypostasisAnimations {
     // Windup/Hold (0..1.75s): 2 huge walls spread wide at X=±36 with intense vibration
     // Snap (1.75..2.0s): Slam violently to X=±10!
     // Hitstop (2.0..2.35s) -> Shatter outward (2.35..4.5s)
+    // Attack 5: Crushing Box Clap Slam (4.5s = 90 ticks) — Heavy Sakuga Anticipation -> 3-Frame Cubic Crush -> Squash & Shudder!
     private static void applyClapSlam(ModelPart body, ModelPart core, ModelPart frame, ModelPart ring, AnemoHypostasisModel<?> model, float sec) {
-        body.y = -24.0F;
         float wallX;
-        float wallScale;
+        float sx, syz;
+        float tiltZ = 0.0F;
         float vib = 0.0F;
-        if (sec < 1.15F) {
-            float p = smoothstep(sec / 1.15F);
-            wallX = Mth.lerp(p, 14.0F, 38.0F);
-            wallScale = Mth.lerp(p, 0.9F, 1.32F);
-        } else if (sec < 1.75F) {
-            // Telegraph Hold with high-frequency tension vibration
-            wallX = 38.0F + Mth.sin(sec * 42.0F) * 1.3F;
-            wallScale = 1.35F;
-            vib = Mth.sin(sec * 48.0F) * 0.06F;
-        } else if (sec < 2.00F) {
-            // Explosive Snap Slam!
-            float p = (sec - 1.75F) / 0.25F;
-            wallX = Mth.lerp(p * p, 38.0F, 10.5F);
-            wallScale = 1.35F;
-        } else if (sec < 2.35F) {
-            // Impact Hitstop
-            wallX = 10.5F;
-            wallScale = 1.35F;
+        float bodyY = -25.0F;
+
+        if (sec < 1.10F) {
+            // Wide cock-back: two massive stone walls spread out to +-44 and cant outward like giant palms
+            float p = smoothstep(sec / 1.10F);
+            wallX = Mth.lerp(p, 14.0F, 44.0F);
+            sx = Mth.lerp(p, 0.92F, 1.26F);
+            syz = Mth.lerp(p, 0.92F, 1.38F);
+            tiltZ = p * 0.22F;
+            bodyY = Mth.lerp(p, -24.0F, -29.0F);
+        } else if (sec < 1.60F) {
+            // Escalating high-tension tremble while holding wide
+            float tension = (sec - 1.10F) / 0.50F;
+            wallX = 44.0F + Mth.sin(sec * 56.0F) * (1.2F + tension * 1.1F);
+            sx = 1.28F;
+            syz = 1.40F;
+            tiltZ = 0.22F + Mth.sin(sec * 64.0F) * 0.05F;
+            vib = Mth.sin(sec * 60.0F) * (0.04F + tension * 0.05F);
+            bodyY = -29.0F + Mth.sin(sec * 48.0F) * 0.9F;
+            core.xScale = core.yScale = core.zScale = 1.25F + tension * 0.20F;
+        } else if (sec < 1.72F) {
+            // Final anticipation pop-out (+4.5F) right before the explosive crush!
+            float p = smoothstep((sec - 1.60F) / 0.12F);
+            wallX = Mth.lerp(p, 44.0F, 48.5F);
+            sx = 1.22F;
+            syz = 1.44F;
+            tiltZ = 0.28F;
+            bodyY = -30.5F;
+            core.xScale = core.yScale = core.zScale = 1.45F;
+        } else if (sec < 1.86F) {
+            // BRUTAL 3-FRAME CUBIC SNAP CRUSH! (48.5 -> 7.6 in 0.14s)
+            float p = (sec - 1.72F) / 0.14F;
+            float snap = p * p * p;
+            wallX = Mth.lerp(snap, 48.5F, 7.6F);
+            sx = Mth.lerp(snap, 1.35F, 0.76F);
+            syz = Mth.lerp(snap, 1.35F, 1.60F);
+            tiltZ = Mth.lerp(snap, 0.28F, -0.06F);
+            bodyY = Mth.lerp(snap, -30.5F, -18.5F);
+        } else if (sec < 2.34F) {
+            // IMPACT HITSTOP + SQUASH-AND-STRETCH + DAMPED SHUDDER + MICRO-REBOUND!
+            float dt = sec - 1.86F;
+            float decay = (float) Math.exp(-dt * 7.5D);
+            float ringOsc = Mth.sin(dt * 95.0F) * decay;
+            float rebound = (dt < 0.14F) ? Mth.sin((dt / 0.14F) * Mth.PI) * 2.2F : 0.0F;
+            wallX = 7.6F + rebound + ringOsc * 1.4F;
+            sx = 0.78F + (1.0F - decay) * 0.42F;
+            syz = 1.58F - (1.0F - decay) * 0.22F;
+            vib = ringOsc * 0.11F;
+            bodyY = -18.5F + ringOsc * 2.0F;
+            core.xScale = core.yScale = core.zScale = 1.0F + decay * 0.55F;
         } else {
-            // Shatter recovery
-            float p = smoothstep((sec - 2.35F) / 1.4F);
-            wallX = Mth.lerp(p, 10.5F, 30.0F);
-            wallScale = Mth.lerp(p, 1.32F, 0.65F);
+            // Explosive shatter-release outward with tumble recoil
+            float p = smoothstep((sec - 2.34F) / 1.45F);
+            wallX = Mth.lerp(p, 8.8F, 32.0F);
+            sx = Mth.lerp(p, 1.20F, 0.68F);
+            syz = Mth.lerp(p, 1.34F, 0.68F);
+            tiltZ = Mth.sin(p * Mth.PI) * -0.35F;
+            bodyY = Mth.lerp(p, -19.5F, -26.0F);
         }
 
-        // Left wall: 0,2,4,6 ; Right wall: 1,3,5,7
+        body.y = bodyY;
         for (int i = 0; i < 8; i++) {
             ModelPart s = model.getBone("shell_" + i);
             float side = (i % 2 == 0) ? -1.0F : 1.0F;
@@ -283,37 +360,68 @@ public final class AnemoHypostasisAnimations {
             s.y = yOff;
             s.z = zOff;
             s.xRot = vib;
-            s.zRot = vib * side;
-            s.xScale = s.yScale = s.zScale = wallScale;
+            s.zRot = side * tiltZ + vib * side;
+            s.xScale = sx;
+            s.yScale = syz;
+            s.zScale = syz;
         }
     }
 
     // Attack 6: Vacuum Pull & Shockwave Implosion (6.5s = 130 ticks)
+    // Attack 6: Vacuum Pull & Meteoric Shockwave Detonation (6.5s = 130 ticks)
     private static void applyVacuumImplosion(ModelPart body, ModelPart core, ModelPart frame, ModelPart ring, AnemoHypostasisModel<?> model, float sec) {
-        body.y = -26.0F;
         float rad;
-        if (sec < 3.4F) {
-            // Pull phase: cubes contract inward while spinning rapidly
-            float p = smoothstep(sec / 3.4F);
-            rad = Mth.lerp(p, 26.0F, 13.0F) + Mth.sin(sec * 20.0F) * 0.8F;
-            ring.yRot = sec * (2.2F + p * 4.5F);
-        } else if (sec < 3.75F) {
-            // Explosive outward shockwave snap!
-            float p = (sec - 3.4F) / 0.35F;
-            rad = Mth.lerp(p, 13.0F, 40.0F);
-            ring.yRot = sec * 6.0F;
+        float sc = 0.90F;
+        float bodyY;
+        float tilt = 0.0F;
+        if (sec < 3.15F) {
+            // Pull phase: body rises while cubes spiral tightly inward with accelerating vortex spin
+            float p = smoothstep(sec / 3.15F);
+            bodyY = Mth.lerp(p, -26.0F, -35.0F);
+            rad = Mth.lerp(p, 29.0F, 12.0F) + Mth.sin(sec * 24.0F) * 0.9F;
+            ring.yRot = sec * (2.4F + p * 5.2F);
+            sc = Mth.lerp(p, 0.86F, 1.05F);
+            tilt = p * 0.45F;
+        } else if (sec < 3.38F) {
+            // Hyper-dense compression pinch right before detonation!
+            float p = smoothstep((sec - 3.15F) / 0.23F);
+            bodyY = Mth.lerp(p, -35.0F, -39.5F) + Mth.sin(sec * 75.0F) * 1.1F;
+            rad = Mth.lerp(p, 12.0F, 8.2F) + Mth.sin(sec * 82.0F) * 0.8F;
+            ring.yRot = sec * 8.2F;
+            sc = Mth.lerp(p, 1.05F, 1.18F);
+            tilt = 0.65F;
+            core.xScale = core.yScale = core.zScale = 1.48F;
+        } else if (sec < 3.60F) {
+            // METEORIC DOWNWARD SLAM + EXPLOSIVE OUTWARD SHOCKWAVE BLAST! (0.22s snap)
+            float p = (sec - 3.38F) / 0.22F;
+            float snap = p * p * p;
+            bodyY = Mth.lerp(snap, -39.5F, -16.5F);
+            rad = Mth.lerp(snap, 8.2F, 48.0F);
+            ring.yRot = sec * 9.5F;
+            sc = Mth.lerp(snap, 1.18F, 1.42F);
+            tilt = Mth.lerp(snap, 0.65F, -0.55F);
+            core.xScale = core.yScale = core.zScale = 1.60F;
         } else {
-            float p = smoothstep((sec - 3.75F) / 2.2F);
-            rad = Mth.lerp(p, 40.0F, 22.0F);
-            ring.yRot = sec * 2.0F;
+            // Impact shudder & recovery
+            float p = smoothstep((sec - 3.60F) / 2.20F);
+            float decay = (float) Math.exp(-(sec - 3.60F) * 6.5D);
+            float shudder = Mth.sin((sec - 3.60F) * 85.0F) * decay * 2.2F;
+            bodyY = Mth.lerp(p, -16.5F, -26.0F) + shudder;
+            rad = Mth.lerp(p, 48.0F, 22.0F);
+            ring.yRot = sec * 2.4F;
+            sc = Mth.lerp(p, 1.42F, 0.85F);
+            tilt = Mth.lerp(p, -0.55F, 0.0F);
         }
+        body.y = bodyY;
         for (int i = 0; i < 8; i++) {
             ModelPart s = model.getBone("shell_" + i);
             float a = i * (Mth.PI * 0.25F);
             s.x = Mth.cos(a) * rad;
             s.z = Mth.sin(a) * rad;
             s.y = ((i % 2 == 0) ? -7.0F : 7.0F);
-            s.xScale = s.yScale = s.zScale = 0.85F;
+            s.xRot = tilt * ((i % 2 == 0) ? 1.0F : -1.0F);
+            s.zRot = tilt * 0.6F;
+            s.xScale = s.yScale = s.zScale = sc;
         }
     }
 

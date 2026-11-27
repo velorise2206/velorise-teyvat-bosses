@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
@@ -116,6 +118,7 @@ public class AnemoHypostasisEntity extends Monster {
 
     public AnemoHypostasisEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
+        TeyvatBossesConfig.applyBossScaling(this, "anemo_hypostasis");
         this.xpReward = 450;
         this.setNoGravity(true);
         this.noPhysics = false;

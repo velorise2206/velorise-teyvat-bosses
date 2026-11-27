@@ -16,7 +16,7 @@ import java.util.function.Consumer;
  * Space = Cycle Bore Angle (Level / Down / Up), F = Toggle Headlight.
  */
 public final class GeoDrillerClientController {
-    public static final float THIRD_PERSON_ZOOM = 6.2F;
+    public static final float THIRD_PERSON_ZOOM = 5.2F;
 
     private static Consumer<GeoDrillerControlPayload> packetSender = p -> {};
     private static boolean prevLmb = false;
@@ -101,19 +101,13 @@ public final class GeoDrillerClientController {
         lastDrillerYaw = drillerYaw;
 
         if (mc.options.getCameraType() == CameraType.FIRST_PERSON) {
-            // 1st-person: carry vehicle turn smoothly and allow 180-deg (-90..+90) scenic glance left/right
+            // 1st-person: carry vehicle turn smoothly without resetting yRotO so interpolation stays butter-smooth
             float nextYaw = mc.player.getYRot() + yawDelta;
             float rel = Mth.clamp(Mth.wrapDegrees(nextYaw - drillerYaw), -90.0F, 90.0F);
             mc.player.setYRot(drillerYaw + rel);
-            mc.player.yRotO += yawDelta;
             mc.player.setXRot(Mth.clamp(mc.player.getXRot(), -45.0F, 55.0F));
         } else {
-            // 3rd-person: free 360-deg camera orbit; carry vehicle turn smoothly without hard-locking yaw or pitch
-            if (Math.abs(yawDelta) > 1.0E-4F) {
-                mc.player.setYRot(mc.player.getYRot() + yawDelta);
-                mc.player.yRotO += yawDelta;
-            }
-            // Keep driver's visual head/body aligned to the cockpit posture while camera orbits freely
+            // 3rd-person: completely free, unlocked 360-deg mouse camera (never forces yaw onto player!)
             mc.player.setYHeadRot(drillerYaw);
             mc.player.yHeadRotO = driller.yRotO;
         }

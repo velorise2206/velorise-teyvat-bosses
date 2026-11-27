@@ -150,13 +150,19 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         sm.lastClip = clip;
         sm.lastEpoch = epoch;
 
-        // Unified AAA hitstop & shake on Beth clap/slam bursts and phase death
+        // Unified AAA hitstop & shake synced to exact crushing impact frames of Beth's clap, vacuum detonation, & pillar slams
         if (entity.getBossState() == AnemoHypostasisEntity.STATE_DEATH && entity.getAnimTick() <= 2 && sm.lastImpactEpoch != epoch) {
             sm.lastImpactEpoch = epoch;
-            BossCameraShake.triggerHitstop(entity.position(), 3, 0.45F, 40.0D);
-        } else if ((clip.contains("clap") || clip.contains("slam") || clip.contains("eruption")) && entity.getAnimTick() >= 14 && entity.getAnimTick() <= 18 && sm.lastImpactEpoch != epoch) {
+            BossCameraShake.triggerHitstop(entity.position(), 3, 0.48F, 42.0D);
+        } else if ("clap_slam".equals(clip) && sec >= 1.84F && sec <= 1.98F && sm.lastImpactEpoch != epoch) {
             sm.lastImpactEpoch = epoch;
-            BossCameraShake.triggerAt(entity.position(), 0.34F, 36.0D);
+            BossCameraShake.triggerHitstop(entity.position(), 3, 0.54F, 44.0D);
+        } else if ("vacuum_implosion".equals(clip) && sec >= 3.42F && sec <= 3.58F && sm.lastImpactEpoch != epoch) {
+            sm.lastImpactEpoch = epoch;
+            BossCameraShake.triggerHitstop(entity.position(), 4, 0.62F, 48.0D);
+        } else if ("pillar_eruption".equals(clip) && sec >= 0.96F && sec <= 1.12F && sm.lastImpactEpoch != epoch) {
+            sm.lastImpactEpoch = epoch;
+            BossCameraShake.triggerAt(entity.position(), 0.36F, 38.0D);
         }
 
         // World-space VFX (Ground Telegraph Ring, Vacuum Vortex, Magic Circle, Butterfly Wing Glow)
