@@ -128,6 +128,7 @@ public class PrimoGeovishapEntity extends Monster {
     private int noTargetTicks = 0;
     private boolean showerCountered = false;
     private boolean spawnedBlossom = false;
+    private final BossDamageCap damageCap = new BossDamageCap();
     private Vec3 homePos = null;
     private Vec3 burrowStart = Vec3.ZERO;
     private Vec3 burrowDest = Vec3.ZERO;
@@ -363,6 +364,8 @@ public class PrimoGeovishapEntity extends Monster {
         if (!level().isClientSide() && st == STATE_COMBAT && destroyBlocksTick <= 0 && (this.horizontalCollision || this.isInWall())) {
             destroyBlocksTick = 20;
         }
+        amount = damageCap.apply(this, source, amount, st == STATE_STAGGER);
+        if (amount <= 0.0F) return false;
         return super.hurt(source, amount);
     }
 

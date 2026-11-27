@@ -121,6 +121,7 @@ public class RuinNautilusEntity extends Mob {
     private int attackCooldown = 34;
     private int lastAttackId = -1;
     private float overheatDamageAccum = 0.0F;
+    private final BossDamageCap damageCap = new BossDamageCap();
     private boolean blossomSpawned = false;
     private Vec3 ramDir = Vec3.ZERO;
 
@@ -281,6 +282,8 @@ public class RuinNautilusEntity extends Mob {
             }
         }
 
+        dmg = damageCap.apply(this, source, dmg, st == STATE_STUNNED);
+        if (dmg <= 0.0F) return false;
         boolean ok = super.hurt(source, dmg);
 
         // Trigger Phase 2 Overdrive transformation at <= 50% HP

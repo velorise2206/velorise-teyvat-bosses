@@ -119,6 +119,7 @@ public class RuinGuardEntity extends Monster {
     private float weakpointSwivelTargetYaw = 0.0F;
     private boolean pendingPhase2 = false;
     private boolean customDeathHandled = false;
+    private final BossDamageCap damageCap = new BossDamageCap();
     private Vec3 leapStart = Vec3.ZERO;
     private Vec3 leapTarget = Vec3.ZERO;
 
@@ -368,6 +369,8 @@ public class RuinGuardEntity extends Monster {
             amount *= 0.55F;
         }
 
+        amount = damageCap.apply(this, source, amount, st == STATE_STUNNED);
+        if (amount <= 0.0F) return false;
         return super.hurt(source, amount);
     }
 

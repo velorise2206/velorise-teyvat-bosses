@@ -127,6 +127,7 @@ public class CryoRegisvineEntity extends Monster {
     private float attackStartYaw = 0.0F;
     private float tripleSlamYaw = 0.0F;
     private boolean customDeathHandled = false;
+    private final BossDamageCap damageCap = new BossDamageCap();
     private float fallbackShield = 0.0F;
 
     public CryoRegisvineEntity(EntityType<? extends Monster> type, Level level) {
@@ -311,9 +312,8 @@ public class CryoRegisvineEntity extends Monster {
             }
             amount *= 0.20F;
         }
-        if (source.getEntity() instanceof LivingEntity && !(source.getEntity() instanceof Player)) {
-            amount *= 0.50F;
-        }
+        amount = damageCap.apply(this, source, amount, st == STATE_STUNNED);
+        if (amount <= 0.0F) return false;
         return super.hurt(source, amount);
     }
 

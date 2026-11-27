@@ -98,6 +98,7 @@ public class AnemoHypostasisEntity extends Monster {
     private int lastAttackAnim = -1;
     private int attacksSinceTornado = 0;
     private boolean revivalUsed = false;
+    private final BossDamageCap damageCap = new BossDamageCap();
     private boolean customDeathHandled = false;
     private int revivalCrystalsRemaining = 0;
     private int pendingRecallOrbs = 0;
@@ -248,6 +249,8 @@ public class AnemoHypostasisEntity extends Monster {
             return true;
         }
 
+        amount = damageCap.apply(this, source, amount, isCoreExposed());
+        if (amount <= 0.0F) return false;
         return super.hurt(source, amount);
     }
 
