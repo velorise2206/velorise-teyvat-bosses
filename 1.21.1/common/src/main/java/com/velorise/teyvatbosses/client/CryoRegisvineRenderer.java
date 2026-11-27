@@ -322,6 +322,36 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
             poseStack.popPose();
         }
 
+        // 1b. Ruin-Guard-style World-Locked Red Expanding Warning Zone (Slams & 360 Spins)
+        float teleR = entity.getTelegraphRadius();
+        if (teleR > 0.5F) {
+            Vec3 telePos = entity.getTelegraphPos();
+            double lerpX = Mth.lerp(partialTicks, entity.xo, entity.getX());
+            double lerpY = Mth.lerp(partialTicks, entity.yo, entity.getY());
+            double lerpZ = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+            float prog = switch (anim) {
+                case CryoRegisvineEntity.ANIM_FACEPLANT_SINGLE -> Mth.clamp((t - 4.0F) / 17.0F, 0.0F, 1.0F);
+                case CryoRegisvineEntity.ANIM_FACEPLANT_TRIPLE -> (t < 20.0F)
+                        ? Mth.clamp((t - 4.0F) / 13.0F, 0.0F, 1.0F)
+                        : (t < 40.0F ? Mth.clamp((t - 24.0F) / 13.0F, 0.0F, 1.0F)
+                        : Mth.clamp((t - 44.0F) / 13.0F, 0.0F, 1.0F));
+                case CryoRegisvineEntity.ANIM_HALF_FLAIL_COMBO -> Mth.clamp((t - 44.0F) / 15.0F, 0.0F, 1.0F);
+                case CryoRegisvineEntity.ANIM_FLAIL_360 -> Mth.clamp((t - 1.0F) / 12.0F, 0.0F, 1.0F);
+                case CryoRegisvineEntity.ANIM_SPIN_FROST_RING -> Mth.clamp((t - 1.0F) / 15.0F, 0.0F, 1.0F);
+                default -> 0.5F;
+            };
+            float fillR = Math.max(0.18F, teleR * prog);
+            VertexConsumer tvc = bufferSource.getBuffer(RenderType.lightning());
+            poseStack.pushPose();
+            poseStack.translate(telePos.x - lerpX, telePos.y - lerpY + 0.14D, telePos.z - lerpZ);
+            Matrix4f tm = poseStack.last().pose();
+            drawHorizontalRing(tvc, tm, teleR - 0.32F, teleR, 36, 235, 28, 36, 225);
+            drawHorizontalRing(tvc, tm, 0.08F, Math.max(0.10F, teleR - 0.32F), 32, 200, 18, 24, 42);
+            drawHorizontalRing(tvc, tm, 0.08F, fillR, 32, 255, 42, 48, 86);
+            drawHorizontalRing(tvc, tm, Math.max(0.08F, fillR - 0.22F), fillR, 36, 255, 85, 78, 210);
+            poseStack.popPose();
+        }
+
         // 2. Matrix-Verified 3D Sweeping Frost-Slash Crescent:
         // flail_360 & spin_frost_ring: stem_1.yRot sweeps +58 -> -378 (DECREASING yaw!)
         boolean is360 = (anim == CryoRegisvineEntity.ANIM_FLAIL_360 || anim == CryoRegisvineEntity.ANIM_SPIN_FROST_RING);

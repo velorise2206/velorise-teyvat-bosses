@@ -8,6 +8,7 @@ import com.velorise.teyvatbosses.client.BossMusicManager;
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
+import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -131,7 +132,10 @@ public class PrimoGeovishapEntity extends Monster {
     private boolean showerCountered = false;
     private boolean spawnedBlossom = false;
     private final BossDamageCap damageCap = new BossDamageCap();
+    private static final double ARENA_SOFT_LEASH_RADIUS = 54.0D;
     private Vec3 homePos = null;
+    private float savedSpawnYaw = 0.0F;
+    private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
     private Vec3 burrowStart = Vec3.ZERO;
     private Vec3 burrowDest = Vec3.ZERO;
     private int destroyBlocksTick = 0;
@@ -337,6 +341,14 @@ public class PrimoGeovishapEntity extends Monster {
     public boolean hurt(DamageSource source, float amount) {
         int st = getBossState();
         if (st == STATE_DEATH) return false;
+        if (returnHelper.isHardReset()) return false;
+        if (!level().isClientSide() && returnHelper.isActive()) {
+            LivingEntity atk = resolveAttacker(source);
+            if (atk != null && isValidCombatTarget(atk)) {
+                returnHelper.reset();
+                setTarget(atk);
+            }
+        }
         // Invulnerable while deep underground during burrow
         if (st == STATE_COMBAT && getAnimId() == ANIM_BURROW && stateTick >= 24 && stateTick <= 56) {
             return false;
@@ -420,6 +432,7 @@ public class PrimoGeovishapEntity extends Monster {
         ServerLevel sl = (ServerLevel) level();
         if (homePos == null) {
             homePos = position();
+            savedSpawnYaw = getYRot();
             if (tickCount <= 2) {
                 entityData.set(DATA_INFUSION, random.nextInt(4));
             }
@@ -496,20 +509,31 @@ public class PrimoGeovishapEntity extends Monster {
             return;
         }
 
-        if (target == null) {
-            setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-            if (getAnimId() != ANIM_IDLE) {
-                transitionTo(STATE_COMBAT, ANIM_IDLE);
+        double homeDist = (homePos != null) ? Math.hypot(getX() - homePos.x, getZ() - homePos.z) : 0.0D;
+        boolean burrowing = (getAnimId() == ANIM_BURROW && stateTick >= 16 && stateTick <= 68);
+        if (homePos != null && !burrowing && onGround() && homeDist > ARENA_SOFT_LEASH_RADIUS && !returnHelper.isHardReset()) {
+            setTarget(null);
+            returnHelper.beginReturn(true, homeDist);
+        }
+        if (returnHelper.isActive()) {
+            if (!returnHelper.isHardReset() && target != null && homeDist <= ARENA_SOFT_LEASH_RADIUS) {
+                returnHelper.reset();
+            } else {
+                tickReturnHome(sl);
+                return;
             }
-            if (++noTargetTicks > 200) {
-                setHealth(getMaxHealth());
-                activeStones.clear();
-                activeLavaPools.clear();
-                transitionTo(STATE_DORMANT, ANIM_IDLE);
+        }
+        if (target == null) {
+            if (!burrowing && onGround()) {
+                returnHelper.beginSearch();
+                tickReturnHome(sl);
+            } else {
+                setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             }
             return;
         }
         noTargetTicks = 0;
+        returnHelper.recordTargetPos(target.position());
         setTarget(target);
 
         tickCombat(sl, target);
@@ -725,6 +749,59 @@ public class PrimoGeovishapEntity extends Monster {
         double dz = target.getZ() - getZ();
         float desiredYaw = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
         return Math.abs(Mth.wrapDegrees(desiredYaw - getYRot()));
+    }
+
+    private void tickReturnHome(ServerLevel sl) {
+        if (homePos == null) homePos = position();
+        double hDist = Math.hypot(getX() - homePos.x, getZ() - homePos.z);
+        int phase = returnHelper.getPhase();
+        if (phase == BossReturnHomeHelper.PHASE_SEARCH) {
+            if (getAnimId() != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
+            setDeltaMovement(getDeltaMovement().x * 0.45D, getDeltaMovement().y, getDeltaMovement().z * 0.45D);
+            Vec3 lastPos = returnHelper.getLastKnownTargetPos();
+            if (lastPos != null) {
+                float lookYaw = (float) (Math.atan2(lastPos.z - getZ(), lastPos.x - getX()) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), lookYaw, 3.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            returnHelper.tickSearch(hDist);
+            return;
+        }
+        BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+        if (phase == BossReturnHomeHelper.PHASE_RETURN) {
+            if (getAnimId() != ANIM_WALK) transitionTo(STATE_COMBAT, ANIM_WALK);
+            if (getNavigation() instanceof BossGroundNavigation bnav) {
+                if (stateTick % 8 == 0 || bnav.isDone()) {
+                    bnav.computePathTo(homePos);
+                }
+            }
+            Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
+                    ? bnav.getSteerDirection(homePos)
+                    : new Vec3(homePos.x - getX(), 0.0D, homePos.z - getZ()).normalize();
+            if (dir.lengthSqr() > 1.0E-4D) {
+                float moveYaw = (float) (Math.atan2(dir.z, dir.x) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), moveYaw, 6.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            Vec3 cur = getDeltaMovement();
+            double jumpY = (this.horizontalCollision && this.onGround()) ? 0.46D : cur.y;
+            setDeltaMovement(Mth.lerp(0.35D, cur.x, dir.x * 0.21D), jumpY, Mth.lerp(0.35D, cur.z, dir.z * 0.21D));
+            returnHelper.checkReturnProgress(sl, this, homePos, hDist, 2.8D);
+            return;
+        }
+        if (phase == BossReturnHomeHelper.PHASE_SETTLE) {
+            getNavigation().stop();
+            setDeltaMovement(getDeltaMovement().x * 0.35D, getDeltaMovement().y, getDeltaMovement().z * 0.35D);
+            if (getAnimId() != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
+            if (returnHelper.tickSettleYaw(this, savedSpawnYaw, 6.0F)) {
+                returnHelper.reset();
+                noTargetTicks = 0;
+                setHealth(getMaxHealth());
+                activeStones.clear();
+                activeLavaPools.clear();
+                transitionTo(STATE_DORMANT, ANIM_DORMANT);
+            }
+        }
     }
 
     private void tickCombat(ServerLevel sl, LivingEntity target) {

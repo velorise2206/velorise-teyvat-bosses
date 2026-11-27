@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesItems;
@@ -106,6 +107,14 @@ public class CryoRegisvineEntity extends Monster {
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_ROOT_YAW =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_X =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_Y =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_Z =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.FLOAT);
 
     private static volatile boolean SHIELD_LISTENER_REGISTERED = false;
 
@@ -172,6 +181,10 @@ public class CryoRegisvineEntity extends Monster {
         builder.define(DATA_SHIELD_PROGRESS, 0.0F);
         builder.define(DATA_COROLLA_PHASE, 0);
         builder.define(DATA_ROOT_YAW, 0.0F);
+        builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
+        builder.define(DATA_TELEGRAPH_X, 0.0F);
+        builder.define(DATA_TELEGRAPH_Y, 0.0F);
+        builder.define(DATA_TELEGRAPH_Z, 0.0F);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -181,6 +194,27 @@ public class CryoRegisvineEntity extends Monster {
     public float getShieldProgress() { return entityData.get(DATA_SHIELD_PROGRESS); }
     public int getCorollaPhase() { return entityData.get(DATA_COROLLA_PHASE); }
     public float getRootYaw() { return entityData.get(DATA_ROOT_YAW); }
+    public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
+    public Vec3 getTelegraphPos() {
+        return new Vec3(entityData.get(DATA_TELEGRAPH_X), entityData.get(DATA_TELEGRAPH_Y), entityData.get(DATA_TELEGRAPH_Z));
+    }
+
+    private void setTelegraph(Vec3 pos, float radius) {
+        entityData.set(DATA_TELEGRAPH_X, (float) pos.x);
+        entityData.set(DATA_TELEGRAPH_Y, (float) pos.y);
+        entityData.set(DATA_TELEGRAPH_Z, (float) pos.z);
+        entityData.set(DATA_TELEGRAPH_RADIUS, radius);
+    }
+
+    private void setForwardTelegraph(float yawDeg, double forwardDist, float radius) {
+        float rad = yawDeg * Mth.DEG_TO_RAD;
+        Vec3 center = position().add(-Math.sin(rad) * forwardDist, 0.0D, Math.cos(rad) * forwardDist);
+        setTelegraph(center, radius);
+    }
+
+    private void clearTelegraph() {
+        entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+    }
 
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
@@ -201,6 +235,7 @@ public class CryoRegisvineEntity extends Monster {
         entityData.set(DATA_STATE, newState);
         entityData.set(DATA_ANIM_ID, animId);
         entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
+        clearTelegraph();
         serverAnimTick = 0;
         stateTicks = 0;
     }
@@ -208,6 +243,7 @@ public class CryoRegisvineEntity extends Monster {
     private void playAnim(int animId) {
         entityData.set(DATA_ANIM_ID, animId);
         entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
+        clearTelegraph();
         serverAnimTick = 0;
     }
 
@@ -403,6 +439,13 @@ public class CryoRegisvineEntity extends Monster {
 
         if (nearest == null) {
             noPlayerTicks++;
+            if (noPlayerTicks >= 60 && noPlayerTicks < 220) {
+                BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+                bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
+                if (noPlayerTicks % 8 == 0) {
+                    sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.2D, getZ(), 6, 1.2D, 0.6D, 1.2D, 0.02D);
+                }
+            }
             if (noPlayerTicks >= 220) {
                 noPlayerTicks = 0;
                 setHealth(getMaxHealth());
@@ -525,8 +568,12 @@ public class CryoRegisvineEntity extends Monster {
         switch (anim) {
             case ANIM_FACEPLANT_SINGLE -> {
                 if (t < 14) faceTarget(target, 10.0F);
+                if (t >= 4 && t <= 14) setForwardTelegraph(getYRot(), 4.5D, 4.2F);
                 if (t == 12 || t == 16) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.0D);
-                if (t == 21) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.2D, 32.0F, 6);
+                if (t == 21) {
+                    clearTelegraph();
+                    impactSlamAtYaw(sl, getYRot(), 4.5D, 4.2D, 32.0F, 6);
+                }
             }
             case ANIM_FACEPLANT_TRIPLE -> {
                 if (t < 11) {
@@ -539,17 +586,31 @@ public class CryoRegisvineEntity extends Monster {
                     faceTarget(target, 10.0F);
                     tripleSlamYaw = getYRot();
                 }
+                if (t >= 4 && t <= 12) setForwardTelegraph(tripleSlamYaw, 4.4D, 3.9F);
                 if (t == 12) spawnSlamTelegraph(sl, tripleSlamYaw, 4.4D, 3.8D);
-                if (t == 17) impactSlamAtYaw(sl, tripleSlamYaw, 4.4D, 3.9D, 27.0F, 4);
+                if (t == 17) {
+                    clearTelegraph();
+                    impactSlamAtYaw(sl, tripleSlamYaw, 4.4D, 3.9D, 27.0F, 4);
+                }
+                if (t >= 24 && t <= 32) setForwardTelegraph(tripleSlamYaw, 4.6D, 4.1F);
                 if (t == 32) spawnSlamTelegraph(sl, tripleSlamYaw, 4.6D, 4.0D);
-                if (t == 37) impactSlamAtYaw(sl, tripleSlamYaw, 4.6D, 4.1D, 29.0F, 5);
+                if (t == 37) {
+                    clearTelegraph();
+                    impactSlamAtYaw(sl, tripleSlamYaw, 4.6D, 4.1D, 29.0F, 5);
+                }
+                if (t >= 44 && t <= 52) setForwardTelegraph(tripleSlamYaw, 4.8D, 4.5F);
                 if (t == 52) spawnSlamTelegraph(sl, tripleSlamYaw, 4.8D, 4.4D);
-                if (t == 57) impactSlamAtYaw(sl, tripleSlamYaw, 4.8D, 4.5D, 34.0F, 7);
+                if (t == 57) {
+                    clearTelegraph();
+                    impactSlamAtYaw(sl, tripleSlamYaw, 4.8D, 4.5D, 34.0F, 7);
+                }
             }
             case ANIM_FLAIL_360 -> {
+                if (t == 1) setTelegraph(position(), 8.8F);
                 if (t == 9) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.2F, 0.78F);
                 }
+                if (t == 13) clearTelegraph();
                 if (t == 13 || t == 22 || t == 32) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.55F, 0.72F + (t - 13) * 0.008F);
                 }
@@ -563,12 +624,18 @@ public class CryoRegisvineEntity extends Monster {
             case ANIM_HALF_FLAIL_COMBO -> {
                 if (t < 11 || (t > 24 && t < 31) || (t > 44 && t < 53)) faceTarget(target, 11.0F);
                 if (t == 19 || t == 37) arcSweepInFront(sl, 8.6D, 23.0F);
+                if (t >= 44 && t <= 53) setForwardTelegraph(getYRot(), 4.5D, 4.4F);
                 if (t == 53) spawnSlamTelegraph(sl, getYRot(), 4.5D, 4.2D);
-                if (t == 59) impactSlamAtYaw(sl, getYRot(), 4.5D, 4.4D, 34.0F, 6);
+                if (t == 59) {
+                    clearTelegraph();
+                    impactSlamAtYaw(sl, getYRot(), 4.5D, 4.4D, 34.0F, 6);
+                }
             }
             case ANIM_SPIN_FROST_RING -> {
+                if (t == 1) setTelegraph(position(), 9.6F);
                 // Genshin-accurate rapid 3-revolution frost spin (ticks 12..39)
                 if (t == 16) {
+                    clearTelegraph();
                     ringAoE(sl, 9.6D, 22.0F, 1.25D);
                     spawnSpikeRing(sl, 6.8D, 8, 13.0F, 0.95F);
                 }

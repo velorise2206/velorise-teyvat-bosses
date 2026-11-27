@@ -144,8 +144,9 @@ public final class RuinMechCockpitHud {
     }
 
     private static void renderAimLockReticle(GuiGraphics gui, Minecraft mc, RuinMechEntity mech, int sw, int sh, float partialTicks) {
-        int cx = sw / 2;
-        int cy = sh / 2;
+        // Exact center pixel of Minecraft's vanilla 15x15 crosshair ((sw - 15) / 2 + 7, (sh - 15) / 2 + 7)
+        int cx = (sw - 15) / 2 + 7;
+        int cy = (sh - 15) / 2 + 7;
 
         Entity raw = mech.getLockedTargetId() != -1 ? mc.level.getEntity(mech.getLockedTargetId()) : null;
         LivingEntity locked = (raw instanceof LivingEntity le && le.isAlive()) ? le : null;
@@ -160,12 +161,12 @@ public final class RuinMechCockpitHud {
             int t = hard ? 2 : 1;
             gui.fill(cx - spread, cy - spread, cx - spread + len, cy - spread + t, col);
             gui.fill(cx - spread, cy - spread, cx - spread + t, cy - spread + len, col);
-            gui.fill(cx + spread - len, cy - spread, cx + spread, cy - spread + t, col);
-            gui.fill(cx + spread - t, cy - spread, cx + spread, cy - spread + len, col);
-            gui.fill(cx - spread, cy + spread - t, cx - spread + len, cy + spread, col);
-            gui.fill(cx - spread, cy + spread - len, cx - spread + t, cy + spread, col);
-            gui.fill(cx + spread - len, cy + spread - t, cx + spread, cy + spread, col);
-            gui.fill(cx + spread - t, cy + spread - len, cx + spread, cy + spread, col);
+            gui.fill(cx + spread + 1 - len, cy - spread, cx + spread + 1, cy - spread + t, col);
+            gui.fill(cx + spread + 1 - t, cy - spread, cx + spread + 1, cy - spread + len, col);
+            gui.fill(cx - spread, cy + spread + 1 - t, cx - spread + len, cy + spread + 1, col);
+            gui.fill(cx - spread, cy + spread + 1 - len, cx - spread + t, cy + spread + 1, col);
+            gui.fill(cx + spread + 1 - len, cy + spread + 1 - t, cx + spread + 1, cy + spread + 1, col);
+            gui.fill(cx + spread + 1 - t, cy + spread + 1 - len, cx + spread + 1, cy + spread + 1, col);
             if (hard) {
                 gui.fill(cx - 1, cy - 1, cx + 2, cy + 2, 0xFFFF2222);
             }
@@ -186,9 +187,9 @@ public final class RuinMechCockpitHud {
             int s = 9;
             int col = 0x88EEB84B;
             gui.fill(cx - s, cy - 2, cx - s + 1, cy + 3, col);
-            gui.fill(cx + s - 1, cy - 2, cx + s, cy + 3, col);
+            gui.fill(cx + s, cy - 2, cx + s + 1, cy + 3, col);
             gui.fill(cx - 2, cy - s, cx + 3, cy - s + 1, col);
-            gui.fill(cx - 2, cy + s - 1, cx + 3, cy + s, col);
+            gui.fill(cx - 2, cy + s, cx + 3, cy + s + 1, col);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
@@ -101,6 +102,8 @@ public class RuinNautilusEntity extends Mob {
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<String> DATA_MINES_SYNC =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.FLOAT);
 
     private static final class DepthMine {
         Vec3 pos;
@@ -127,6 +130,8 @@ public class RuinNautilusEntity extends Mob {
     private static final double ARENA_SOFT_LEASH_RADIUS = 64.0D;
     private Vec3 arenaCenter = Vec3.ZERO;
     private boolean arenaInit = false;
+    private float savedSpawnYaw = 0.0F;
+    private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
     private boolean blossomSpawned = false;
     private Vec3 ramDir = Vec3.ZERO;
 
@@ -160,6 +165,7 @@ public class RuinNautilusEntity extends Mob {
         builder.define(DATA_RAILGUN_YAW, 0.0F);
         builder.define(DATA_RAILGUN_PITCH, 0.0F);
         builder.define(DATA_MINES_SYNC, "");
+        builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
@@ -171,6 +177,7 @@ public class RuinNautilusEntity extends Mob {
     public float getRailgunYawDeg() { return entityData.get(DATA_RAILGUN_YAW); }
     public float getRailgunPitchDeg() { return entityData.get(DATA_RAILGUN_PITCH); }
     public String getSyncedMinesData() { return entityData.get(DATA_MINES_SYNC); }
+    public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : serverAnimTick; }
 
     public String getCurrentClipName() {
@@ -199,6 +206,7 @@ public class RuinNautilusEntity extends Mob {
     private void setAnim(int animId) {
         entityData.set(DATA_ANIM_ID, animId);
         entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
+        entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
         serverAnimTick = 0;
     }
 
@@ -253,6 +261,10 @@ public class RuinNautilusEntity extends Mob {
         }
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_AWAKEN || st == STATE_PHASE2_CIN) return false;
+        if (returnHelper.isHardReset()) return false;
+        if (!level().isClientSide() && returnHelper.isActive() && source.getEntity() instanceof LivingEntity) {
+            returnHelper.reset();
+        }
         if (st == STATE_DORMANT) {
             if (source.getEntity() instanceof Player) startAwaken();
             return false;
@@ -330,21 +342,6 @@ public class RuinNautilusEntity extends Mob {
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 1.5F, 0.80F);
         if (level() instanceof ServerLevel sl) {
-        if (!arenaInit) {
-            arenaCenter = position();
-            arenaInit = true;
-        } else if (isAlive()) {
-            double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
-            if (hDist > ARENA_SOFT_LEASH_RADIUS) {
-                Vec3 back = arenaCenter.subtract(position());
-                if (hDist > ARENA_SOFT_LEASH_RADIUS + 24.0D) {
-                    teleportTo(arenaCenter.x, arenaCenter.y, arenaCenter.z);
-                    setDeltaMovement(Vec3.ZERO);
-                } else if (back.lengthSqr() > 1.0E-4D) {
-                    setDeltaMovement(getDeltaMovement().scale(0.6D).add(back.normalize().scale(0.32D)));
-                }
-            }
-        }
             for (ServerPlayer sp : sl.players()) {
                 if (sp.distanceToSqr(this) <= 48.0D * 48.0D) bossEvent.addPlayer(sp);
             }
@@ -375,6 +372,11 @@ public class RuinNautilusEntity extends Mob {
         }
 
         ServerLevel sl = (ServerLevel) level();
+        if (!arenaInit) {
+            arenaCenter = position();
+            savedSpawnYaw = getYRot();
+            arenaInit = true;
+        }
         serverAnimTick++;
         int st = getBossState();
         int anim = getAnimId();
@@ -457,11 +459,24 @@ public class RuinNautilusEntity extends Mob {
 
         // STATE_COMBAT
         Player target = findTarget(sl, 46.0D);
+        double homeDist = arenaInit ? Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z) : 0.0D;
+        if (arenaInit && homeDist > ARENA_SOFT_LEASH_RADIUS && !returnHelper.isHardReset()) {
+            returnHelper.beginReturn(true, homeDist);
+        }
+        if (returnHelper.isActive()) {
+            if (!returnHelper.isHardReset() && target != null && homeDist <= ARENA_SOFT_LEASH_RADIUS) {
+                returnHelper.reset();
+            } else {
+                tickReturnHome(sl);
+                return;
+            }
+        }
         if (target == null) {
-            setDeltaMovement(getDeltaMovement().scale(0.88D));
-            if (anim != ANIM_IDLE) setAnim(ANIM_IDLE);
+            returnHelper.beginSearch();
+            tickReturnHome(sl);
             return;
         }
+        returnHelper.recordTargetPos(target.position());
 
         if (tickCount % 20 == 0) {
             for (ServerPlayer sp : sl.players()) {
@@ -556,6 +571,8 @@ public class RuinNautilusEntity extends Mob {
             if (t >= 60) finishAttack(38);
         } else if (anim == ANIM_SONAR) {
             setDeltaMovement(getDeltaMovement().scale(0.85D));
+            if (t == 1) entityData.set(DATA_TELEGRAPH_RADIUS, 10.0F);
+            if (t == 18) entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
             if (t == 18 || t == 26 || t == 34) {
                 playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.3F, 1.15F);
                 for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(10.0D), le -> le.isAlive() && !le.isSpectator())) {
@@ -571,6 +588,8 @@ public class RuinNautilusEntity extends Mob {
             if (t >= 46) finishAttack(34);
         } else if (anim == ANIM_FIN_SWEEP) {
             setDeltaMovement(getDeltaMovement().scale(0.88D));
+            if (t == 1) entityData.set(DATA_TELEGRAPH_RADIUS, 7.5F);
+            if (t == 16) entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
             if (t == 16 || t == 24 || t == 32) {
                 playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.PLAYER_ATTACK_SWEEP, 1.3F, 0.85F);
                 for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(7.5D), le -> le.isAlive() && !le.isSpectator())) {
@@ -602,6 +621,8 @@ public class RuinNautilusEntity extends Mob {
             if (t >= 52) finishAttack(28);
         } else if (anim == ANIM_DEPTH_MINES) {
             setDeltaMovement(getDeltaMovement().scale(0.90D));
+            if (t == 1) entityData.set(DATA_TELEGRAPH_RADIUS, 6.5F);
+            if (t == 22) entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
             if (t == 22) {
                 spawnMineRing(isPhase2() ? 7 : 5, 6.0D);
                 playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DISPENSER_LAUNCH, 1.3F, 0.75F);
@@ -609,6 +630,8 @@ public class RuinNautilusEntity extends Mob {
             if (t >= 48) finishAttack(34);
         } else if (anim == ANIM_WHIRLPOOL) {
             setDeltaMovement(Vec3.ZERO);
+            if (t == 1) entityData.set(DATA_TELEGRAPH_RADIUS, 12.0F);
+            if (t == 16) entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
             if (t >= 16 && t <= 74) {
                 for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(14.0D), le -> le.isAlive() && !le.isSpectator() && !le.isCreative())) {
                     // Horizontal suction with vertical escape corridor (swimming up/down escapes pull!)
@@ -660,6 +683,7 @@ public class RuinNautilusEntity extends Mob {
             if (t >= 108) finishAttack(38);
         } else if (anim == ANIM_SONAR_BREACH) {
             if (t == 1) {
+                entityData.set(DATA_TELEGRAPH_RADIUS, 8.0F);
                 playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.WARDEN_SONIC_BOOM, 1.5F, 0.65F);
                 for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(28.0D), le -> le.isAlive() && !le.isSpectator())) {
                     p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 45, 0));
@@ -668,6 +692,7 @@ public class RuinNautilusEntity extends Mob {
             if (t < 24) {
                 setDeltaMovement(0.0D, -0.35D, 0.0D);
             } else if (t == 24) {
+                entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
                 ramDir = toTarget.normalize();
                 playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DOLPHIN_SPLASH, 1.5F, 0.70F);
             } else if (t <= 54) {
@@ -681,6 +706,51 @@ public class RuinNautilusEntity extends Mob {
                 setDeltaMovement(getDeltaMovement().scale(0.82D));
             }
             if (t >= 68) finishAttack(36);
+        }
+    }
+
+    private void tickReturnHome(ServerLevel sl) {
+        double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
+        int phase = returnHelper.getPhase();
+        if (phase == BossReturnHomeHelper.PHASE_SEARCH) {
+            setDeltaMovement(getDeltaMovement().scale(0.86D));
+            if (getAnimId() != ANIM_IDLE) setAnim(ANIM_IDLE);
+            Vec3 lastPos = returnHelper.getLastKnownTargetPos();
+            if (lastPos != null) {
+                float lookYaw = (float) (Math.atan2(lastPos.z - getZ(), lastPos.x - getX()) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), lookYaw, 3.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            returnHelper.tickSearch(hDist);
+            return;
+        }
+        BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+        if (phase == BossReturnHomeHelper.PHASE_RETURN) {
+            if (getAnimId() != ANIM_SWIM) setAnim(ANIM_SWIM);
+            Vec3 toHome = arenaCenter.subtract(position());
+            if (toHome.lengthSqr() > 0.04D) {
+                Vec3 dir = toHome.normalize();
+                setDeltaMovement(getDeltaMovement().scale(0.75D).add(dir.scale(0.095D)));
+                float swimYaw = (float) (Math.atan2(dir.z, dir.x) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), swimYaw, 6.0F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+                float targetPitch = (float) Mth.clamp(-Math.toDegrees(Math.atan2(dir.y, Math.hypot(dir.x, dir.z))), -28.0D, 28.0D);
+                entityData.set(DATA_HULL_PITCH, Mth.lerp(0.15F, getHullPitchDeg(), targetPitch));
+            }
+            returnHelper.checkReturnProgress(sl, this, arenaCenter, hDist, 3.0D);
+            return;
+        }
+        if (phase == BossReturnHomeHelper.PHASE_SETTLE) {
+            setDeltaMovement(getDeltaMovement().scale(0.80D));
+            if (getAnimId() != ANIM_IDLE) setAnim(ANIM_IDLE);
+            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.15F, getHullPitchDeg(), 0.0F));
+            if (returnHelper.tickSettleYaw(this, savedSpawnYaw, 6.0F)) {
+                returnHelper.reset();
+                setDeltaMovement(Vec3.ZERO);
+                setHealth(getMaxHealth());
+                entityData.set(DATA_PHASE2, false);
+                transitionTo(STATE_DORMANT, ANIM_DORMANT);
+            }
         }
     }
 

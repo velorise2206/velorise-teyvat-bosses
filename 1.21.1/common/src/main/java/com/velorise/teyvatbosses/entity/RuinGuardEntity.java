@@ -4,6 +4,7 @@ import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
+import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -132,6 +133,7 @@ public class RuinGuardEntity extends Monster {
     private boolean pendingPhase2 = false;
     private boolean customDeathHandled = false;
     private final BossDamageCap damageCap = new BossDamageCap();
+    private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
     private Vec3 leapStart = Vec3.ZERO;
     private Vec3 leapTarget = Vec3.ZERO;
 
@@ -349,6 +351,11 @@ public class RuinGuardEntity extends Monster {
     public boolean hurt(DamageSource source, float amount) {
         int st = getBossState();
         if (st == STATE_DEATH) return false;
+        if (returnHelper.isHardReset()) return false;
+        if (!level().isClientSide() && returnHelper.isActive() && source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
+            returnHelper.reset();
+            setTarget(attacker);
+        }
         if (st == STATE_AWAKEN) {
             if (!level().isClientSide() && source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
                 setLastHurtByMob(attacker);
@@ -504,8 +511,9 @@ public class RuinGuardEntity extends Monster {
         playAttackSpeech(sl, 1.0F);
     }
 
-    private void resetToDormant() {
+    private void finishReturnToDormant() {
         noTargetTicks = 0;
+        returnHelper.reset();
         eyeHits = 0;
         eyeResetTimer = 0;
         weakpointImmuneTicks = 0;
@@ -515,14 +523,75 @@ public class RuinGuardEntity extends Monster {
         lastAttack = -1;
         attackCooldown = 40;
         setTarget(null);
+        getNavigation().stop();
         setDeltaMovement(Vec3.ZERO);
-        setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
         setYRot(savedSpawnYaw);
         yBodyRot = savedSpawnYaw;
         yHeadRot = savedSpawnYaw;
         setHealth(getMaxHealth());
         entityData.set(DATA_PHASE2, false);
         transitionTo(STATE_DORMANT, ANIM_DORMANT);
+    }
+
+    private void tickReturnHome(ServerLevel sl) {
+        double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
+        int phase = returnHelper.getPhase();
+        if (phase == BossReturnHomeHelper.PHASE_SEARCH) {
+            if (getAnimId() != ANIM_IDLE && onGround()) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+            }
+            setDeltaMovement(getDeltaMovement().x * 0.4D, getDeltaMovement().y, getDeltaMovement().z * 0.4D);
+            Vec3 lastPos = returnHelper.getLastKnownTargetPos();
+            if (lastPos != null) {
+                float lookYaw = (float) (Math.atan2(lastPos.z - getZ(), lastPos.x - getX()) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), lookYaw, 3.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            returnHelper.tickSearch(hDist);
+            return;
+        }
+        BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+        if (phase == BossReturnHomeHelper.PHASE_RETURN) {
+            tickAntiTrapBlockBreak(sl);
+            if (getAnimId() != ANIM_WALK && onGround()) {
+                transitionTo(STATE_COMBAT, ANIM_WALK);
+            }
+            if (getNavigation() instanceof BossGroundNavigation bnav) {
+                if (stateTick % 8 == 0 || bnav.isDone()) {
+                    bnav.computePathTo(arenaCenter);
+                }
+            }
+            Vec3 dir = (getNavigation() instanceof BossGroundNavigation bnav)
+                    ? bnav.getSteerDirection(arenaCenter)
+                    : new Vec3(arenaCenter.x - getX(), 0.0D, arenaCenter.z - getZ()).normalize();
+            if (dir.lengthSqr() > 1.0E-4D) {
+                float moveYaw = (float) (Math.atan2(dir.z, dir.x) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), moveYaw, 6.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            Vec3 cur = getDeltaMovement();
+            double stepPhase = (stateTick % 24) / 24.0D;
+            double cadence = 0.84D + 0.16D * Math.sin(stepPhase * Math.PI * 2.0D);
+            double speed = 0.135D * cadence;
+            double jumpY = (this.horizontalCollision && this.onGround()) ? 0.46D : cur.y;
+            setDeltaMovement(Mth.lerp(0.42D, cur.x, dir.x * speed), jumpY, Mth.lerp(0.42D, cur.z, dir.z * speed));
+            if (stateTick % 24 == 12) {
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.15F, 0.48F);
+                sl.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.08D, getZ(), 6, 0.50D, 0.05D, 0.50D, 0.02D);
+            }
+            returnHelper.checkReturnProgress(sl, this, arenaCenter, hDist, 2.5D);
+            return;
+        }
+        if (phase == BossReturnHomeHelper.PHASE_SETTLE) {
+            getNavigation().stop();
+            setDeltaMovement(getDeltaMovement().x * 0.35D, getDeltaMovement().y, getDeltaMovement().z * 0.35D);
+            if (getAnimId() != ANIM_IDLE && onGround()) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+            }
+            if (returnHelper.tickSettleYaw(this, savedSpawnYaw, 6.0F)) {
+                finishReturnToDormant();
+            }
+        }
     }
 
     @Override
@@ -588,18 +657,31 @@ public class RuinGuardEntity extends Monster {
         bossEvent.setVisible(true);
         updateBossBar();
 
-        if (combatTarget == null) {
-            setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
-            // Cleanly cancel any lingering attack animation into idle while waiting for reset
-            if (st == STATE_COMBAT && getAnimId() != ANIM_IDLE && onGround()) {
-                transitionTo(STATE_COMBAT, ANIM_IDLE);
+        double homeDist = arenaInit ? Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z) : 0.0D;
+        boolean airborneLeap = (getAnimId() == ANIM_LEAP_SLAM) || (getAnimId() == ANIM_MELEE_3HIT && stateTick >= 85 && stateTick <= 108);
+        if (st == STATE_COMBAT && arenaInit && !airborneLeap && onGround() && homeDist > ARENA_SOFT_LEASH_RADIUS && !returnHelper.isHardReset()) {
+            setTarget(null);
+            returnHelper.beginReturn(true, homeDist);
+        }
+        if (st == STATE_COMBAT && returnHelper.isActive()) {
+            if (!returnHelper.isHardReset() && combatTarget != null && homeDist <= ARENA_SOFT_LEASH_RADIUS) {
+                returnHelper.reset();
+            } else {
+                tickReturnHome(sl);
+                return;
             }
-            if (++noTargetTicks > 180) {
-                resetToDormant();
+        }
+        if (combatTarget == null) {
+            if (st == STATE_COMBAT && !airborneLeap && onGround()) {
+                returnHelper.beginSearch();
+                tickReturnHome(sl);
+            } else {
+                setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
             }
             return;
         }
         noTargetTicks = 0;
+        returnHelper.recordTargetPos(combatTarget.position());
         setTarget(combatTarget);
 
         // Queue Phase 2 Overdrive at <= 50% HP; only trigger when grounded & not mid-attack!
@@ -657,14 +739,7 @@ public class RuinGuardEntity extends Monster {
             case STATE_COMBAT -> tickCombat(sl, combatTarget);
         }
 
-        // Soft leash (Cataclysm style): allow free combat chase & leaps; only reset if dragged >56 blocks from spawn
-        if (st == STATE_COMBAT && getAnimId() != ANIM_LEAP_SLAM && arenaInit) {
-            double dx = getX() - arenaCenter.x;
-            double dz = getZ() - arenaCenter.z;
-            if (dx * dx + dz * dz > ARENA_SOFT_LEASH_RADIUS * ARENA_SOFT_LEASH_RADIUS) {
-                resetToDormant();
-            }
-        }
+        // Soft-leash handled smoothly via BossReturnHomeHelper above (no instant teleport).
     }
 
     private void faceTarget(LivingEntity target, float maxTurn) {
@@ -1065,8 +1140,8 @@ public class RuinGuardEntity extends Monster {
             }
             float f = (stateTick - 86) / 21.0F;
             float horizF = f * f * (3.0F - 2.0F * f);
-            double shaped = Math.sin(Math.pow(f, 0.80D) * Math.PI);
-            double arcY = Math.pow(Math.max(0.0D, shaped), 0.90D) * 4.4D;
+            double shaped = Math.sin(Math.pow(f, 0.72D) * Math.PI);
+            double arcY = Math.pow(Math.max(0.0D, shaped), 0.85D) * 5.0D;
             double nx = Mth.lerp(horizF, leapStart.x, leapTarget.x);
             double nz = Mth.lerp(horizF, leapStart.z, leapTarget.z);
             double ny = Mth.lerp(f, leapStart.y, leapTarget.y) + arcY;
@@ -1078,7 +1153,8 @@ public class RuinGuardEntity extends Monster {
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.75F, 0.56F);
             sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_DAMAGE, SoundSource.HOSTILE, 1.5F, 0.50F);
             sl.playSound(null, getX(), getY(), getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 0.46F);
-            sl.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 0.4D, getZ(), 5, 2.0D, 0.25D, 2.0D, 0.0D);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 0.25D, getZ(), 18, 1.8D, 0.15D, 1.8D, 0.08D);
+            sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 0.30D, getZ(), 22, 2.0D, 0.20D, 2.0D, 0.18D);
             spawnGroundDustRing(sl, 5.0D, 38);
         } else {
             setDeltaMovement(cur.x * 0.65D, cur.y, cur.z * 0.65D);

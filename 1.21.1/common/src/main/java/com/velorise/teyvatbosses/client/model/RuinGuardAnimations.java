@@ -23,6 +23,9 @@ public final class RuinGuardAnimations {
     public static final int CH_SCALE = 2;
     public static final int INTERP_SMOOTH = 0;
     public static final int INTERP_LINEAR = 1;
+    public static final int INTERP_EASE_IN = 2;
+    public static final int INTERP_EASE_OUT = 3;
+    public static final int INTERP_EASE_IN_OUT = 4;
 
     private static final class Track {
         final String bone;
@@ -322,139 +325,112 @@ public final class RuinGuardAnimations {
         CLIPS.put("missile_barrage", c);
     }
 
-    // 5: melee_combo_3hit (7.80s = 156 ticks) — Exact frame-matched Genshin Ruin Guard 3-Hit NA Combo:
-    // Note on Mojang X-mirroring (scale(-1,-1,1) + 180 Y-rot):
-    //   upper_arm_l (-X) = viewer's LEFT (robot's anatomical RIGHT arm)
-    //   upper_arm_r (+X) = viewer's RIGHT (robot's anatomical LEFT arm)
-    //   waist yRot: + turns chest toward viewer's LEFT; - turns chest toward viewer's RIGHT (-180 = back to camera, -360 = full spin)
-    // 0.00..1.20s: Phase 0 — Upright ready/clap opener (0.40s / tick 8)
-    // 1.20..2.40s: Phase 1 — Hit 1 Forehand: waist winds +55 deg, upper_arm_l straight out -> whips to -75 deg @ 2.20s (tick 44)
-    // 2.40..3.50s: Phase 2 — Hit 2 360-deg Spin-Through: waist CONTINUES spinning -75 -> -180 (back) -> -275 -> -360 deg,
-    //              whipping the OTHER arm (upper_arm_r) horizontally around @ 3.20s (tick 64)
-    // 3.50..7.80s: Phase 3 — Deep coiled crouch windup (3.80..4.25s, pelvis -12.5) -> explosive straight-leg jump @ 4.35s (tick 87)
-    //              -> high apex knee-tuck (4.75s) -> asymmetric superhero landing @ 5.40s (tick 108: upper_arm_l planted, upper_arm_r flared)
-    //              -> heavy ~1.1s kneel hold (5.40..6.50s) -> slow shoulder-led stand-up (6.50..7.80s)
+    // 5: melee_combo_3hit (7.80s = 156 ticks) — Frame-matched Genshin Ruin Guard 3-Hit NA Combo:
+    // Upgraded with cubic Ease-In/Ease-Out/S-curve hydraulic interpolation & overhead V-arm jump raise!
+    // Landmarks synced 1:1 with RuinGuardEntity, RuinMechEntity & RuinGuardRenderer:
+    //   0.40s (t=8):   Chest clap spark
+    //   2.20s (t=44):  Hit 1 Forehand whip impact
+    //   3.20s (t=64):  Hit 2 360-spin diagonal cleave impact
+    //   4.25s..4.30s (t=85..86): Deep coiled crouch -> explosive jump takeoff with BOTH arms raised overhead
+    //   5.40s (t=108): Heavy superhero slam landing impact -> kneel hold -> hydraulic stand-up (7.80s)
     private static void initClip_5() {
         Clip c = new Clip("melee_combo_3hit", 7.8000F, false);
         c.add("pelvis", CH_POS,
-                new float[]{0.0F, 0.25F, 0.40F, 0.90F, 1.95F, 2.20F, 2.45F, 2.80F, 3.00F, 3.20F, 3.55F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 5.75F, 6.50F, 7.05F, 7.40F, 7.80F},
-                new float[]{0.0F, 0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{-2.2F,-2.6F, -3.4F, -3.6F, -3.2F, -4.4F, -3.8F, -3.2F, -3.4F, -5.2F, -4.4F,-10.5F,-12.6F,  3.2F,  5.8F,  1.2F,-13.0F,-12.2F,-12.0F, -8.5F, -4.2F, -2.2F},
-                new float[]{0.0F, 0.3F,  -0.5F,  0.2F,  1.0F, -2.4F, -1.6F, -0.4F,  0.8F, -3.0F, -1.6F,  1.2F,  2.2F, -0.4F, -0.8F, -1.4F, -2.4F, -2.2F, -2.0F, -1.2F, -0.5F,  0.0F},
-                new int[]{0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0});
+                new float[]{0.0F, 0.25F, 0.40F, 0.85F, 1.92F, 2.20F, 2.48F, 2.85F, 3.02F, 3.20F, 3.55F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 5.65F, 6.50F, 7.15F, 7.80F},
+                new float[]{0.0F, 0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{-2.2F,-2.8F, -3.8F, -3.0F, -3.4F, -4.8F, -3.8F, -3.4F, -3.0F, -5.8F, -4.6F,-12.2F,-14.5F,  4.2F,  6.5F,  2.4F,-13.8F,-12.4F,-12.2F, -6.8F, -2.2F},
+                new float[]{0.0F, 0.4F,  -0.8F,  0.2F,  1.2F, -2.6F, -1.5F, -0.4F,  0.8F, -3.2F, -1.4F,  1.6F,  2.8F, -0.6F, -1.2F, -1.6F, -2.8F, -2.4F, -2.2F, -1.0F,  0.0F},
+                new int[]{  4,    2,     3,     4,     2,     3,     4,     4,     2,     3,     4,     4,     3,     3,     2,     2,     3,     4,     4,     4,     0});
         c.add("pelvis", CH_ROT,
-                new float[]{0.0F, 3.85F, 4.25F, 4.42F, 4.82F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{0.0F, 5.0F,   8.0F, -3.0F, -2.0F,  6.0F,  5.0F,  2.0F,  0.0F},
-                new float[]{0.0F, 0.0F,   0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{0.0F, 0.0F,   0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 1, 1, 0, 1, 0, 0, 0});
-        // Continuous 360-deg waist torque: Hit 1 (+55 -> -75), Hit 2 continues spinning (-75 -> -180 -> -275 -> -365 -> -360)!
-        // Stays at -360 (= 0 mod 360) for Phase 3 so there is ZERO backward unwind!
+                new float[]{0.0F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{0.0F, 8.0F,  12.0F, -6.0F, -4.0F,  4.0F,  9.0F,  7.0F,  3.0F,  0.0F},
+                new float[]{0.0F, 0.0F,   0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{0.0F, 0.0F,   0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new int[]{  4,    4,      3,     3,     2,     2,     3,     4,     4,     0});
         c.add("waist", CH_ROT,
-                new float[]{0.0F, 0.40F, 1.00F, 1.60F, 1.95F, 2.20F, 2.45F, 2.75F, 3.00F, 3.20F, 3.55F, 4.25F, 5.40F, 6.50F, 7.40F, 7.80F},
+                new float[]{0.0F, 0.40F, 0.85F, 1.55F, 1.92F, 2.20F, 2.50F, 2.82F, 3.02F, 3.20F, 3.55F, 4.25F, 5.40F, 6.50F, 7.35F, 7.80F},
                 new float[]{0.0F, 0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{0.0F, 0.0F,  8.0F, 48.0F, 55.0F,-58.0F,-75.0F,-180.0F,-275.0F,-365.0F,-360.0F,-360.0F,-368.0F,-368.0F,-356.0F,-360.0F},
+                new float[]{0.0F, 0.0F, 12.0F, 54.0F, 62.0F,-68.0F,-88.0F,-195.0F,-255.0F,-368.0F,-360.0F,-360.0F,-370.0F,-370.0F,-356.0F,-360.0F},
                 new float[]{0.0F, 0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0});
-        // Upright commanding torso (+6 deg ready, +16 deg deep crouch, +5 deg leap, +24 deg asymmetric superhero landing)
+                new int[]{  4,    4,     4,     4,     2,     3,     4,     4,     2,     3,     4,     4,     3,     4,     4,     0});
         c.add("torso", CH_ROT,
-                new float[]{0.0F, 0.40F, 1.00F, 1.95F, 2.20F, 2.45F, 2.75F, 3.00F, 3.20F, 3.55F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 5.75F, 6.50F, 7.05F, 7.40F, 7.80F},
-                new float[]{7.0F, 6.0F,  8.0F,  6.0F, 11.0F, 10.0F,  8.0F,  8.0F, 14.0F, 11.0F, 14.0F, 16.0F,  5.0F,  6.0F, 12.0F, 24.0F, 22.0F, 21.0F, 17.0F, 11.0F,  7.0F},
-                new float[]{0.0F, 0.0F,  0.0F, 12.0F,-14.0F,-12.0F, -8.0F,-10.0F,-16.0F, -4.0F,  0.0F,  0.0F,  0.0F,  0.0F, -4.0F,-10.0F,-10.0F, -8.0F, -4.0F,  4.0F,  0.0F},
-                new float[]{0.0F, 0.0F,  0.0F, -4.0F,  6.0F,  4.0F,  2.0F, -4.0F,  7.0F,  3.0F,  0.0F,  0.0F,  0.0F,  0.0F,  2.0F,  6.0F,  6.0F,  5.0F,  3.0F, -4.0F,  0.0F},
-                new int[]{0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0});
+                new float[]{0.0F, 0.40F, 0.85F, 1.92F, 2.20F, 2.50F, 2.82F, 3.02F, 3.20F, 3.55F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 5.65F, 6.50F, 7.15F, 7.80F},
+                new float[]{7.0F, 5.0F,  7.0F,  4.0F, 14.0F, 10.0F,  8.0F,  4.0F, 18.0F, 12.0F, 18.0F, 22.0F, -8.0F, -4.0F, 14.0F, 30.0F, 26.0F, 24.0F, 15.0F,  7.0F},
+                new float[]{0.0F, 0.0F,  0.0F, 14.0F,-16.0F,-12.0F, -8.0F,-12.0F,-18.0F, -4.0F,  0.0F,  0.0F,  0.0F,  0.0F, -5.0F,-12.0F,-12.0F,-10.0F,  3.0F,  0.0F},
+                new float[]{0.0F, 0.0F,  0.0F, -5.0F,  7.0F,  4.0F,  2.0F, -6.0F,  9.0F,  3.0F,  0.0F,  0.0F,  0.0F,  0.0F,  3.0F,  8.0F,  7.0F,  6.0F, -3.0F,  0.0F},
+                new int[]{  4,    3,     4,     2,     3,     4,     4,     2,     3,     4,     4,     3,     3,     2,     2,     3,     4,     4,     4,     0});
         c.add("shoulder_l", CH_ROT,
-                new float[]{0.0F, 0.40F, 1.00F, 1.95F, 2.20F, 2.75F, 4.25F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{0.0F, -6.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  8.0F,  8.0F,  0.0F,  0.0F},
-                new float[]{0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{0.0F, -6.0F,  0.0F, 12.0F, 10.0F,  0.0F,  0.0F, -6.0F, -6.0F,  4.0F,  0.0F},
-                new int[]{0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0});
+                new float[]{0.0F, 0.40F, 0.85F, 1.92F, 2.20F, 2.82F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.35F, 7.80F},
+                new float[]{0.0F, -6.0F,  0.0F,  0.0F,  0.0F,  0.0F,  4.0F,-14.0F,-18.0F, -6.0F, 12.0F, 10.0F,  0.0F,  0.0F},
+                new float[]{0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{0.0F, -6.0F,  0.0F, 14.0F, 10.0F,  0.0F,  0.0F, 16.0F, 20.0F,  8.0F, -8.0F, -8.0F,  4.0F,  0.0F},
+                new int[]{  4,     3,     4,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("shoulder_r", CH_ROT,
-                new float[]{0.0F, 0.40F, 1.00F, 2.75F, 3.00F, 3.20F, 4.25F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{0.0F, -6.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F, -4.0F,  0.0F},
-                new float[]{0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{0.0F,  6.0F,  0.0F, -8.0F,-14.0F,-12.0F,  0.0F,-14.0F,-14.0F,-12.0F,  0.0F},
-                new int[]{0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0});
-        // upper_arm_l (-X = viewer's LEFT / robot's anatomical RIGHT arm):
-        //  - 0.40s: chest clap (-66, -30, -8)
-        //  - 1.60..1.95s: Hit 1 straight horizontal windup on viewer's LEFT (-10, +18, +88)
-        //  - 2.20..2.45s: Hit 1 forehand sweep across front to viewer's RIGHT (-64,-24,+40 -> -46,-42,-6)
-        //  - 2.75..3.20s: tucks close to body during Hit 2 360-deg spin
-        //  - 3.85..4.25s: hangs low beside knee in deep pre-jump crouch
-        //  - 5.40..6.50s: superhero landing — planted straight down onto ground in front (-58, -10, +12)
+                new float[]{0.0F, 0.40F, 0.85F, 2.82F, 3.02F, 3.20F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.35F, 7.80F},
+                new float[]{0.0F, -6.0F,  0.0F, -6.0F,-10.0F,  4.0F,  4.0F,-14.0F,-18.0F, -4.0F,  6.0F,  6.0F, -4.0F,  0.0F},
+                new float[]{0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{0.0F,  6.0F,  0.0F,-10.0F,-18.0F,-12.0F,  0.0F,-16.0F,-20.0F,-16.0F,-16.0F,-15.0F,-10.0F,  0.0F},
+                new int[]{  4,     3,     4,     4,     2,     3,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("upper_arm_l", CH_ROT,
-                new float[]{0.0F, 0.25F, 0.40F, 0.58F, 1.00F, 1.60F, 1.95F, 2.20F, 2.45F, 2.75F, 3.20F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.05F, 7.40F, 7.80F},
-                new float[]{-8.0F,-40.0F,-66.0F,-60.0F,-16.0F,-10.0F,-10.0F,-64.0F,-46.0F,-18.0F, 14.0F,-16.0F,-22.0F, -6.0F,-16.0F,-36.0F,-58.0F,-56.0F,-38.0F,-22.0F, -8.0F},
-                new float[]{ 0.0F, 16.0F,-30.0F,-26.0F,  0.0F, 16.0F, 18.0F,-24.0F,-42.0F,-14.0F, 10.0F,  0.0F,  0.0F,  6.0F,  8.0F, -4.0F,-10.0F,-10.0F, -6.0F,  0.0F,  0.0F},
-                new float[]{15.0F, 30.0F, -8.0F, -6.0F, 18.0F, 84.0F, 88.0F, 40.0F, -6.0F, 16.0F, 22.0F, 18.0F, 20.0F, 36.0F, 46.0F, 24.0F, 12.0F, 12.0F, 16.0F, 20.0F, 15.0F},
-                new int[]{0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0});
+                new float[]{0.0F, 0.25F, 0.40F, 0.62F, 0.95F, 1.55F, 1.92F, 2.20F, 2.48F, 2.82F, 3.20F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.15F, 7.80F},
+                new float[]{-8.0F,-44.0F,-68.0F,-56.0F,-14.0F,-12.0F,-10.0F,-68.0F,-48.0F,-20.0F, 14.0F,-22.0F,-28.0F,-138.0F,-156.0F,-98.0F,-64.0F,-60.0F,-34.0F, -8.0F},
+                new float[]{ 0.0F, 18.0F,-32.0F,-24.0F,  0.0F, 18.0F, 20.0F,-28.0F,-44.0F,-14.0F, 10.0F,  0.0F,  0.0F,  -8.0F, -10.0F, -6.0F,-12.0F,-12.0F, -4.0F,  0.0F},
+                new float[]{15.0F, 32.0F, -8.0F, -2.0F, 22.0F, 86.0F, 92.0F, 36.0F, -8.0F, 18.0F, 24.0F, 20.0F, 22.0F, -18.0F, -24.0F,  8.0F, 14.0F, 14.0F, 18.0F, 15.0F},
+                new int[]{  4,    2,     3,     4,     4,     4,     2,     3,     4,     4,     4,     4,     3,     3,      2,     2,     3,     4,     4,     0});
         c.add("forearm_l", CH_ROT,
-                new float[]{0.0F, 0.25F, 0.40F, 0.58F, 1.00F, 1.95F, 2.20F, 2.45F, 2.75F, 4.25F, 4.82F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-18.0F,-40.0F,-46.0F,-42.0F,-24.0F, -8.0F,-10.0F,-22.0F,-52.0F,-26.0F,-24.0F,-12.0F,-12.0F,-20.0F,-18.0F},
-                new float[]{ 0.0F,  0.0F,-12.0F,-10.0F,  0.0F,  0.0F, -6.0F, -8.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{ 0.0F,  0.0F, -4.0F, -4.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0});
-        // upper_arm_r (+X = viewer's RIGHT / robot's anatomical LEFT arm):
-        //  - 0.40s: chest clap (-66, +30, +8)
-        //  - 1.60..2.45s: tucked back/side during Hit 1
-        //  - 2.75..3.00s: Hit 2 360-deg spin — extends STRAIGHT OUT horizontally at shoulder height (-18, -16, -90) as waist spins around!
-        //  - 3.20..3.55s: Hit 2 heavy diagonal spin-cleave follow-through (-62, +28, -42 -> -34, +34, -22)
-        //  - 3.85..4.25s: hangs low beside knee in deep pre-jump crouch
-        //  - 5.40..6.50s: superhero landing — flared wide out & back (+20, -16, -64)
-        //  - 7.40s: shoulder-led slow stand-up, arm extended horizontally (-10, -6, -62)
+                new float[]{0.0F, 0.25F, 0.40F, 0.62F, 0.95F, 1.92F, 2.20F, 2.48F, 2.82F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.35F, 7.80F},
+                new float[]{-18.0F,-42.0F,-48.0F,-38.0F,-22.0F, -6.0F, -8.0F,-24.0F,-54.0F,-34.0F,-24.0F,-32.0F,-14.0F, -8.0F, -8.0F,-20.0F,-18.0F},
+                new float[]{ 0.0F,  0.0F,-12.0F, -8.0F,  0.0F,  0.0F, -6.0F, -8.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{ 0.0F,  0.0F, -4.0F, -2.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new int[]{  4,    2,     3,     4,     4,     2,     3,     4,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("upper_arm_r", CH_ROT,
-                new float[]{0.0F, 0.25F, 0.40F, 0.58F, 1.00F, 1.95F, 2.45F, 2.75F, 3.00F, 3.20F, 3.55F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.05F, 7.40F, 7.80F},
-                new float[]{-8.0F,-40.0F,-66.0F,-60.0F,-16.0F,-16.0F, 10.0F,-12.0F,-18.0F,-62.0F,-34.0F,-16.0F,-22.0F, -6.0F,-16.0F,  6.0F, 20.0F, 18.0F,  4.0F,-10.0F, -8.0F},
-                new float[]{ 0.0F,-16.0F, 30.0F, 26.0F,  0.0F, 20.0F, 10.0F,-12.0F,-16.0F, 28.0F, 34.0F,  0.0F,  0.0F, -6.0F, -8.0F,-12.0F,-16.0F,-14.0F,-10.0F, -6.0F,  0.0F},
-                new float[]{-15.0F,-30.0F, 8.0F,  6.0F,-18.0F,-16.0F,-24.0F,-76.0F,-90.0F,-42.0F,-22.0F,-18.0F,-20.0F,-36.0F,-46.0F,-56.0F,-64.0F,-60.0F,-60.0F,-62.0F,-15.0F},
-                new int[]{0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0});
+                new float[]{0.0F, 0.25F, 0.40F, 0.62F, 0.95F, 1.92F, 2.48F, 2.82F, 3.02F, 3.20F, 3.55F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.15F, 7.80F},
+                new float[]{-8.0F,-44.0F,-68.0F,-56.0F,-14.0F,-16.0F, 12.0F,-22.0F,-48.0F,-68.0F,-32.0F,-22.0F,-28.0F,-134.0F,-152.0F,-42.0F, 24.0F, 20.0F, -2.0F, -8.0F},
+                new float[]{ 0.0F,-18.0F, 32.0F, 24.0F,  0.0F, 20.0F, 10.0F,-14.0F,-18.0F, 32.0F, 34.0F,  0.0F,  0.0F,   8.0F,  10.0F,-10.0F,-18.0F,-16.0F, -6.0F,  0.0F},
+                new float[]{-15.0F,-32.0F, 8.0F,  2.0F,-22.0F,-16.0F,-26.0F,-82.0F,-108.0F,-38.0F,-20.0F,-20.0F,-22.0F, 18.0F,  24.0F,-54.0F,-68.0F,-62.0F,-42.0F,-15.0F},
+                new int[]{  4,    2,     3,     4,     4,     4,     4,     4,     2,     3,     4,     4,     3,     3,      2,     2,     3,     4,     4,     0});
         c.add("forearm_r", CH_ROT,
-                new float[]{0.0F, 0.25F, 0.40F, 0.58F, 1.00F, 1.95F, 2.75F, 3.00F, 3.20F, 3.55F, 4.25F, 4.82F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-18.0F,-40.0F,-46.0F,-42.0F,-24.0F,-56.0F,-10.0F, -6.0F,-10.0F,-22.0F,-26.0F,-24.0F,-22.0F,-22.0F,-14.0F,-18.0F},
-                new float[]{ 0.0F,  0.0F, 12.0F, 10.0F,  0.0F,  0.0F,  0.0F,  0.0F,  6.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{ 0.0F,  0.0F,  4.0F,  4.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0});
-        // LEGS:
-        //  - 3.85..4.25s: deep coiled pre-jump crouch (-58 hip, +104 knee)
-        //  - 4.42s: explosive straight-leg takeoff (+8 hip, +8 knee, +26 foot)
-        //  - 4.82s: high airborne apex knee-tuck (-52 hip, +98 knee)
-        //  - 5.40..6.50s: asymmetric superhero kneel (hip_l planted forward -58/+98, hip_r wider brace -48/+90)
+                new float[]{0.0F, 0.25F, 0.40F, 0.62F, 0.95F, 1.92F, 2.82F, 3.02F, 3.20F, 3.55F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.35F, 7.80F},
+                new float[]{-18.0F,-42.0F,-48.0F,-38.0F,-22.0F,-56.0F,-12.0F, -6.0F,-10.0F,-24.0F,-34.0F,-24.0F,-32.0F,-26.0F,-20.0F,-20.0F,-16.0F,-18.0F},
+                new float[]{ 0.0F,  0.0F, 12.0F,  8.0F,  0.0F,  0.0F,  0.0F,  0.0F,  6.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new float[]{ 0.0F,  0.0F,  4.0F,  2.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
+                new int[]{  4,    2,     3,     4,     4,     4,     4,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("hip_l", CH_ROT,
-                new float[]{0.0F, 1.00F, 1.95F, 2.20F, 3.00F, 3.20F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-12.0F,-18.0F,-20.0F,  8.0F,-14.0F,-24.0F,-48.0F,-58.0F,  8.0F,-52.0F,-34.0F,-58.0F,-56.0F,-24.0F,-12.0F},
+                new float[]{0.0F, 0.95F, 1.92F, 2.20F, 3.02F, 3.20F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{-12.0F,-18.0F,-22.0F, 10.0F,-18.0F,-28.0F,-54.0F,-66.0F, 14.0F,-62.0F,-36.0F,-62.0F,-58.0F,-26.0F,-12.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{  7.0F,  8.0F,  9.0F,  8.0F,  8.0F, 10.0F, 11.0F, 12.0F,  5.0F,  8.0F,  9.0F, 14.0F, 14.0F,  9.0F,  7.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new float[]{  7.0F,  8.0F, 10.0F,  8.0F,  9.0F, 11.0F, 13.0F, 15.0F,  5.0F, 12.0F, 10.0F, 16.0F, 15.0F, 10.0F,  7.0F},
+                new int[]{    4,     4,     2,     3,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("knee_l", CH_ROT,
-                new float[]{0.0F, 1.00F, 1.95F, 2.20F, 3.00F, 3.20F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{ 24.0F, 34.0F, 38.0F, 18.0F, 28.0F, 44.0F, 88.0F,104.0F,  8.0F, 98.0F, 56.0F, 98.0F, 94.0F, 46.0F, 24.0F},
+                new float[]{0.0F, 0.95F, 1.92F, 2.20F, 3.02F, 3.20F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{ 24.0F, 34.0F, 40.0F, 16.0F, 34.0F, 48.0F, 98.0F,116.0F,  6.0F,110.0F, 58.0F,104.0F, 98.0F, 48.0F, 24.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new int[]{    4,     4,     2,     3,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("foot_l", CH_ROT,
-                new float[]{0.0F, 1.00F, 2.20F, 3.20F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-12.0F,-16.0F,-22.0F,-20.0F,-42.0F, 26.0F, 12.0F,  6.0F,-36.0F,-34.0F,-20.0F,-12.0F},
+                new float[]{0.0F, 0.95F, 2.20F, 3.20F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{-12.0F,-16.0F,-22.0F,-20.0F,-46.0F, 32.0F, 18.0F,  8.0F,-38.0F,-36.0F,-20.0F,-12.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{ -4.0F, -4.0F, -4.0F, -4.0F, -5.0F,  0.0F,  0.0F,  0.0F, -6.0F, -6.0F, -5.0F, -4.0F},
-                new int[]{0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new float[]{ -4.0F, -4.0F, -4.0F, -4.0F, -6.0F,  0.0F,  0.0F,  0.0F, -7.0F, -7.0F, -5.0F, -4.0F},
+                new int[]{    4,     4,     3,     3,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("hip_r", CH_ROT,
-                new float[]{0.0F, 1.00F, 1.95F, 2.20F, 3.00F, 3.20F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-12.0F,-18.0F,  8.0F,-22.0F,-18.0F, 10.0F,-48.0F,-58.0F,  8.0F,-44.0F,-34.0F,-48.0F,-46.0F,-22.0F,-12.0F},
+                new float[]{0.0F, 0.95F, 1.92F, 2.20F, 3.02F, 3.20F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{-12.0F,-18.0F, 10.0F,-24.0F,-22.0F, 12.0F,-54.0F,-66.0F, 14.0F,-42.0F,-32.0F,-50.0F,-48.0F,-24.0F,-12.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{ -7.0F, -8.0F, -8.0F,-10.0F, -8.0F, -8.0F,-11.0F,-12.0F, -5.0F, -8.0F, -9.0F,-16.0F,-16.0F, -9.0F, -7.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new float[]{ -7.0F, -8.0F, -8.0F,-11.0F, -9.0F, -8.0F,-13.0F,-15.0F, -5.0F,-10.0F,-10.0F,-18.0F,-17.0F,-10.0F, -7.0F},
+                new int[]{    4,     4,     2,     3,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("knee_r", CH_ROT,
-                new float[]{0.0F, 1.00F, 1.95F, 2.20F, 3.00F, 3.20F, 3.85F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{ 24.0F, 34.0F, 18.0F, 42.0F, 34.0F, 18.0F, 88.0F,104.0F,  8.0F, 86.0F, 56.0F, 90.0F, 86.0F, 42.0F, 24.0F},
+                new float[]{0.0F, 0.95F, 1.92F, 2.20F, 3.02F, 3.20F, 3.90F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{ 24.0F, 34.0F, 16.0F, 44.0F, 40.0F, 16.0F, 98.0F,116.0F,  6.0F, 82.0F, 54.0F, 92.0F, 88.0F, 44.0F, 24.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new int[]{0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new int[]{    4,     4,     2,     3,     2,     3,     4,     3,     3,     2,     2,     3,     4,     4,     0});
         c.add("foot_r", CH_ROT,
-                new float[]{0.0F, 1.00F, 2.20F, 3.20F, 4.25F, 4.42F, 4.82F, 5.22F, 5.40F, 6.50F, 7.40F, 7.80F},
-                new float[]{-12.0F,-16.0F,-20.0F,-24.0F,-42.0F, 26.0F, 12.0F,  6.0F,-34.0F,-32.0F,-18.0F,-12.0F},
+                new float[]{0.0F, 0.95F, 2.20F, 3.20F, 4.25F, 4.46F, 4.86F, 5.18F, 5.40F, 6.50F, 7.25F, 7.80F},
+                new float[]{-12.0F,-16.0F,-20.0F,-24.0F,-46.0F, 32.0F, 14.0F,  8.0F,-36.0F,-34.0F,-18.0F,-12.0F},
                 new float[]{  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F,  0.0F},
-                new float[]{  4.0F,  4.0F,  4.0F,  4.0F,  5.0F,  0.0F,  0.0F,  0.0F,  6.0F,  6.0F,  5.0F,  4.0F},
-                new int[]{0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0});
+                new float[]{  4.0F,  4.0F,  4.0F,  4.0F,  6.0F,  0.0F,  0.0F,  0.0F,  7.0F,  7.0F,  5.0F,  4.0F},
+                new int[]{    4,     4,     3,     3,     3,     3,     2,     2,     3,     4,     4,     0});
         CLIPS.put("melee_combo_3hit", c);
     }
 
@@ -1160,11 +1136,15 @@ public final class RuinGuardAnimations {
         return Math.max(0.0F, Math.min(clip.lengthSeconds, timeSeconds));
     }
 
-    /** Time-normalized, slope-clamped Catmull-Rom Hermite spline (eliminates overshoot on uneven keyframe spans). */
+    /** Time-normalized, Fritsch-Carlson monotone Catmull-Rom Hermite spline (zero drift on holds, zero overshoot). */
     private static float evalCatmullHermite(float[] vals, float[] times, int i, float u, float dt, boolean loop) {
         int n = vals.length;
         float p1 = vals[i];
         float p2 = vals[i + 1];
+        float secant = (p2 - p1) / dt;
+        if (Math.abs(secant) < 1e-4F) {
+            return p1;
+        }
         float m1, m2;
         if (i > 0) {
             float span = Math.max(1e-4F, times[i + 1] - times[i - 1]);
@@ -1173,7 +1153,7 @@ public final class RuinGuardAnimations {
             float span = Math.max(1e-4F, (times[1] - times[0]) + (times[n - 1] - times[n - 2]));
             m1 = (vals[1] - vals[n - 2]) / span;
         } else {
-            m1 = (p2 - p1) / dt;
+            m1 = secant;
         }
         if (i + 2 < n) {
             float span = Math.max(1e-4F, times[i + 2] - times[i]);
@@ -1182,10 +1162,11 @@ public final class RuinGuardAnimations {
             float span = Math.max(1e-4F, (times[n - 1] - times[n - 2]) + (times[1] - times[0]));
             m2 = (vals[1] - vals[n - 2]) / span;
         } else {
-            m2 = (p2 - p1) / dt;
+            m2 = secant;
         }
-        float secant = (p2 - p1) / dt;
-        float maxSlope = Math.abs(secant) * 2.4F + 2.0F;
+        if (m1 * secant <= 0.0F) m1 = 0.0F;
+        if (m2 * secant <= 0.0F) m2 = 0.0F;
+        float maxSlope = Math.abs(secant) * 2.2F;
         m1 = Math.max(-maxSlope, Math.min(maxSlope, m1)) * dt;
         m2 = Math.max(-maxSlope, Math.min(maxSlope, m2)) * dt;
         float u2 = u * u;
@@ -1204,15 +1185,22 @@ public final class RuinGuardAnimations {
         while (i + 1 < n && tr.times[i + 1] < t) i++;
         float dt = Math.max(1e-5F, tr.times[i + 1] - tr.times[i]);
         float u = (t - tr.times[i]) / dt;
-        if (tr.interps[i] == INTERP_LINEAR || tr.interps[i + 1] == INTERP_LINEAR || n < 3) {
-            out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * u;
-            out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * u;
-            out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * u;
-        } else {
+        int mode = tr.interps[i];
+        if (mode == INTERP_SMOOTH && n >= 3) {
             out[0] = evalCatmullHermite(tr.xs, tr.times, i, u, dt, loop);
             out[1] = evalCatmullHermite(tr.ys, tr.times, i, u, dt, loop);
             out[2] = evalCatmullHermite(tr.zs, tr.times, i, u, dt, loop);
+            return;
         }
+        float e = switch (mode) {
+            case INTERP_EASE_IN -> u * u * u;
+            case INTERP_EASE_OUT -> 1.0F - (1.0F - u) * (1.0F - u) * (1.0F - u);
+            case INTERP_EASE_IN_OUT -> u * u * (3.0F - 2.0F * u);
+            default -> u;
+        };
+        out[0] = tr.xs[i] + (tr.xs[i + 1] - tr.xs[i]) * e;
+        out[1] = tr.ys[i] + (tr.ys[i + 1] - tr.ys[i]) * e;
+        out[2] = tr.zs[i] + (tr.zs[i + 1] - tr.zs[i]) * e;
     }
 
     private static void applyWeighted(RuinGuardModel<?> model, Clip clip, float timeSeconds, float weight) {

@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.entity.ai;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
@@ -25,6 +26,16 @@ public class BossGroundNavigation extends GroundPathNavigation {
      */
     public void computePathTo(LivingEntity target) {
         Path p = this.createPath(target, 1);
+        if (p != null) {
+            this.path = p;
+        }
+    }
+
+    /**
+     * Computes and stores an A* path to a fixed world coordinate (e.g. arena center during return-home).
+     */
+    public void computePathTo(Vec3 pos) {
+        Path p = this.createPath(BlockPos.containing(pos.x, pos.y, pos.z), 1);
         if (p != null) {
             this.path = p;
         }

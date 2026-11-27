@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import net.minecraft.ChatFormatting;
@@ -102,6 +103,7 @@ public class AnemoHypostasisEntity extends Monster {
     private int attacksSinceTornado = 0;
     private boolean revivalUsed = false;
     private final BossDamageCap damageCap = new BossDamageCap();
+    private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
     private boolean customDeathHandled = false;
     private int revivalCrystalsRemaining = 0;
     private int pendingRecallOrbs = 0;
@@ -224,6 +226,11 @@ public class AnemoHypostasisEntity extends Monster {
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_AWAKEN || st == STATE_REVIVAL) {
             return false;
+        }
+        if (returnHelper.isHardReset()) return false;
+        if (!level().isClientSide() && returnHelper.isActive() && source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
+            returnHelper.reset();
+            setTarget(attacker);
         }
         if (st == STATE_DORMANT && !level().isClientSide()) {
             if (source.getEntity() instanceof LivingEntity attacker && isValidCombatTarget(attacker)) {
@@ -348,17 +355,12 @@ public class AnemoHypostasisEntity extends Monster {
             savedSpawnYaw = getYRot();
             arenaInit = true;
         }
-        // Arena Soft-Leash: prevent kiting Anemo Hypostasis far outside its arena
-        if (arenaInit && isAlive() && getBossState() == STATE_COMBAT) {
+        // Arena Soft-Leash: smoothly fly back to arenaCenter instead of instant teleport
+        if (!level().isClientSide() && arenaInit && isAlive() && getBossState() == STATE_COMBAT) {
             double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
-            if (hDist > ARENA_SOFT_LEASH_RADIUS) {
-                Vec3 back = new Vec3(arenaCenter.x - getX(), (arenaCenter.y + 2.4D) - getY(), arenaCenter.z - getZ());
-                if (hDist > ARENA_SOFT_LEASH_RADIUS + 20.0D) {
-                    teleportTo(arenaCenter.x, arenaCenter.y + 2.4D, arenaCenter.z);
-                    setDeltaMovement(Vec3.ZERO);
-                } else if (back.lengthSqr() > 1.0E-4D) {
-                    setDeltaMovement(back.normalize().scale(0.55D));
-                }
+            if (hDist > ARENA_SOFT_LEASH_RADIUS && !returnHelper.isHardReset()) {
+                setTarget(null);
+                returnHelper.beginReturn(true, hDist);
             }
         }
 
@@ -416,17 +418,24 @@ public class AnemoHypostasisEntity extends Monster {
         bossEvent.setVisible(true);
         updateBossBar();
 
+        double homeDist = arenaInit ? Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z) : 0.0D;
+        if (st == STATE_COMBAT && returnHelper.isActive()) {
+            if (!returnHelper.isHardReset() && nearest != null && homeDist <= ARENA_SOFT_LEASH_RADIUS) {
+                returnHelper.reset();
+            } else {
+                tickReturnHome(sl);
+                return;
+            }
+        }
         if (nearest == null) {
-            if (++noTargetTicks > 180) {
-                noTargetTicks = 0;
-                setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
-                setHealth(getMaxHealth());
-                revivalUsed = false;
-                transitionTo(STATE_DORMANT, ANIM_DORMANT);
+            if (st == STATE_COMBAT) {
+                returnHelper.beginSearch();
+                tickReturnHome(sl);
             }
             return;
         }
         noTargetTicks = 0;
+        returnHelper.recordTargetPos(nearest.position());
         setTarget(nearest);
         faceTarget(nearest);
 
@@ -446,6 +455,52 @@ public class AnemoHypostasisEntity extends Monster {
             }
             case STATE_REVIVAL -> tickRevival(sl);
             case STATE_COMBAT -> tickCombat(sl, nearest);
+        }
+    }
+
+    private void tickReturnHome(ServerLevel sl) {
+        double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
+        int phase = returnHelper.getPhase();
+        if (phase == BossReturnHomeHelper.PHASE_SEARCH) {
+            if (getAnimId() != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
+            moveTarget = null;
+            setDeltaMovement(getDeltaMovement().scale(0.80D));
+            Vec3 lastPos = returnHelper.getLastKnownTargetPos();
+            if (lastPos != null) {
+                float lookYaw = (float) (Math.atan2(lastPos.z - getZ(), lastPos.x - getX()) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), lookYaw, 4.5F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            returnHelper.tickSearch(hDist);
+            return;
+        }
+        BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+        if (phase == BossReturnHomeHelper.PHASE_RETURN) {
+            if (getAnimId() != ANIM_IDLE) transitionTo(STATE_COMBAT, ANIM_IDLE);
+            Vec3 homeHover = new Vec3(arenaCenter.x, arenaCenter.y + 1.8D, arenaCenter.z);
+            moveTarget = homeHover;
+            Vec3 toHome = homeHover.subtract(position());
+            if (toHome.lengthSqr() > 0.04D) {
+                setDeltaMovement(toHome.normalize().scale(Math.min(0.40D, toHome.length() * 0.25D)));
+                float flyYaw = (float) (Math.atan2(toHome.z, toHome.x) * (180.0D / Math.PI)) - 90.0F;
+                float ny = Mth.approachDegrees(getYRot(), flyYaw, 7.0F);
+                setYRot(ny); yBodyRot = ny; yHeadRot = ny;
+            }
+            returnHelper.checkReturnProgress(sl, this, arenaCenter, hDist, 2.5D);
+            return;
+        }
+        if (phase == BossReturnHomeHelper.PHASE_SETTLE) {
+            moveTarget = null;
+            Vec3 toBase = arenaCenter.subtract(position());
+            setDeltaMovement(toBase.scale(0.18D));
+            if (returnHelper.tickSettleYaw(this, savedSpawnYaw, 6.5F)) {
+                returnHelper.reset();
+                noTargetTicks = 0;
+                setDeltaMovement(Vec3.ZERO);
+                setHealth(getMaxHealth());
+                revivalUsed = false;
+                transitionTo(STATE_DORMANT, ANIM_DORMANT);
+            }
         }
     }
 

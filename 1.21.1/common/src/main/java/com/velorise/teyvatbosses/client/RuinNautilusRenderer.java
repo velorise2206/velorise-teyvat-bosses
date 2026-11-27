@@ -214,6 +214,29 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         // Render all active Acoustic Depth Mines as TRUE SOLID 3D Naval Sea Mines!
         renderSolid3DDepthMines(entity, partialTicks, poseStack, buffers, packedLight, liveTick);
 
+        // Ruin-Guard-style Red Expanding AoE Warning Zone (Sonar, Fin Sweep, Whirlpool, Depth Mines, Breach)
+        float teleR = entity.getTelegraphRadius();
+        if (teleR > 0.5F) {
+            float prog = switch (animId) {
+                case RuinNautilusEntity.ANIM_SONAR -> Mth.clamp((t - 1.0F) / 17.0F, 0.0F, 1.0F);
+                case RuinNautilusEntity.ANIM_FIN_SWEEP -> Mth.clamp((t - 1.0F) / 15.0F, 0.0F, 1.0F);
+                case RuinNautilusEntity.ANIM_WHIRLPOOL -> Mth.clamp((t - 1.0F) / 15.0F, 0.0F, 1.0F);
+                case RuinNautilusEntity.ANIM_DEPTH_MINES -> Mth.clamp((t - 1.0F) / 21.0F, 0.0F, 1.0F);
+                case RuinNautilusEntity.ANIM_SONAR_BREACH -> Mth.clamp((t - 1.0F) / 23.0F, 0.0F, 1.0F);
+                default -> 0.5F;
+            };
+            float fillR = Math.max(0.20F, teleR * prog);
+            VertexConsumer tvc = buffers.getBuffer(RenderType.lightning());
+            poseStack.pushPose();
+            poseStack.translate(0.0D, 0.65D, 0.0D);
+            Matrix4f tm = poseStack.last().pose();
+            drawHorizontalRing(tvc, tm, teleR - 0.34F, teleR, 40, 235, 28, 36, 225);
+            drawHorizontalRing(tvc, tm, 0.10F, Math.max(0.12F, teleR - 0.34F), 36, 200, 18, 24, 42);
+            drawHorizontalRing(tvc, tm, 0.10F, fillR, 36, 255, 42, 48, 86);
+            drawHorizontalRing(tvc, tm, Math.max(0.10F, fillR - 0.24F), fillR, 40, 255, 85, 78, 210);
+            poseStack.popPose();
+        }
+
         // Render 3D Expanding Hydro-Cyan Sonar Shockwave Rings during ANIM_SONAR
         if (animId == RuinNautilusEntity.ANIM_SONAR && t >= 16.0F && t <= 42.0F) {
             renderSonarRings3D(poseStack, buffers, t);
@@ -346,5 +369,23 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
     @Override
     public ResourceLocation getTextureLocation(RuinNautilusEntity entity) {
         return TEXTURE;
+    }
+
+    private static void drawHorizontalRing(VertexConsumer vc, Matrix4f mat, float rIn, float rOut, int segs, int r, int g, int b, int a) {
+        if (a <= 2) return;
+        for (int i = 0; i < segs; i++) {
+            double a0 = (Math.PI * 2.0D * i) / segs;
+            double a1 = (Math.PI * 2.0D * (i + 1)) / segs;
+            float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0);
+            float c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+            vc.addVertex(mat, c0 * rIn, 0.0F, s0 * rIn).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rOut, 0.0F, s0 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rOut, 0.0F, s1 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rIn, 0.0F, s1 * rIn).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rIn, 0.0F, s1 * rIn).setColor(r, g, b, a);
+            vc.addVertex(mat, c1 * rOut, 0.0F, s1 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rOut, 0.0F, s0 * rOut).setColor(r, g, b, a);
+            vc.addVertex(mat, c0 * rIn, 0.0F, s0 * rIn).setColor(r, g, b, a);
+        }
     }
 }

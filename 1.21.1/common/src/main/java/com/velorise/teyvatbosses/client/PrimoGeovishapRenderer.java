@@ -183,18 +183,22 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         // 1. Golden Geo Crescent Slash Arcs (Left/Right Claw, Combo Slash 1 & 2, Whirlwind 360°)
         renderGoldenSlashVfx(poseStack, lvc, animId, animTick, partialTicks, bodyYaw);
 
-        // 2. Dual-ring pulsing telegraph during Primordial Shower / Burrow emergence
+        // 2. Ruin-Guard-style crisp red expanding warning zone during Primordial Shower / Burrow emergence
         float teleRadius = entity.getTelegraphRadius();
         if (teleRadius > 0.5F) {
             poseStack.pushPose();
             Matrix4f mat = poseStack.last().pose();
-            drawRing(lvc, mat, teleRadius - 0.55F, teleRadius, 52, 0.09F, rgb[0], rgb[1], rgb[2], 210);
-            float pulseFrac = (clientSec * 1.55F) % 1.0F;
-            float innerR = Math.max(0.8F, teleRadius * pulseFrac);
-            int innerA = (int) (165 * (1.0F - pulseFrac));
-            if (innerA > 15) {
-                drawRing(lvc, mat, Math.max(0.2F, innerR - 0.42F), innerR, 44, 0.10F, rgb[0], rgb[1], rgb[2], innerA);
-            }
+            float tF = animTick + partialTicks;
+            float prog = switch (animId) {
+                case PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER -> Mth.clamp(tF / 47.0F, 0.0F, 1.0F);
+                case PrimoGeovishapEntity.ANIM_BURROW -> Mth.clamp((tF - 46.0F) / 18.0F, 0.0F, 1.0F);
+                default -> (clientSec * 1.25F) % 1.0F;
+            };
+            float fillR = Math.max(0.25F, teleRadius * prog);
+            drawRing(lvc, mat, teleRadius - 0.36F, teleRadius, 52, 0.11F, 235, 28, 36, 225);
+            drawRing(lvc, mat, 0.10F, Math.max(0.12F, teleRadius - 0.36F), 44, 0.09F, 200, 18, 24, 42);
+            drawRing(lvc, mat, 0.10F, fillR, 44, 0.10F, 255, 42, 48, 86);
+            drawRing(lvc, mat, Math.max(0.10F, fillR - 0.28F), fillR, 52, 0.12F, 255, 85, 78, 210);
             poseStack.popPose();
         }
 
