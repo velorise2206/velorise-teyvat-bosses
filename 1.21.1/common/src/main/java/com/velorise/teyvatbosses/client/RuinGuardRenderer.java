@@ -73,6 +73,7 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         float ikPelvisDrop = 0.0F;
         int lastHitstopEpoch = -1;
         int lastSlamHitstopEpoch = -1;
+        int lastStepHalf = -1;
         float frozenEvalSec = 0.0F;
         boolean wasHitstop = false;
 
@@ -210,6 +211,11 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                 float distAdvance = (float) (distMoved / 1.26D);
                 float pivotAdvance = (distMoved < 0.015D) ? (dtSec * 0.45F) : 0.0F;
                 sm.walkAnimSec += Math.max(distAdvance, pivotAdvance);
+                int stepHalf = (int) Math.floor((sm.walkAnimSec + 0.65F) / 1.20F);
+                if (stepHalf != sm.lastStepHalf && entity.onGround() && distMoved > 0.008D) {
+                    sm.lastStepHalf = stepHalf;
+                    BossCameraShake.triggerAt(entity.position(), 0.13F, 15.0D);
+                }
                 sm.lastWalkX = ex;
                 sm.lastWalkZ = ez;
                 sm.lastWalkLiveTick = liveTick;
@@ -552,6 +558,13 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             poseStack.popPose();
         }
 
+        // Pre-attack eye glint telegraph before heavy jump slam / Phase 2 overdrive finisher
+        if (anim == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 0.52F && currSec <= 0.88F) {
+            drawEyeGlintStar(vc, poseStack, bodyYaw, 3.05D, 1.05D, (currSec - 0.52F) / 0.36F, 255, 190, 75);
+        } else if (anim == RuinGuardEntity.ANIM_OVERDRIVE_FINISHER && currSec >= 0.58F && currSec <= 0.96F) {
+            drawEyeGlintStar(vc, poseStack, bodyYaw, 3.05D, 1.05D, (currSec - 0.58F) / 0.38F, 255, 95, 55);
+        }
+
         if (anim == RuinGuardEntity.ANIM_STOMP_SHOCKWAVE && currSec >= 0.98F && currSec <= 1.46F) {
             drawExpandingShockwave(vc, poseStack, 5.2F, (currSec - 0.98F) / 0.48F);
         } else if (anim == RuinGuardEntity.ANIM_LEAP_SLAM && currSec >= 1.78F && currSec <= 2.42F) {
@@ -682,6 +695,46 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             vc.addVertex(mat, c0 * rOut, 0.0F, s0 * rOut).setColor(r, g, b, a);
             vc.addVertex(mat, c0 * rIn, 0.0F, s0 * rIn).setColor(r, g, b, a);
         }
+    }
+
+    private static void drawEyeGlintStar(
+            VertexConsumer vc, PoseStack poseStack, float bodyYaw, double heightY, double fwdDist,
+            float progress, int r, int g, int b
+    ) {
+        float p = Mth.clamp(progress, 0.0F, 1.0F);
+        float env = Mth.sin(p * Mth.PI);
+        if (env <= 0.02F) return;
+        float rad = bodyYaw * Mth.DEG_TO_RAD;
+        double fx = -Mth.sin(rad) * fwdDist;
+        double fz = Mth.cos(rad) * fwdDist;
+        poseStack.pushPose();
+        poseStack.translate(fx, heightY, fz);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        Matrix4f m = poseStack.last().pose();
+        float armH = (0.35F + 1.35F * env);
+        float armV = (0.25F + 0.85F * env);
+        float thick = 0.09F * env;
+        int aCore = (int) (245 * env);
+        int aTip = (int) (40 * env);
+        // Horizontal flare blade
+        vc.addVertex(m, -armH, 0.0F, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, 0.0F, thick, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, armH, 0.0F, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, 0.0F, -thick, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, 0.0F, -thick, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, armH, 0.0F, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, 0.0F, thick, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, -armH, 0.0F, 0.0F).setColor(r, g, b, aTip);
+        // Vertical flare blade
+        vc.addVertex(m, 0.0F, -armV, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, thick, 0.0F, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, 0.0F, armV, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, -thick, 0.0F, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, -thick, 0.0F, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, 0.0F, armV, 0.0F).setColor(r, g, b, aTip);
+        vc.addVertex(m, thick, 0.0F, 0.0F).setColor(255, 252, 235, aCore);
+        vc.addVertex(m, 0.0F, -armV, 0.0F).setColor(r, g, b, aTip);
+        poseStack.popPose();
     }
 
     @Override

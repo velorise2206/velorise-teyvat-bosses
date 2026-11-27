@@ -88,6 +88,7 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         int lastEpoch = -1;
         float blendStartLiveTick = -100.0F;
         boolean hasLastPose = false;
+        int lastImpactEpoch = -1;
         final Map<String, BonePose> fromPose = new HashMap<>();
         final Map<String, BonePose> lastPose = new HashMap<>();
     }
@@ -157,6 +158,15 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         }
         sm.lastClip = currClip;
         sm.lastEpoch = currEpoch;
+
+        // Unified AAA hitstop & shake on Cryo Core shatter and heavy head slams
+        if (entity.getBossState() == CryoRegisvineEntity.STATE_STUNNED && entity.getAnimTick() <= 2 && sm.lastImpactEpoch != currEpoch) {
+            sm.lastImpactEpoch = currEpoch;
+            BossCameraShake.triggerHitstop(entity.position().add(0.0D, 2.0D, 0.0D), 4, 0.50F, 42.0D);
+        } else if ((currClip.contains("slam") || currClip.contains("flail")) && currSec >= 0.72F && currSec <= 0.85F && sm.lastImpactEpoch != currEpoch) {
+            sm.lastImpactEpoch = currEpoch;
+            BossCameraShake.triggerAt(entity.position(), 0.34F, 34.0D);
+        }
 
         // World-aligned ground VFX (Frost Field Mandala & Matrix-Verified Sweeping Slash Crescents)
         renderGroundAndSlashVFX(entity, stemWorldYaw, animTicksF, partialTicks, poseStack, bufferSource);

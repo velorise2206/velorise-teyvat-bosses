@@ -48,6 +48,7 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         int lastEpoch = -1;
         float blendStart = -100.0F;
         boolean hasLast = false;
+        int lastImpactEpoch = -1;
         final Map<String, BonePose> from = new HashMap<>();
         final Map<String, BonePose> last = new HashMap<>();
     }
@@ -92,6 +93,13 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         }
         sm.lastClip = clip;
         sm.lastEpoch = epoch;
+
+        // Unified AAA hitstop & camera shake on core stun & Phase 2 overdrive transition
+        if ((st == RuinNautilusEntity.STATE_STUNNED || st == RuinNautilusEntity.STATE_PHASE2_CIN)
+                && entity.getAnimTick() <= 2 && sm.lastImpactEpoch != epoch) {
+            sm.lastImpactEpoch = epoch;
+            BossCameraShake.triggerHitstop(entity.position(), 4, 0.54F, 48.0D);
+        }
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));

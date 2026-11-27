@@ -56,6 +56,8 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         float ikPitch = 0.0F;
         float ikRoll = 0.0F;
         int lastStaggerStartTick = -1;
+        int lastStepHalf = -1;
+        float tailLagRad = 0.0F;
         float frozenClipSec = 0.0F;
         boolean wasHitstop = false;
     }
@@ -106,6 +108,11 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 float distAdvance = (float) (distMoved / 1.85D);
                 float turnFloor = dtSec * 0.60F;
                 ws.walkAnimSec += Math.max(distAdvance, turnFloor);
+                int stepHalf = (int) Math.floor((ws.walkAnimSec + 0.40F) / 0.80F);
+                if (stepHalf != ws.lastStepHalf && entity.onGround() && distMoved > 0.008D) {
+                    ws.lastStepHalf = stepHalf;
+                    BossCameraShake.triggerAt(entity.position(), 0.16F, 18.0D);
+                }
                 ws.lastX = ex;
                 ws.lastZ = ez;
                 ws.lastClientSec = clientSec;
@@ -128,6 +135,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 entity, k -> new PrimoGeovishapAnimations.BlendState());
         PrimoGeovishapAnimations.applyBlended(model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch);
         applyQuadrupedFootIK(entity, ws, animId, bodyYaw, partialTicks);
+        applyTailYawLag(entity, ws, animId);
         emissiveModel.copyPoseFrom(model);
 
         int[] rgb = entity.getInfusionRgb();
@@ -190,8 +198,12 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             poseStack.popPose();
         }
 
-        // 3. Primordial Shower: Mouth Charge Orb + Massive 18-Block Floor Wave + Sky Pillar
+        // 3. Primordial Shower: Pre-Roar Eye Glint + Mouth Charge Orb + Massive 18-Block Floor Wave + Sky Pillar
         if (animId == PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER) {
+            if (animTick >= 7 && animTick <= 16) {
+                float gp = Mth.clamp((animTick - 7 + partialTicks) / 9.0F, 0.0F, 1.0F);
+                renderPrimoEyeGlint(poseStack, lvc, bodyYaw, gp, rgb);
+            }
             renderPrimordialShowerVfx(poseStack, lvc, animTick, partialTicks, clientSec, bodyYaw, rgb);
         }
 
@@ -285,6 +297,56 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         applyLimbIK("arm_right", "forearm_right", Math.max(0.0F, ws.ikFR - planeFR), 0.92F, 0.85F, solve);
         applyLimbIK("leg_left", "shin_left", Math.max(0.0F, ws.ikBL - planeBL), 0.84F, 0.78F, solve);
         applyLimbIK("leg_right", "shin_right", Math.max(0.0F, ws.ikBR - planeBR), 0.84F, 0.78F, solve);
+    }
+
+    /** Inertial yaw-lag sway along tail_1..tail_4 when Primo Geovishap turns to chase targets. */
+    private void applyTailYawLag(PrimoGeovishapEntity entity, WalkStrideState ws, int animId) {
+        boolean active = animId != PrimoGeovishapEntity.ANIM_DORMANT && animId != PrimoGeovishapEntity.ANIM_DEATH;
+        float yawDeltaDeg = active ? Mth.wrapDegrees(entity.yBodyRot - entity.yBodyRotO) : 0.0F;
+        float targetLag = Mth.clamp(-yawDeltaDeg * 0.032F, -0.34F, 0.34F);
+        ws.tailLagRad = Mth.lerp(0.18F, ws.tailLagRad, targetLag);
+        if (Math.abs(ws.tailLagRad) < 0.004F) return;
+
+        String[] tails = {"tail_1", "tail_2", "tail_3", "tail_4"};
+        float[] weights = {0.35F, 0.55F, 0.78F, 0.98F};
+        for (int i = 0; i < tails.length; i++) {
+            net.minecraft.client.model.geom.ModelPart t = model.getBone(tails[i]);
+            if (t != null) t.yRot += ws.tailLagRad * weights[i];
+        }
+    }
+
+    private static void renderPrimoEyeGlint(PoseStack poseStack, VertexConsumer lvc, float bodyYaw, float progress, int[] rgb) {
+        float env = Mth.sin(progress * Mth.PI);
+        if (env <= 0.02F) return;
+        float rad = bodyYaw * Mth.DEG_TO_RAD;
+        double fx = -Mth.sin(rad) * 2.45D;
+        double fz = Mth.cos(rad) * 2.45D;
+        poseStack.pushPose();
+        poseStack.translate(fx, 2.75D, fz);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        Matrix4f m = poseStack.last().pose();
+        float armH = 0.45F + 1.85F * env;
+        float armV = 0.30F + 1.05F * env;
+        float thick = 0.12F * env;
+        int aCore = (int) (245 * env);
+        int aTip = (int) (45 * env);
+        lvc.addVertex(m, -armH, 0.0F, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, 0.0F, thick, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, armH, 0.0F, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, 0.0F, -thick, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, 0.0F, -thick, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, armH, 0.0F, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, 0.0F, thick, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, -armH, 0.0F, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, 0.0F, -armV, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, thick, 0.0F, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, 0.0F, armV, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, -thick, 0.0F, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, -thick, 0.0F, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, 0.0F, armV, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        lvc.addVertex(m, thick, 0.0F, 0.0F).setColor(255, 250, 225, aCore);
+        lvc.addVertex(m, 0.0F, -armV, 0.0F).setColor(rgb[0], rgb[1], rgb[2], aTip);
+        poseStack.popPose();
     }
 
     private void applyLimbIK(String upperName, String lowerName, float liftBlocks, float upperLen, float lowerLen, float[] solve) {

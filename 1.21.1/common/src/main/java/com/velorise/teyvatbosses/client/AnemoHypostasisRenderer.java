@@ -69,6 +69,7 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         int lastEpoch = -1;
         float blendStartTick = -100.0F;
         boolean hasLast = false;
+        int lastImpactEpoch = -1;
         final Map<String, BonePose> from = new HashMap<>();
         final Map<String, BonePose> last = new HashMap<>();
         BossMusicInstance musicInstance = null;
@@ -146,6 +147,15 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         }
         sm.lastClip = clip;
         sm.lastEpoch = epoch;
+
+        // Unified AAA hitstop & shake on Beth clap/slam bursts and phase death
+        if (entity.getBossState() == AnemoHypostasisEntity.STATE_DEATH && entity.getAnimTick() <= 2 && sm.lastImpactEpoch != epoch) {
+            sm.lastImpactEpoch = epoch;
+            BossCameraShake.triggerHitstop(entity.position(), 3, 0.45F, 40.0D);
+        } else if ((clip.contains("clap") || clip.contains("slam") || clip.contains("eruption")) && entity.getAnimTick() >= 14 && entity.getAnimTick() <= 18 && sm.lastImpactEpoch != epoch) {
+            sm.lastImpactEpoch = epoch;
+            BossCameraShake.triggerAt(entity.position(), 0.34F, 36.0D);
+        }
 
         // World-space VFX (Ground Telegraph Ring, Vacuum Vortex, Magic Circle, Butterfly Wing Glow)
         renderCombatVFX(entity, animTicksF, liveTick, partialTicks, poseStack, bufferSource);
