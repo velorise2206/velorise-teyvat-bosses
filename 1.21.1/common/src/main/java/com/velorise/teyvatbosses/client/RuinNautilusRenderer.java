@@ -47,6 +47,8 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         String lastClip = null;
         int lastEpoch = -1;
         float blendStart = -100.0F;
+        float frozenEvalSec = 0.0F;
+        boolean wasHitstop = false;
         boolean hasLast = false;
         int lastImpactEpoch = -1;
         final Map<String, BonePose> from = new HashMap<>();
@@ -106,7 +108,17 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
         poseStack.scale(-BOSS_SCALE, -BOSS_SCALE, BOSS_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        RuinNautilusAnimations.apply(model, clip, sec, entity.isPhase2());
+        float evalSec = sec;
+        if (BossCameraShake.isHitstopActive()) {
+            if (!sm.wasHitstop) {
+                sm.frozenEvalSec = evalSec;
+                sm.wasHitstop = true;
+            }
+            evalSec = sm.frozenEvalSec;
+        } else {
+            sm.wasHitstop = false;
+        }
+        RuinNautilusAnimations.apply(model, clip, evalSec, entity.isPhase2());
         ModelPart hullPitch = model.getBone("hull_pitch");
         if (hullPitch != null) {
             hullPitch.xRot += entity.getHullPitchDeg() * Mth.DEG_TO_RAD;

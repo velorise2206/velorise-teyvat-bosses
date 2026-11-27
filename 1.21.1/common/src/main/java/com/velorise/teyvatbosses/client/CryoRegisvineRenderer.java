@@ -87,6 +87,8 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         String lastClip = null;
         int lastEpoch = -1;
         float blendStartLiveTick = -100.0F;
+        float frozenEvalSec = 0.0F;
+        boolean wasHitstop = false;
         boolean hasLastPose = false;
         int lastImpactEpoch = -1;
         final Map<String, BonePose> fromPose = new HashMap<>();
@@ -178,7 +180,17 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
         // 1. Evaluate target clip at live 60/144 FPS time
-        CryoRegisvineAnimations.apply(model, currClip, currSec);
+        float evalSec = currSec;
+        if (BossCameraShake.isHitstopActive()) {
+            if (!sm.wasHitstop) {
+                sm.frozenEvalSec = evalSec;
+                sm.wasHitstop = true;
+            }
+            evalSec = sm.frozenEvalSec;
+        } else {
+            sm.wasHitstop = false;
+        }
+        CryoRegisvineAnimations.apply(model, currClip, evalSec);
 
         // 2. Apply player-tracking yaw ONLY to the stem_1 joint above the fixed roots!
         ModelPart stem1 = model.getBone("stem_1");

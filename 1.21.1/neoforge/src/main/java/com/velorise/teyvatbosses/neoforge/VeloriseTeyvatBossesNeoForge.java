@@ -28,7 +28,9 @@ import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
+import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
@@ -225,6 +227,10 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> GEO_DRILLER_ENGINE =
             ITEMS.register("geo_driller_engine", () -> new GeoDrillerPartItem(GeoDrillerEntity.PART_ENGINE, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
+    // Teyvat Boss Locator Compass
+    public static final DeferredHolder<Item, Item> TEYVAT_BOSS_COMPASS =
+            ITEMS.register("teyvat_boss_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+
     // 5 Boss Spawn Eggs
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_SPAWN_EGG =
             ITEMS.register("cryo_regisvine_spawn_egg", () -> new DeferredSpawnEggItem(
@@ -326,6 +332,7 @@ public class VeloriseTeyvatBossesNeoForge {
                     .title(Component.translatable("itemGroup.velorise_teyvat_bosses.main"))
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG.get()))
                     .displayItems((params, output) -> {
+                        output.accept(TEYVAT_BOSS_COMPASS.get());
                         output.accept(CRYO_REGISVINE_SPAWN_EGG.get());
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG.get());
                         output.accept(RUIN_GUARD_SPAWN_EGG.get());
@@ -362,6 +369,7 @@ public class VeloriseTeyvatBossesNeoForge {
 
     public VeloriseTeyvatBossesNeoForge(IEventBus modEventBus) {
         TeyvatBossesConstants.LOGGER.info("Initializing {} (NeoForge 1.21.1)", TeyvatBossesConstants.MOD_NAME);
+        TeyvatBossesConfig.load();
         ENTITIES.register(modEventBus);
         BLOCKS.register(modEventBus);
         BLOCK_ENTITIES.register(modEventBus);

@@ -1,0 +1,30 @@
+{
+  "parent": "velorise_teyvat_bosses:root",
+  "display": {
+    "icon": {
+      "id": "velorise_teyvat_bosses:teyvat_boss_compass"
+    },
+    "title": {
+      "translate": "advancement.velorise_teyvat_bosses.craft_boss_locator.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_teyvat_bosses.craft_boss_locator.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_compass": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "velorise_teyvat_bosses:teyvat_boss_compass"
+          }
+        ]
+      }
+    }
+  }
+}

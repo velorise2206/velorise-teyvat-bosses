@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.client;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
@@ -24,6 +25,7 @@ public final class BossCameraShake {
      * Triggers a distance-attenuated screen shake centered at {@code origin} with falloff up to {@code maxRange}.
      */
     public static void triggerAt(Vec3 origin, float intensity, double maxRange) {
+        if (!TeyvatBossesConfig.get().enableCameraShake) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         double dist = mc.player.position().distanceTo(origin);
@@ -38,6 +40,10 @@ public final class BossCameraShake {
      * when the local player is within {@code maxRange} of {@code origin}.
      */
     public static void triggerHitstop(Vec3 origin, int ticks, float shakeIntensity, double maxRange) {
+        if (!TeyvatBossesConfig.get().enableHitstop) {
+            if (shakeIntensity > 0.0F) triggerAt(origin, shakeIntensity, maxRange);
+            return;
+        }
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         double dist = mc.player.position().distanceTo(origin);

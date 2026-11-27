@@ -68,6 +68,8 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         String lastClip = null;
         int lastEpoch = -1;
         float blendStartTick = -100.0F;
+        float frozenEvalSec = 0.0F;
+        boolean wasHitstop = false;
         boolean hasLast = false;
         int lastImpactEpoch = -1;
         final Map<String, BonePose> from = new HashMap<>();
@@ -166,7 +168,17 @@ public class AnemoHypostasisRenderer extends EntityRenderer<AnemoHypostasisEntit
         poseStack.scale(-RENDER_SCALE, -RENDER_SCALE, RENDER_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
 
-        AnemoHypostasisAnimations.apply(model, clip, sec, liveSec);
+        float evalSec = sec;
+        if (BossCameraShake.isHitstopActive()) {
+            if (!sm.wasHitstop) {
+                sm.frozenEvalSec = evalSec;
+                sm.wasHitstop = true;
+            }
+            evalSec = sm.frozenEvalSec;
+        } else {
+            sm.wasHitstop = false;
+        }
+        AnemoHypostasisAnimations.apply(model, clip, evalSec, liveSec);
 
         // Smooth shortest-arc Pose-Snapshot cross-fade
         float elapsed = liveTick - sm.blendStartTick;

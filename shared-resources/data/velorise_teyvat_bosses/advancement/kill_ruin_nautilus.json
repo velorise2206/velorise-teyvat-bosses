@@ -1,0 +1,28 @@
+{
+  "parent": "velorise_teyvat_bosses:craft_boss_locator",
+  "display": {
+    "icon": {
+      "id": "velorise_teyvat_bosses:ruin_nautilus_trophy"
+    },
+    "title": {
+      "translate": "advancement.velorise_teyvat_bosses.kill_ruin_nautilus.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_teyvat_bosses.kill_ruin_nautilus.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "killed_boss": {
+      "trigger": "minecraft:player_killed_entity",
+      "conditions": {
+        "entity": {
+          "type": "velorise_teyvat_bosses:ruin_nautilus"
+        }
+      }
+    }
+  }
+}

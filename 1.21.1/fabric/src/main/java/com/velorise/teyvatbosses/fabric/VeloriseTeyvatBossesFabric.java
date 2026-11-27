@@ -28,7 +28,9 @@ import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
+import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
@@ -230,6 +232,11 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geo_driller_engine"),
             new GeoDrillerPartItem(GeoDrillerEntity.PART_ENGINE, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
+    // Teyvat Boss Locator Compass
+    public static final Item TEYVAT_BOSS_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("teyvat_boss_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+
     // 5 Boss Spawn Eggs
     public static final Item CRYO_REGISVINE_SPAWN_EGG = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_spawn_egg"),
@@ -372,6 +379,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                     .title(Component.translatable("itemGroup.velorise_teyvat_bosses.main"))
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG))
                     .displayItems((params, output) -> {
+                        output.accept(TEYVAT_BOSS_COMPASS);
                         output.accept(CRYO_REGISVINE_SPAWN_EGG);
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG);
                         output.accept(RUIN_GUARD_SPAWN_EGG);
@@ -410,6 +418,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         TeyvatBossesConstants.LOGGER.info("Initializing {} (Fabric 1.21.1)", TeyvatBossesConstants.MOD_NAME);
+        TeyvatBossesConfig.load();
         TeyvatBossesEntities.bind(
                 () -> CRYO_REGISVINE, () -> CRYO_ICICLE, () -> CRYO_ICE_SPIKE, () -> BOSS_RESPAWN_ANCHOR,
                 () -> ANEMO_HYPOSTASIS, () -> ANEMO_WIND_ORB, () -> ANEMO_TORNADO, () -> ANEMO_MISSILE, () -> WIND_CURRENT, () -> TROUNCE_BLOSSOM,
