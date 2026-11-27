@@ -324,6 +324,8 @@ public class PrimoGeovishapEntity extends Monster {
         entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
         stateTick = 0;
         showerCountered = false;
+        this.noPhysics = false;
+        this.setNoGravity(false);
     }
 
     private boolean isValidCombatTarget(LivingEntity le) {
@@ -915,6 +917,11 @@ public class PrimoGeovishapEntity extends Monster {
             chosen = ANIM_PRIMORDIAL_SHOWER;
             showerCooldown = 360; // Canonical 18s CD
         }
+        // Elevation gap (>=2.2 blocks higher/lower, e.g. player on cliff/ledge): Burrow underground and erupt beneath target!
+        else if (Math.abs(target.getY() - this.getY()) >= 2.2D && burrowCooldown <= 0) {
+            chosen = ANIM_BURROW;
+            burrowCooldown = 120; // Fast 6s CD to punish high-ground kiting
+        }
         // Far range (>20m): Fast Burrow (Far) with short 5s CD to punish kiters
         else if (dist > 20.0D && burrowCooldown <= 0) {
             chosen = ANIM_BURROW;
@@ -1097,30 +1104,37 @@ public class PrimoGeovishapEntity extends Monster {
             sl.playSound(null, getX(), getY(), getZ(), sfx(TeyvatBossesSounds.primoBurrow(), SoundEvents.STONE_BREAK), SoundSource.HOSTILE, 1.9F, 1.0F);
             spawnGroundRing(sl, 4.2D, 30, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()));
         } else if (stateTick >= 22 && stateTick <= 55) {
-            // Continuous physical subterranean pursuit toward predicted target!
+            // True 3D subterranean tunneling: phases through cliff walls & ascends/descends to erupt beneath elevated targets!
+            this.noPhysics = true;
+            this.setNoGravity(true);
             Vec3 predicted = target.position().add(target.getDeltaMovement().multiply(6.0D, 0.0D, 6.0D));
-            Vec3 to = new Vec3(predicted.x - getX(), 0.0D, predicted.z - getZ());
-            double d = to.length();
+            double baseRefY = (burrowStart != null) ? burrowStart.y : getY();
+            double destY = Mth.clamp(findBurrowSurfaceY(sl, predicted.x, predicted.z, target.getY()), baseRefY - 24.0D, baseRefY + 24.0D);
+            Vec3 to = new Vec3(predicted.x - getX(), destY - getY(), predicted.z - getZ());
+            double horizDist = Math.hypot(to.x, to.z);
+            double dy = to.y;
             faceTargetSmooth(target, 14.0F);
-            if (d > 2.2D) {
-                Vec3 dir = to.scale(1.0D / d);
-                double speed = Math.min(0.68D, d * 0.35D);
-                setDeltaMovement(Mth.lerp(0.35D, getDeltaMovement().x, dir.x * speed),
-                        getDeltaMovement().y,
-                        Mth.lerp(0.35D, getDeltaMovement().z, dir.z * speed));
-            } else {
-                setDeltaMovement(getDeltaMovement().x * 0.45D, getDeltaMovement().y, getDeltaMovement().z * 0.45D);
+            double vx = getDeltaMovement().x * 0.45D;
+            double vz = getDeltaMovement().z * 0.45D;
+            if (horizDist > 1.8D) {
+                double speed = Math.min(0.72D, horizDist * 0.35D);
+                vx = Mth.lerp(0.35D, getDeltaMovement().x, (to.x / horizDist) * speed);
+                vz = Mth.lerp(0.35D, getDeltaMovement().z, (to.z / horizDist) * speed);
             }
+            // Smooth vertical tunneling speed so boss climbs cliffs or dives to lower ledges cleanly before t=56
+            double vy = Mth.clamp(dy * 0.28D, -0.75D, 0.75D);
+            setDeltaMovement(vx, vy, vz);
 
-            // Plowing dirt/stone wake behind protruding dorsal mane
+            // Plowing dirt/stone wake on the ground surface above/around the tunneling boss
+            double surfacePfxY = findBurrowSurfaceY(sl, getX(), getZ(), Math.max(getY(), destY));
             if (stateTick % 3 == 0) {
                 sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.DIRT.defaultBlockState()),
-                        getX(), getY() + 0.5D, getZ(), 12, 1.6D, 0.4D, 1.6D, 0.10D);
+                        getX(), surfacePfxY + 0.5D, getZ(), 12, 1.6D, 0.4D, 1.6D, 0.10D);
                 sl.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()),
-                        getX(), getY() + 0.4D, getZ(), 6, 1.4D, 0.5D, 1.4D, 0.12D);
+                        getX(), surfacePfxY + 0.4D, getZ(), 6, 1.4D, 0.5D, 1.4D, 0.12D);
             }
             if (stateTick % 7 == 0) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.5F, 0.48F);
+                sl.playSound(null, getX(), surfacePfxY, getZ(), SoundEvents.RAVAGER_STEP, SoundSource.HOSTILE, 1.5F, 0.48F);
             }
             // Drop canonical 3D Elemental-Infused Stones along the burrow trail
             if (stateTick == 28 || stateTick == 38 || stateTick == 48) {
@@ -1138,7 +1152,18 @@ public class PrimoGeovishapEntity extends Monster {
                 entityData.set(DATA_TELEGRAPH_RADIUS, 8.5F);
             }
         } else if (stateTick >= 56 && stateTick < 64) {
-            setDeltaMovement(getDeltaMovement().x * 0.5D, getDeltaMovement().y, getDeltaMovement().z * 0.5D);
+            if (stateTick == 56) {
+                this.noPhysics = false;
+                this.setNoGravity(false);
+                // Pop cleanly onto open solid surface at current XZ so boss never suffocates inside cliff rock
+                double emergeY = findBurrowSurfaceY(sl, getX(), getZ(), Math.max(getY() + 1.5D, target.getY()));
+                if (Math.abs(emergeY - getY()) <= 12.0D) {
+                    this.setPos(getX(), emergeY, getZ());
+                }
+                this.setDeltaMovement(Vec3.ZERO);
+            } else {
+                setDeltaMovement(getDeltaMovement().x * 0.5D, getDeltaMovement().y, getDeltaMovement().z * 0.5D);
+            }
             if (stateTick == 57) {
                 sl.playSound(null, getX(), getY() + 1.5D, getZ(), sfx(TeyvatBossesSounds.primoEmerge(), SoundEvents.RAVAGER_ROAR), SoundSource.HOSTILE, 1.8F, 1.0F);
             }
@@ -1151,6 +1176,36 @@ public class PrimoGeovishapEntity extends Monster {
             setDeltaMovement(getDeltaMovement().x * 0.6D, getDeltaMovement().y, getDeltaMovement().z * 0.6D);
         }
         if (stateTick >= 88) finishAttack(48);
+    }
+
+    /** Finds the nearest safe open ground surface Y near (x, z, hintY) for subterranean burrow ascent/emergence. */
+    private double findBurrowSurfaceY(ServerLevel sl, double x, double z, double hintY) {
+        int bx = Mth.floor(x);
+        int bz = Mth.floor(z);
+        int startY = Mth.clamp(Mth.floor(hintY), sl.getMinBuildHeight() + 2, sl.getMaxBuildHeight() - 4);
+        BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos(bx, startY, bz);
+        // If hintY is inside solid rock, scan upward to break out to the top surface
+        if (sl.getBlockState(p).blocksMotion()) {
+            for (int dy = 1; dy <= 16; dy++) {
+                p.set(bx, startY + dy, bz);
+                if (!sl.getBlockState(p).blocksMotion() && !sl.getBlockState(p.above()).blocksMotion()) {
+                    return startY + dy;
+                }
+            }
+        }
+        // Otherwise scan downward to find the solid floor beneath an airborne/standing target
+        for (int dy = 0; dy <= 16; dy++) {
+            int cy = startY - dy;
+            if (cy <= sl.getMinBuildHeight() + 1) break;
+            p.set(bx, cy - 1, bz);
+            if (sl.getBlockState(p).blocksMotion()) {
+                p.set(bx, cy, bz);
+                if (!sl.getBlockState(p).blocksMotion()) {
+                    return cy;
+                }
+            }
+        }
+        return hintY;
     }
 
     private void tickScatteredRocks(ServerLevel sl, LivingEntity target) {

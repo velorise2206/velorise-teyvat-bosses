@@ -101,16 +101,15 @@ public final class GeoDrillerClientController {
         lastDrillerYaw = drillerYaw;
 
         if (mc.options.getCameraType() == CameraType.FIRST_PERSON) {
-            // 1st-person: carry vehicle turn smoothly without resetting yRotO so interpolation stays butter-smooth
+            // 1st-person: carry vehicle turn smoothly and limit look to 180-deg front cockpit arc
             float nextYaw = mc.player.getYRot() + yawDelta;
             float rel = Mth.clamp(Mth.wrapDegrees(nextYaw - drillerYaw), -90.0F, 90.0F);
-            mc.player.setYRot(drillerYaw + rel);
+            float clamped = drillerYaw + rel;
+            mc.player.setYRot(clamped);
+            mc.player.setYHeadRot(clamped);
             mc.player.setXRot(Mth.clamp(mc.player.getXRot(), -45.0F, 55.0F));
-        } else {
-            // 3rd-person: completely free, unlocked 360-deg mouse camera (never forces yaw onto player!)
-            mc.player.setYHeadRot(drillerYaw);
-            mc.player.yHeadRotO = driller.yRotO;
         }
+        // 3rd-person: do NOT overwrite yRot or yHeadRot (Camera.setup reads yHeadRot!) so 360-deg free-look works completely
         mc.player.setYBodyRot(drillerYaw);
         mc.player.yBodyRotO = driller.yBodyRotO;
 

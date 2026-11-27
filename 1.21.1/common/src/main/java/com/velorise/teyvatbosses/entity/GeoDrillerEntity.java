@@ -236,7 +236,14 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     protected void positionRider(Entity passenger, MoveFunction callback) {
-        super.positionRider(passenger, callback);
+        if (!hasPassenger(passenger)) return;
+        // Exact trigonometric seat lock matching GeoDrillerModel cockpit seat (+0.24 blocks forward along hull yaw)
+        float rad = this.getYRot() * Mth.DEG_TO_RAD;
+        double seatFwd = 0.24D;
+        double px = this.getX() - Mth.sin(rad) * seatFwd;
+        double py = this.getY() + 0.78D + passenger.getVehicleAttachmentPoint(this).y;
+        double pz = this.getZ() + Mth.cos(rad) * seatFwd;
+        callback.accept(passenger, px, py, pz);
         clampPassengerBody(passenger);
     }
 
@@ -512,6 +519,10 @@ public class GeoDrillerEntity extends Mob {
         prevFlapperAngle = flapperAngle;
 
         super.tick();
+        this.yBodyRot = this.getYRot();
+        this.yBodyRotO = this.yRotO;
+        this.yHeadRot = this.getYRot();
+        this.yHeadRotO = this.yRotO;
 
         // Update smooth mechanical spool-up & lever angles on BOTH sides so client & server match
         float thr = getThrottleInput();

@@ -1096,7 +1096,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public void travel(Vec3 travelVector) {
         int anim = getAnimId();
         // Controlling client must execute the exact same parabolic leap arc so vehicle position sync never rubber-bands!
-        if ((anim == ANIM_LEAP_SLAM || anim == ANIM_BOOST_LEAP || anim == ANIM_SUPER_LEAP || (anim == ANIM_MELEE_3HIT && getAnimTick() >= 70 && getAnimTick() <= 86)) && level().isClientSide() && isVehicle()) {
+        if ((anim == ANIM_LEAP_SLAM || anim == ANIM_BOOST_LEAP || anim == ANIM_SUPER_LEAP || (anim == ANIM_MELEE_3HIT && getAnimTick() >= 86 && getAnimTick() <= 108)) && level().isClientSide() && isVehicle()) {
             int t = getAnimTick();
             double sx = entityData.get(DATA_LEAP_SX);
             double sy = entityData.get(DATA_LEAP_SY);
@@ -1105,13 +1105,14 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             double ty = entityData.get(DATA_LEAP_TY);
             double tz = entityData.get(DATA_LEAP_TZ);
             if (anim == ANIM_MELEE_3HIT) {
-                if (t >= 70 && t <= 85) {
-                    float f = (t - 70) / 15.0F;
+                if (t >= 86 && t <= 107) {
+                    float f = (t - 86) / 21.0F;
                     float sf = f * f * (3.0F - 2.0F * f);
-                    double arcY = Math.sin(f * Math.PI) * 3.2D;
+                    double shaped = Math.sin(Math.pow(f, 0.72D) * Math.PI);
+                    double arcY = Math.pow(Math.max(0.0D, shaped), 0.85D) * 5.0D;
                     moveLeapStep(Mth.lerp(sf, sx, tx), Mth.lerp(f, sy, ty) + arcY, Mth.lerp(sf, sz, tz));
                     return;
-                } else if (t == 86) {
+                } else if (t == 108) {
                     finishLeapLanding(tx, ty, tz);
                     return;
                 }

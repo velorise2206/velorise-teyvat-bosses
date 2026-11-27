@@ -104,7 +104,7 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         // 5. Heavy engine spool-up rumble + drilling vibration
         float rumble = Math.max(smoothDriveSpool * 0.65F, smoothDrillSpool);
         float vibY = rumble > 0.05F ? Mth.sin(age * 2.8F) * 0.022F * rumble : 0.0F;
-        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float bodyYaw = Mth.rotLerp(partialTicks, entity.yRotO, entity.getYRot());
 
         // Subtle whole-chassis slope tilt when boring UP/DOWN so the driller leans into tunnel grades
         float slopePitchDeg = switch (entity.getPitchMode()) {

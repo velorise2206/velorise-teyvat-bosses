@@ -120,29 +120,39 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
         addSprocketWheel(b_tread_r, "wheel_r_1",   0.000F, 261, 85, 290, 85);
         addSprocketWheel(b_tread_r, "wheel_r_2",  12.000F, 313, 85, 342, 85);
 
-        // Solidly anchored roll-cage cockpit: all 4 pillars seat directly into the chassis sidewalls
-        // (x = +-10..11.6, y down to +0.5) with continuous roof beams, side safety rails & rear backrest brace
+        // Solidly anchored industrial roll-cage cockpit: zero UV gaps, armored roof canopy, work-lights & instrument dials
         PartDefinition b_cockpit_cage = b_chassis_main.addOrReplaceChild("cockpit_cage", CubeListBuilder.create()
                 // Seat cushion & backrest anchored solidly to cockpit floor
                 .texOffs(365, 85).addBox(-5.200F, -3.500F, -4.000F, 10.400F, 3.800F, 8.200F)
                 .texOffs(402, 85).addBox(-5.200F, -13.200F, 2.500F, 10.400F, 10.600F, 2.200F)
-                // Full-width dashboard spanning cleanly between both chassis sidewalls (zero side gaps)
-                .texOffs(427, 85).addBox(-10.200F, -4.800F, -11.200F, 20.400F, 5.200F, 4.400F)
+                // Full-width armored dashboard + illuminated instrument gauge cluster
+                .texOffs(4, 180).addBox(-10.200F, -4.800F, -11.200F, 20.400F, 5.200F, 4.400F)
+                .texOffs(370, 180).addBox(-6.000F, -6.200F, -10.400F, 12.000F, 2.000F, 1.400F)
                 // 4 vertical roll-cage pillars seated deep into the side walls & meeting roof beams flush
-                .texOffs(468, 85).addBox(-11.400F, -24.200F, -11.000F, 1.800F, 24.800F, 1.800F)
-                .texOffs(473, 85).addBox(9.600F, -24.200F, -11.000F, 1.800F, 24.800F, 1.800F)
-                .texOffs(478, 85).addBox(-11.400F, -24.200F, 4.000F, 1.800F, 24.800F, 1.800F)
-                .texOffs(483, 85).addBox(9.600F, -24.200F, 4.000F, 1.800F, 24.800F, 1.800F)
+                .texOffs(64, 180).addBox(-11.400F, -24.200F, -11.000F, 1.800F, 24.800F, 1.800F)
+                .texOffs(64, 180).addBox(9.600F, -24.200F, -11.000F, 1.800F, 24.800F, 1.800F)
+                .texOffs(64, 180).addBox(-11.400F, -24.200F, 4.000F, 1.800F, 24.800F, 1.800F)
+                .texOffs(64, 180).addBox(9.600F, -24.200F, 4.000F, 1.800F, 24.800F, 1.800F)
+                // 4 upper corner gusset reinforcement brackets
+                .texOffs(250, 220).addBox(-11.700F, -24.800F, -11.300F, 2.400F, 3.200F, 2.400F)
+                .texOffs(250, 220).addBox(9.300F, -24.800F, -11.300F, 2.400F, 3.200F, 2.400F)
+                .texOffs(250, 220).addBox(-11.700F, -24.800F, 3.700F, 2.400F, 3.200F, 2.400F)
+                .texOffs(250, 220).addBox(9.300F, -24.800F, 3.700F, 2.400F, 3.200F, 2.400F)
                 // Side mid-height safety rails connecting front & rear pillars cleanly
-                .texOffs(1, 124).addBox(-11.300F, -11.200F, -10.200F, 1.600F, 1.600F, 15.000F)
-                .texOffs(36, 124).addBox(9.700F, -11.200F, -10.200F, 1.600F, 1.600F, 15.000F)
+                .texOffs(84, 180).addBox(-11.300F, -11.200F, -10.200F, 1.600F, 1.600F, 15.000F)
+                .texOffs(84, 180).addBox(9.700F, -11.200F, -10.200F, 1.600F, 1.600F, 15.000F)
                 // Rear horizontal cross-brace tying left/right rear pillars directly into the seat backrest
-                .texOffs(110, 124).addBox(-10.400F, -11.200F, 4.100F, 20.800F, 1.600F, 1.600F)
+                .texOffs(136, 180).addBox(-10.400F, -11.200F, 4.100F, 20.800F, 1.600F, 1.600F)
                 // Continuous top roof perimeter frame meeting all 4 pillar caps flush
-                .texOffs(1, 124).addBox(-11.400F, -25.800F, -11.000F, 1.800F, 1.800F, 16.800F)
-                .texOffs(36, 124).addBox(9.600F, -25.800F, -11.000F, 1.800F, 1.800F, 16.800F)
-                .texOffs(71, 124).addBox(-11.400F, -25.800F, -11.000F, 22.800F, 1.800F, 1.800F)
-                .texOffs(110, 124).addBox(-11.400F, -25.800F, 4.000F, 22.800F, 1.800F, 1.800F),
+                .texOffs(84, 180).addBox(-11.400F, -25.800F, -11.000F, 1.800F, 1.800F, 16.800F)
+                .texOffs(84, 180).addBox(9.600F, -25.800F, -11.000F, 1.800F, 1.800F, 16.800F)
+                .texOffs(136, 180).addBox(-11.400F, -25.800F, -11.000F, 22.800F, 1.800F, 1.800F)
+                .texOffs(136, 180).addBox(-11.400F, -25.800F, 4.000F, 22.800F, 1.800F, 1.800F)
+                // Solid armored louvered canopy roof plate + front brow sun-visor + twin overhead amber work-lights
+                .texOffs(200, 180).addBox(-10.400F, -26.300F, -10.400F, 20.800F, 1.200F, 15.600F)
+                .texOffs(286, 180).addBox(-10.600F, -25.900F, -13.200F, 21.200F, 1.400F, 3.000F)
+                .texOffs(348, 180).addBox(-8.600F, -25.700F, -13.800F, 3.200F, 1.300F, 1.200F)
+                .texOffs(348, 180).addBox(5.400F, -25.700F, -13.800F, 3.200F, 1.300F, 1.200F),
                 PartPose.offset(0.000F, -3.000F, -4.000F));
 
         // Dual control levers aligned precisely with the seated driver's outstretched hands
@@ -189,34 +199,34 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(142, 149).addBox(-1.200F, -1.200F, -26.500F, 2.400F, 2.400F, 3.000F),
                 PartPose.offset(0.000F, 0.000F, -4.000F));
 
-        // Professional low-profile industrial engine block + twin vertical exhaust smokestacks
+        // Professional low-profile industrial engine block + twin vertical exhaust smokestacks (100% solid UVs)
         PartDefinition b_engine_unit = b_chassis_main.addOrReplaceChild("engine_unit", CubeListBuilder.create()
                 // Low armored diesel/Geo engine manifold block (keeps 3rd-person center sightline wide open)
-                .texOffs(153, 149).addBox(-7.500F, -5.500F, -3.500F, 15.000F, 5.500F, 8.500F)
+                .texOffs(4, 220).addBox(-7.500F, -5.500F, -3.500F, 15.000F, 5.500F, 8.500F)
                 // Top armored valve cover & radiator slats
-                .texOffs(238, 46).addBox(-5.500F, -6.800F, -2.500F, 11.000F, 1.300F, 6.500F)
-                // Subtle low recessed Geo furnace vent strip (emissive accent, never obstructs camera)
-                .texOffs(242, 149).addBox(-4.000F, -4.400F, 4.600F, 8.000F, 2.400F, 0.700F)
+                .texOffs(64, 220).addBox(-5.500F, -6.800F, -2.500F, 11.000F, 1.400F, 6.500F)
+                // Recessed Geo furnace vent strip (emissive accent, never obstructs camera)
+                .texOffs(112, 220).addBox(-4.000F, -4.400F, 4.600F, 8.000F, 2.400F, 0.800F)
                 // Left exhaust muffler drum + vertical smokestack pipe + brass heat-shield collars
-                .texOffs(153, 149).addBox(-9.800F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
-                .texOffs(153, 149).addBox(-9.400F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
-                .texOffs(206, 149).addBox(-9.850F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
-                .texOffs(206, 149).addBox(-9.850F, -13.200F, -0.450F, 3.500F, 1.400F, 3.500F)
-                .texOffs(238, 46).addBox(-9.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F)
+                .texOffs(144, 220).addBox(-9.800F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
+                .texOffs(172, 220).addBox(-9.400F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
+                .texOffs(196, 220).addBox(-9.850F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(196, 220).addBox(-9.850F, -13.200F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(224, 220).addBox(-9.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F)
                 // Right exhaust muffler drum + vertical smokestack pipe + brass heat-shield collars
-                .texOffs(153, 149).addBox(6.400F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
-                .texOffs(153, 149).addBox(6.800F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
-                .texOffs(206, 149).addBox(6.350F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
-                .texOffs(206, 149).addBox(6.350F, -13.200F, -0.450F, 3.500F, 1.400F, 3.500F)
-                .texOffs(238, 46).addBox(6.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F),
+                .texOffs(144, 220).addBox(6.400F, -6.500F, -0.500F, 3.400F, 5.500F, 3.600F)
+                .texOffs(172, 220).addBox(6.800F, -15.500F, 0.000F, 2.600F, 9.500F, 2.600F)
+                .texOffs(196, 220).addBox(6.350F, -9.500F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(196, 220).addBox(6.350F, -13.200F, -0.450F, 3.500F, 1.500F, 3.500F)
+                .texOffs(224, 220).addBox(6.600F, -16.100F, -0.200F, 3.000F, 0.800F, 3.000F),
                 PartPose.offset(0.000F, -3.000F, 6.200F));
 
         // Hinged industrial rain-flapper caps on top of both twin smokestacks
         b_engine_unit.addOrReplaceChild("flapper_l", CubeListBuilder.create()
-                .texOffs(238, 46).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.700F, 3.200F),
+                .texOffs(224, 220).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.800F, 3.200F),
                 PartPose.offset(-8.100F, -16.100F, 2.800F));
         b_engine_unit.addOrReplaceChild("flapper_r", CubeListBuilder.create()
-                .texOffs(238, 46).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.700F, 3.200F),
+                .texOffs(224, 220).addBox(-1.600F, -0.700F, -3.100F, 3.200F, 0.800F, 3.200F),
                 PartPose.offset(8.100F, -16.100F, 2.800F));
 
         b_chassis_main.addOrReplaceChild("chest_mount", CubeListBuilder.create(),

@@ -33,6 +33,8 @@ public final class RuinMechCameraController {
     private static float curSmoothYaw = 0.0F;
     private static float curSmoothPitch = 0.0F;
     private static float curSmoothRoll = 0.0F;
+    private static float lastMechYaw = 0.0F;
+    private static boolean wasPilotingMech = false;
 
     private RuinMechCameraController() {}
 
@@ -61,7 +63,24 @@ public final class RuinMechCameraController {
             prevSmoothYaw = curSmoothYaw = 0.0F;
             prevSmoothPitch = curSmoothPitch = 0.0F;
             prevSmoothRoll = curSmoothRoll = 0.0F;
+            wasPilotingMech = false;
             return;
+        }
+
+        // 1st-person cockpit yaw clamp: 180-deg total arc (+-90 deg relative to mech facing), 3rd-person stays free 360-deg
+        float mechYaw = mech.getYRot();
+        if (!wasPilotingMech) {
+            lastMechYaw = mechYaw;
+            wasPilotingMech = true;
+        }
+        float mechYawDelta = Mth.wrapDegrees(mechYaw - lastMechYaw);
+        lastMechYaw = mechYaw;
+        if (mc.options.getCameraType().isFirstPerson()) {
+            float carriedYaw = mc.player.getYRot() + mechYawDelta;
+            float relYaw = Mth.clamp(Mth.wrapDegrees(carriedYaw - mechYaw), -90.0F, 90.0F);
+            float clampedYaw = mechYaw + relYaw;
+            mc.player.setYRot(clampedYaw);
+            mc.player.setYHeadRot(clampedYaw);
         }
 
         // Decay shake trauma smoothly
@@ -104,9 +123,9 @@ public final class RuinMechCameraController {
                 if (tick == 10) addTrauma(0.22F);
                 else if (tick == 23) addTrauma(0.82F);
             } else if (anim == RuinMechEntity.ANIM_MELEE_3HIT) {
-                if (tick == 24) addTrauma(0.55F);
-                else if (tick == 58) addTrauma(0.68F);
-                else if (tick == 98) addTrauma(0.98F);
+                if (tick == 44) addTrauma(0.55F);
+                else if (tick == 64) addTrauma(0.68F);
+                else if (tick == 108) addTrauma(0.98F);
             } else if (anim == RuinMechEntity.ANIM_STOMP) {
                 if (tick == 8) addTrauma(0.20F);
                 else if (tick == 20) addTrauma(0.86F);
