@@ -33,6 +33,10 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
     private final ModelPart singleChestModel;
     private final ModelPart doubleChestLeftModel;
     private final ModelPart doubleChestRightModel;
+    private final PartInstallAnimator installAnimator = new PartInstallAnimator();
+
+    private static final int BIT_CHEST_1 = 1 << 8;
+    private static final int BIT_CHEST_2 = 1 << 9;
 
     public GeoDrillerRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
@@ -52,6 +56,16 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
 
         setVisible("drill_assembly", hasDrill);
         setVisible("engine_unit", hasEngine);
+
+        int chestCount = entity.getChestCount();
+        int trackedMask = parts
+                | (chestCount >= 1 ? BIT_CHEST_1 : 0)
+                | (chestCount >= 2 ? BIT_CHEST_2 : 0);
+        installAnimator.update(entity, trackedMask, partialTicks);
+        float drillInstallRem = hasDrill ? installAnimator.getRemaining(entity, GeoDrillerEntity.PART_DRILL, partialTicks) : 0.0F;
+        float engineInstallRem = hasEngine ? installAnimator.getRemaining(entity, GeoDrillerEntity.PART_ENGINE, partialTicks) : 0.0F;
+        float chest1InstallRem = chestCount >= 1 ? installAnimator.getRemaining(entity, BIT_CHEST_1, partialTicks) : 0.0F;
+        float chest2InstallRem = chestCount >= 2 ? installAnimator.getRemaining(entity, BIT_CHEST_2, partialTicks) : 0.0F;
 
         // Smooth partialTick interpolation for 144fps buttery motion
         float age = entity.tickCount + partialTicks;
@@ -73,14 +87,16 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
                 default -> 0.0F;
             };
             drillAsm.xRot += pitchTilt;
+            PartInstallAnimator.applyPush(drillAsm, drillInstallRem, 0.0F, 0.0F, -11.0F);
         }
         ModelPart drillHead = model.getBone("drill_head");
         if (drillHead != null) {
-            drillHead.zRot += smoothDrill;
+            drillHead.zRot += smoothDrill + drillInstallRem * 0.65F;
         }
 
         // 2. Twin industrial smokestack rain-flapper caps lifting under exhaust pressure
         if (hasEngine) {
+            PartInstallAnimator.applyPush(model.getBone("engine_unit"), engineInstallRem, 0.0F, -9.5F, 3.0F);
             ModelPart flapL = model.getBone("flapper_l");
             ModelPart flapR = model.getBone("flapper_r");
             if (flapL != null) flapL.xRot += smoothFlapper;
@@ -128,10 +144,10 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
         poseStack.popPose();
 
         // 6. Render true Vanilla Single Chest (1x) or seamlessly merged Double Chest (2x, single centered latch)
-        int chestCount = entity.getChestCount();
         if (chestCount > 0) {
+            float chestRem = chestCount == 1 ? chest1InstallRem : Math.max(chest1InstallRem, chest2InstallRem);
             poseStack.pushPose();
-            poseStack.translate(0.0D, 0.82D, 0.96D);
+            poseStack.translate(0.0D, 0.82D + chestRem * 0.42D, 0.96D + chestRem * 0.22D);
             float scale = 0.62F;
             poseStack.scale(scale, scale, scale);
             if (chestCount == 1) {

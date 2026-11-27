@@ -41,6 +41,7 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
 
     private final RuinGuardModel<RuinMechEntity> model;
     private final Map<Integer, SmoothState> smoothStates = new HashMap<>();
+    private final PartInstallAnimator installAnimator = new PartInstallAnimator();
 
     private static final class BonePose {
         float x, y, z, xRot, yRot, zRot, xScale, yScale, zScale;
@@ -296,10 +297,20 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
 
         // Exact anatomical 5-part bone visibility (in RuinGuardModel, +X = shoulder_r/hip_r = robot's TRUE LEFT,
         // and -X = shoulder_l/hip_l = robot's TRUE RIGHT after Mojang's scale(-1,-1,1) + 180° Y-rot!)
-        setBoneVisible("shoulder_r", entity.hasPart(RuinMechEntity.PART_LEFT_ARM));
-        setBoneVisible("shoulder_l", entity.hasPart(RuinMechEntity.PART_RIGHT_ARM));
-        setBoneVisible("hip_r", entity.hasPart(RuinMechEntity.PART_LEFT_LEG));
-        setBoneVisible("hip_l", entity.hasPart(RuinMechEntity.PART_RIGHT_LEG));
+        boolean hasLeftArm = entity.hasPart(RuinMechEntity.PART_LEFT_ARM);
+        boolean hasRightArm = entity.hasPart(RuinMechEntity.PART_RIGHT_ARM);
+        boolean hasLeftLeg = entity.hasPart(RuinMechEntity.PART_LEFT_LEG);
+        boolean hasRightLeg = entity.hasPart(RuinMechEntity.PART_RIGHT_LEG);
+        setBoneVisible("shoulder_r", hasLeftArm);
+        setBoneVisible("shoulder_l", hasRightArm);
+        setBoneVisible("hip_r", hasLeftLeg);
+        setBoneVisible("hip_l", hasRightLeg);
+
+        installAnimator.update(entity, entity.getPartsMask(), partialTicks);
+        if (hasLeftArm) PartInstallAnimator.applyPush(model.getBone("shoulder_r"), installAnimator.getRemaining(entity, RuinMechEntity.PART_LEFT_ARM, partialTicks), 10.0F, -1.5F, 0.0F);
+        if (hasRightArm) PartInstallAnimator.applyPush(model.getBone("shoulder_l"), installAnimator.getRemaining(entity, RuinMechEntity.PART_RIGHT_ARM, partialTicks), -10.0F, -1.5F, 0.0F);
+        if (hasLeftLeg) PartInstallAnimator.applyPush(model.getBone("hip_r"), installAnimator.getRemaining(entity, RuinMechEntity.PART_LEFT_LEG, partialTicks), 7.5F, 2.5F, 0.0F);
+        if (hasRightLeg) PartInstallAnimator.applyPush(model.getBone("hip_l"), installAnimator.getRemaining(entity, RuinMechEntity.PART_RIGHT_LEG, partialTicks), -7.5F, 2.5F, 0.0F);
 
         // Dynamic 6-tube shoulder missile warhead sync + pop-out launch animation!
         int ammo = entity.getMissileAmmo();

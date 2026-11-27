@@ -65,6 +65,7 @@ public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
 
     private final CryoRegisvineModel<CryoTurretEntity> model;
     private final Map<Integer, SmoothState> smoothStates = new HashMap<>();
+    private final PartInstallAnimator installAnimator = new PartInstallAnimator();
 
     public CryoTurretRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -139,8 +140,14 @@ public class CryoTurretRenderer extends EntityRenderer<CryoTurretEntity> {
         sm.hasLastPose = true;
 
         // Toggle 3 modular assembly bone groups (Root -> Stem -> Corolla)
-        setBoneVisible("stem_1", entity.hasPart(CryoTurretEntity.PART_STEM));
-        setBoneVisible("corolla_head", entity.hasPart(CryoTurretEntity.PART_COROLLA));
+        boolean hasStem = entity.hasPart(CryoTurretEntity.PART_STEM);
+        boolean hasCorolla = entity.hasPart(CryoTurretEntity.PART_COROLLA);
+        setBoneVisible("stem_1", hasStem);
+        setBoneVisible("corolla_head", hasCorolla);
+
+        installAnimator.update(entity, entity.getPartsMask(), partialTicks);
+        if (hasStem) PartInstallAnimator.applyPush(model.getBone("stem_1"), installAnimator.getRemaining(entity, CryoTurretEntity.PART_STEM, partialTicks), 0.0F, -10.0F, 0.0F);
+        if (hasCorolla) PartInstallAnimator.applyPush(model.getBone("corolla_head"), installAnimator.getRemaining(entity, CryoTurretEntity.PART_COROLLA, partialTicks), 0.0F, -9.0F, -1.5F);
         setBoneVisible("frost_ring", entity.getAnimId() == CryoTurretEntity.ANIM_FROST_NOVA);
         setBoneVisible("lash_beam_l", false);
         setBoneVisible("lash_beam_r", false);
