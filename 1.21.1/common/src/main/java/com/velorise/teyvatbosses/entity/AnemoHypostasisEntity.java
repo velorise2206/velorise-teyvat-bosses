@@ -90,6 +90,7 @@ public class AnemoHypostasisEntity extends Monster {
 
     private Vec3 arenaCenter = Vec3.ZERO;
     private boolean arenaInit = false;
+    private static final double ARENA_SOFT_LEASH_RADIUS = 48.0D;
     private float savedSpawnYaw = 0.0F;
 
     private int stateTick = 0;
@@ -343,6 +344,19 @@ public class AnemoHypostasisEntity extends Monster {
             arenaCenter = position();
             savedSpawnYaw = getYRot();
             arenaInit = true;
+        }
+        // Arena Soft-Leash: prevent kiting Anemo Hypostasis far outside its arena
+        if (arenaInit && isAlive() && getBossState() == STATE_COMBAT) {
+            double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
+            if (hDist > ARENA_SOFT_LEASH_RADIUS) {
+                Vec3 back = new Vec3(arenaCenter.x - getX(), (arenaCenter.y + 2.4D) - getY(), arenaCenter.z - getZ());
+                if (hDist > ARENA_SOFT_LEASH_RADIUS + 20.0D) {
+                    teleportTo(arenaCenter.x, arenaCenter.y + 2.4D, arenaCenter.z);
+                    setDeltaMovement(Vec3.ZERO);
+                } else if (back.lengthSqr() > 1.0E-4D) {
+                    setDeltaMovement(back.normalize().scale(0.55D));
+                }
+            }
         }
 
         if (level().isClientSide()) {

@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.BossMusicManager;
@@ -679,6 +681,7 @@ public class PrimoGeovishapEntity extends Monster {
      * Obsidian, Bedrock, and the floor underneath).
      */
     private void tickAntiTrapBlockBreak(ServerLevel sl) {
+        if (!TeyvatBossesConfig.get().enableBossBlockBreaking) return;
         if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
             destroyBlocksTick = 10;
         }

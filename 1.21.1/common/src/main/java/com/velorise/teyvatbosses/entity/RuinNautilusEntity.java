@@ -122,6 +122,9 @@ public class RuinNautilusEntity extends Mob {
     private int lastAttackId = -1;
     private float overheatDamageAccum = 0.0F;
     private final BossDamageCap damageCap = new BossDamageCap();
+    private static final double ARENA_SOFT_LEASH_RADIUS = 64.0D;
+    private Vec3 arenaCenter = Vec3.ZERO;
+    private boolean arenaInit = false;
     private boolean blossomSpawned = false;
     private Vec3 ramDir = Vec3.ZERO;
 
@@ -324,6 +327,21 @@ public class RuinNautilusEntity extends Mob {
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 1.5F, 0.80F);
         if (level() instanceof ServerLevel sl) {
+        if (!arenaInit) {
+            arenaCenter = position();
+            arenaInit = true;
+        } else if (isAlive()) {
+            double hDist = Math.hypot(getX() - arenaCenter.x, getZ() - arenaCenter.z);
+            if (hDist > ARENA_SOFT_LEASH_RADIUS) {
+                Vec3 back = arenaCenter.subtract(position());
+                if (hDist > ARENA_SOFT_LEASH_RADIUS + 24.0D) {
+                    teleportTo(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+                    setDeltaMovement(Vec3.ZERO);
+                } else if (back.lengthSqr() > 1.0E-4D) {
+                    setDeltaMovement(getDeltaMovement().scale(0.6D).add(back.normalize().scale(0.32D)));
+                }
+            }
+        }
             for (ServerPlayer sp : sl.players()) {
                 if (sp.distanceToSqr(this) <= 48.0D * 48.0D) bossEvent.addPlayer(sp);
             }
@@ -767,6 +785,10 @@ public class RuinNautilusEntity extends Mob {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putBoolean("ArenaInit", arenaInit);
+        tag.putDouble("ArenaX", arenaCenter.x);
+        tag.putDouble("ArenaY", arenaCenter.y);
+        tag.putDouble("ArenaZ", arenaCenter.z);
         tag.putInt("BossState", getBossState());
         tag.putBoolean("Phase2", isPhase2());
     }
@@ -774,6 +796,10 @@ public class RuinNautilusEntity extends Mob {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        if (tag.getBoolean("ArenaInit")) {
+            arenaInit = true;
+            arenaCenter = new Vec3(tag.getDouble("ArenaX"), tag.getDouble("ArenaY"), tag.getDouble("ArenaZ"));
+        }
         if (tag.contains("BossState")) {
             int st = tag.getInt("BossState");
             entityData.set(DATA_STATE, st);

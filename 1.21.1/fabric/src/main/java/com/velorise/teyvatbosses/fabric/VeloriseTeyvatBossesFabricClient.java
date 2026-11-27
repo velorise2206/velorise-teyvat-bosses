@@ -96,6 +96,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
                 (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
         for (Item compass : new Item[]{
+                VeloriseTeyvatBossesFabric.TEYVAT_BOSS_COMPASS,
                 VeloriseTeyvatBossesFabric.CRYO_REGISVINE_COMPASS,
                 VeloriseTeyvatBossesFabric.ANEMO_HYPOSTASIS_COMPASS,
                 VeloriseTeyvatBossesFabric.RUIN_GUARD_COMPASS,

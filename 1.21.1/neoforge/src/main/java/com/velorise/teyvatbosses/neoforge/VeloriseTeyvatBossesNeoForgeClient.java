@@ -103,6 +103,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
             CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
                     (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
             for (Item compass : new Item[]{
+                    VeloriseTeyvatBossesNeoForge.TEYVAT_BOSS_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.CRYO_REGISVINE_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.ANEMO_HYPOSTASIS_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.RUIN_GUARD_COMPASS.get(),

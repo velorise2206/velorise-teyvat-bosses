@@ -7,6 +7,8 @@
 
 An action-focused Overworld boss & mecha expansion mod across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**. **Velorise: Teyvat Bosses** works standalone or pairs with **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)** via `StavesElementBridge` for elemental reactions, innate auras, and shield counters.
 
+> **Release Scope Note:** This release focuses on **Minecraft 1.21.1 (Fabric & NeoForge)** (full 5 World Bosses, 5 Boss Compasses + Master Compass with live 360° needles, Modpack Config, 8-node Advancement Tree, and all 5 updated Boss Arenas). The `1.20.1/forge` module is currently an initialization stub (WIP).
+
 ---
 
 ## Implemented Bosses (`1.21.1`)

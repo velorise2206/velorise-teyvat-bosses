@@ -1,5 +1,7 @@
 package com.velorise.teyvatbosses.entity;
 
+import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
+
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
@@ -684,6 +686,7 @@ public class RuinGuardEntity extends Monster {
      * Obsidian, Bedrock, and the floor underneath).
      */
     private void tickAntiTrapBlockBreak(ServerLevel sl) {
+        if (!TeyvatBossesConfig.get().enableBossBlockBreaking) return;
         if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
             destroyBlocksTick = 8;
         }
