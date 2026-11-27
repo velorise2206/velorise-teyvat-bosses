@@ -43,7 +43,7 @@ public final class TeyvatBossesConfig {
     public boolean enableBossBlockBreaking = true;
     public boolean enableCameraShake = true;
     public boolean enableHitstop = true;
-    public int locatorSearchRadiusChunks = 128;
+    public int locatorSearchRadiusChunks = 96;
 
     // [global_scaling] — Global boss stat multipliers for modpacks (Apotheosis / Iron's Spells / etc.)
     public double globalHealthMultiplier = 1.0D;

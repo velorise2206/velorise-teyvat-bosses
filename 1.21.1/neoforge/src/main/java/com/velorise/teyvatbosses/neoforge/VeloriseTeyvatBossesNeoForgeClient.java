@@ -6,7 +6,9 @@ import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
 import com.velorise.teyvatbosses.client.AnemoTornadoRenderer;
 import com.velorise.teyvatbosses.client.AnemoWindOrbRenderer;
+import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.BossRespawnAnchorRenderer;
+import com.velorise.teyvatbosses.entity.BossClientBridge;
 import com.velorise.teyvatbosses.client.BossTrophyRenderer;
 import com.velorise.teyvatbosses.client.CryoIceSpikeRenderer;
 import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
@@ -101,6 +103,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
+        BossClientBridge.setShakeHandler(BossCameraShake::triggerAt);
         event.enqueueWork(() -> {
             CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
                     (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));

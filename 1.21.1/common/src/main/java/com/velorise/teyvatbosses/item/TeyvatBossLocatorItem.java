@@ -28,9 +28,16 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.server.level.ServerPlayer;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Teyvat Boss Locator Compass — reusable survival structure locator with live 360-degree needle tracking.
@@ -62,6 +69,12 @@ public class TeyvatBossLocatorItem extends Item {
 
     private record CachedScan(@Nullable BlockPos pos, long expiresMs) {}
     private static final Map<String, CachedScan> LOCATOR_CACHE = new ConcurrentHashMap<>();
+    private static final Set<UUID> IN_FLIGHT_PLAYERS = ConcurrentHashMap.newKeySet();
+    private static final ExecutorService LOCATOR_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
+        Thread t = new Thread(r, "velorise-boss-locator");
+        t.setDaemon(true);
+        return t;
+    });
     private static final long CACHE_TTL_MS = 300_000L; // 5 minutes per 256x256 block region
     private static long lastGlobalScanGameTime = Long.MIN_VALUE;
 
@@ -152,73 +165,100 @@ public class TeyvatBossLocatorItem extends Item {
             String cacheKey = sl.dimension().location() + "|" + target.tagName() + "|" + regionX + "|" + regionZ + "|" + radiusChunks;
             long nowMs = System.currentTimeMillis();
             CachedScan cached = LOCATOR_CACHE.get(cacheKey);
-            BlockPos found;
             if (cached != null && cached.expiresMs() > nowMs) {
-                found = cached.pos();
+                player.getCooldowns().addCooldown(this, 120);
+                deliverScanResult(sl, player, stack, target, cached.pos());
             } else {
                 long gameTime = sl.getGameTime();
-                if (gameTime - lastGlobalScanGameTime < 20L) {
+                UUID playerId = player.getUUID();
+                if (IN_FLIGHT_PLAYERS.contains(playerId) || (gameTime - lastGlobalScanGameTime < 20L)) {
                     player.getCooldowns().addCooldown(this, 25);
                     player.displayClientMessage(
-                            Component.literal("Boss Compass is resonating — please try again in a moment.")
+                            Component.translatable("message.velorise_teyvat_bosses.locator.busy")
                                     .withStyle(ChatFormatting.YELLOW),
                             true
                     );
                     return InteractionResultHolder.sidedSuccess(stack, false);
                 }
                 lastGlobalScanGameTime = gameTime;
-                found = sl.findNearestMapStructure(tagKey, player.blockPosition(), radiusChunks, false);
-                if (LOCATOR_CACHE.size() > 256) LOCATOR_CACHE.clear();
-                LOCATOR_CACHE.put(cacheKey, new CachedScan(found, nowMs + CACHE_TTL_MS));
-            }
-
-            player.getCooldowns().addCooldown(this, 120);
-            if (found != null) {
-                setLockedTarget(stack, sl.dimension(), found);
-
-                double dx = found.getX() - player.getX();
-                double dz = found.getZ() - player.getZ();
-                int distBlocks = (int) Math.round(Math.hypot(dx, dz));
-                String cardinal = toCardinal(dx, dz);
-
-                sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
-                        SoundEvents.ENDER_EYE_LAUNCH, SoundSource.PLAYERS, 0.9F, 1.15F);
-
-                Vec3 dir = new Vec3(dx, 0.0D, dz);
-                if (dir.lengthSqr() > 1.0E-4D) {
-                    dir = dir.normalize();
-                    Vec3 eye = player.getEyePosition();
-                    for (int i = 1; i <= 18; i++) {
-                        double step = i * 0.48D;
-                        double lift = Math.sin((i / 18.0D) * Math.PI) * 0.85D;
-                        sl.sendParticles(ParticleTypes.END_ROD,
-                                eye.x + dir.x * step, eye.y + lift, eye.z + dir.z * step,
-                                1, 0.03D, 0.03D, 0.03D, 0.01D);
-                        if (i % 3 == 0) {
-                            sl.sendParticles(ParticleTypes.ENCHANT,
-                                    eye.x + dir.x * step, eye.y + lift, eye.z + dir.z * step,
-                                    2, 0.10D, 0.10D, 0.10D, 0.02D);
-                        }
-                    }
-                }
-
+                IN_FLIGHT_PLAYERS.add(playerId);
+                player.getCooldowns().addCooldown(this, 120);
                 player.displayClientMessage(
-                        Component.translatable("message.velorise_teyvat_bosses.locator.found",
-                                Component.translatable(target.langKey()).withStyle(target.color(), ChatFormatting.BOLD),
-                                found.getX(), found.getZ(), distBlocks, cardinal),
+                        Component.translatable("message.velorise_teyvat_bosses.locator.searching",
+                                Component.translatable(target.langKey()).withStyle(target.color(), ChatFormatting.BOLD))
+                                .withStyle(ChatFormatting.GRAY),
                         true
                 );
-            } else {
-                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.7F, 0.95F);
-                player.displayClientMessage(
-                        Component.translatable("message.velorise_teyvat_bosses.locator.not_found",
-                                Component.translatable(target.langKey()).withStyle(target.color())),
-                        true
-                );
+                BlockPos origin = player.blockPosition().immutable();
+                CompletableFuture.supplyAsync(() -> sl.findNearestMapStructure(tagKey, origin, radiusChunks, false), LOCATOR_EXECUTOR)
+                        .whenComplete((foundPos, err) -> {
+                            IN_FLIGHT_PLAYERS.remove(playerId);
+                            sl.getServer().execute(() -> {
+                                if (err == null) {
+                                    if (LOCATOR_CACHE.size() > 256) LOCATOR_CACHE.clear();
+                                    LOCATOR_CACHE.put(cacheKey, new CachedScan(foundPos, System.currentTimeMillis() + CACHE_TTL_MS));
+                                }
+                                ServerPlayer online = sl.getServer().getPlayerList().getPlayer(playerId);
+                                if (online == null || online.level() != sl) return;
+                                ItemStack held = online.getItemInHand(hand);
+                                if (!(held.getItem() instanceof TeyvatBossLocatorItem)) {
+                                    held = online.getMainHandItem().getItem() instanceof TeyvatBossLocatorItem
+                                            ? online.getMainHandItem() : online.getOffhandItem();
+                                }
+                                deliverScanResult(sl, online, held, target, err == null ? foundPos : null);
+                            });
+                        });
             }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+    }
+
+    private static void deliverScanResult(ServerLevel sl, Player player, ItemStack stack, BossTarget target, @Nullable BlockPos found) {
+        if (found != null) {
+            if (stack.getItem() instanceof TeyvatBossLocatorItem) {
+                setLockedTarget(stack, sl.dimension(), found);
+            }
+            double dx = found.getX() - player.getX();
+            double dz = found.getZ() - player.getZ();
+            int distBlocks = (int) Math.round(Math.hypot(dx, dz));
+            String cardinal = toCardinal(dx, dz);
+
+            sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                    SoundEvents.ENDER_EYE_LAUNCH, SoundSource.PLAYERS, 0.9F, 1.15F);
+
+            Vec3 dir = new Vec3(dx, 0.0D, dz);
+            if (dir.lengthSqr() > 1.0E-4D) {
+                dir = dir.normalize();
+                Vec3 eye = player.getEyePosition();
+                for (int i = 1; i <= 18; i++) {
+                    double step = i * 0.48D;
+                    double lift = Math.sin((i / 18.0D) * Math.PI) * 0.85D;
+                    sl.sendParticles(ParticleTypes.END_ROD,
+                            eye.x + dir.x * step, eye.y + lift, eye.z + dir.z * step,
+                            1, 0.03D, 0.03D, 0.03D, 0.01D);
+                    if (i % 3 == 0) {
+                        sl.sendParticles(ParticleTypes.ENCHANT,
+                                eye.x + dir.x * step, eye.y + lift, eye.z + dir.z * step,
+                                2, 0.10D, 0.10D, 0.10D, 0.02D);
+                    }
+                }
+            }
+
+            player.displayClientMessage(
+                    Component.translatable("message.velorise_teyvat_bosses.locator.found",
+                            Component.translatable(target.langKey()).withStyle(target.color(), ChatFormatting.BOLD),
+                            found.getX(), found.getZ(), distBlocks, cardinal),
+                    true
+            );
+        } else {
+            sl.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.7F, 0.95F);
+            player.displayClientMessage(
+                    Component.translatable("message.velorise_teyvat_bosses.locator.not_found",
+                            Component.translatable(target.langKey()).withStyle(target.color())),
+                    true
+            );
+        }
     }
 
     private static String toCardinal(double dx, double dz) {

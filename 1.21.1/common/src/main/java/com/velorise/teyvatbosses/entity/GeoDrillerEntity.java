@@ -757,7 +757,7 @@ public class GeoDrillerEntity extends Mob {
                     if (!sl.mayInteract(pilot, bp) || !pilot.mayInteract(sl, bp)) continue;
                     BlockState state = sl.getBlockState(bp);
                     if (state.getFluidState().is(FluidTags.LAVA)) {
-                        tryPlaceBridgeBlock(sl, bp); // Seal lava pockets directly ahead
+                        tryPlaceBridgeBlock(sl, pilot, bp); // Seal lava pockets directly ahead
                         continue;
                     }
                     if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
@@ -781,9 +781,10 @@ public class GeoDrillerEntity extends Mob {
                 Vec3 slice = position().add(fwd.scale(depth));
                 for (double dx = -1.25D; dx <= 1.25D; dx += 0.5D) {
                     BlockPos floorPos = BlockPos.containing(slice.x + right.x * dx, floorY + 0.1D, slice.z + right.z * dx);
+                    if (!sl.mayInteract(pilot, floorPos) || !pilot.mayInteract(sl, floorPos)) continue;
                     BlockState floorState = sl.getBlockState(floorPos);
                     if (floorState.isAir() || !floorState.getFluidState().isEmpty() || floorState.canBeReplaced()) {
-                        tryPlaceBridgeBlock(sl, floorPos);
+                        tryPlaceBridgeBlock(sl, pilot, floorPos);
                     }
                 }
             }
@@ -796,7 +797,7 @@ public class GeoDrillerEntity extends Mob {
         }
     }
 
-    private void tryPlaceBridgeBlock(ServerLevel sl, BlockPos pos) {
+    private void tryPlaceBridgeBlock(ServerLevel sl, Player pilot, BlockPos pos) {
         // Pull Cobblestone / Cobbled Deepslate / Stone / Deepslate / Dirt from cargo first
         int slots = getChestCount() >= 2 ? 54 : (getChestCount() == 1 ? 27 : 0);
         for (int i = 0; i < slots; i++) {
@@ -807,8 +808,10 @@ public class GeoDrillerEntity extends Mob {
                 return;
             }
         }
-        // Fallback: synthesize compacted Cobblestone from crushed rock tailings
-        sl.setBlock(pos, Blocks.COBBLESTONE.defaultBlockState(), 3);
+        // Only synthesize fallback Cobblestone in Creative mode to prevent infinite cobblestone duplication in Survival
+        if (pilot.getAbilities().instabuild) {
+            sl.setBlock(pos, Blocks.COBBLESTONE.defaultBlockState(), 3);
+        }
     }
 
     private static boolean isBridgeMaterial(Block b) {
@@ -899,6 +902,9 @@ public class GeoDrillerEntity extends Mob {
             }
         }
         tag.put("Cargo", items);
+        if (activeLightPos != null) {
+            tag.putLong("ActiveLightPos", activeLightPos.asLong());
+        }
     }
 
     @Override
@@ -917,6 +923,7 @@ public class GeoDrillerEntity extends Mob {
         if (tag.contains("Efficiency")) entityData.set(DATA_EFFICIENCY, Mth.clamp(tag.getInt("Efficiency"), 0, 5));
         if (tag.contains("Sweeping")) entityData.set(DATA_SWEEPING, Mth.clamp(tag.getInt("Sweeping"), 0, 3));
         if (tag.contains("Unbreaking")) entityData.set(DATA_UNBREAKING, Mth.clamp(tag.getInt("Unbreaking"), 0, 3));
+        activeLightPos = tag.contains("ActiveLightPos") ? BlockPos.of(tag.getLong("ActiveLightPos")) : null;
         cargo.clearContent();
         if (tag.contains("Cargo", Tag.TAG_LIST)) {
             ListTag items = tag.getList("Cargo", Tag.TAG_COMPOUND);

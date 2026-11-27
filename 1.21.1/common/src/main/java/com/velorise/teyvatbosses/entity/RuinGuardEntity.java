@@ -288,6 +288,9 @@ public class RuinGuardEntity extends Monster {
     public boolean removeWhenFarAway(double dist) { return false; }
 
     @Override
+    protected boolean shouldDespawnInPeaceful() { return false; }
+
+    @Override
     public void startSeenByPlayer(ServerPlayer player) {
         super.startSeenByPlayer(player);
         this.bossEvent.addPlayer(player);

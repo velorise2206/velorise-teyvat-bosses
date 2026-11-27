@@ -56,7 +56,7 @@ public final class BossDamageCap {
                     if (attacker instanceof Player p && (lastRangeWarnTick == Long.MIN_VALUE || gt - lastRangeWarnTick >= 60L)) {
                         lastRangeWarnTick = gt;
                         p.displayClientMessage(
-                                Component.literal("Too far! Move within " + (int) immuneDist + " blocks to damage this boss.")
+                                Component.translatable("message.velorise_teyvat_bosses.damage_cap.too_far", (int) immuneDist)
                                         .withStyle(ChatFormatting.GOLD),
                                 true
                         );
@@ -111,7 +111,7 @@ public final class BossDamageCap {
         float dpsCap = maxHp * cfg.dpsCapPerSecondRatio * vulnMult;
         float remaining = Math.max(0.0F, dpsCap - playerDamageInWindow);
         if (remaining <= 0.01F) {
-            return Math.min(cappedHit, 0.5F);
+            return 0.0F;
         }
         float finalDmg = Math.min(cappedHit, remaining);
         playerDamageInWindow += finalDmg;

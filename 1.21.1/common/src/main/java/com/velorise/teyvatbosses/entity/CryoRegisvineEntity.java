@@ -305,6 +305,9 @@ public class CryoRegisvineEntity extends Monster {
     public boolean removeWhenFarAway(double distanceToClosestPlayer) { return false; }
 
     @Override
+    protected boolean shouldDespawnInPeaceful() { return false; }
+
+    @Override
     public void startSeenByPlayer(ServerPlayer player) {
         super.startSeenByPlayer(player);
         this.bossEvent.addPlayer(player);

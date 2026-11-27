@@ -15,21 +15,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
-    @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
+    @Inject(require = 0, method = "startAttack", at = @At("HEAD"), cancellable = true)
     private void velorise$cancelSubAttack(CallbackInfoReturnable<Boolean> cir) {
         if (RuinSubClientController.isPilotingSubmersible() || GeoDrillerClientController.isPilotingDriller()) {
             cir.setReturnValue(false);
         }
     }
 
-    @Inject(method = "continueAttack", at = @At("HEAD"), cancellable = true)
+    @Inject(require = 0, method = "continueAttack", at = @At("HEAD"), cancellable = true)
     private void velorise$cancelSubContinueAttack(boolean leftClick, CallbackInfo ci) {
         if (RuinSubClientController.isPilotingSubmersible() || GeoDrillerClientController.isPilotingDriller()) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
+    @Inject(require = 0, method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void velorise$cancelSubUseItem(CallbackInfo ci) {
         if (RuinSubClientController.isPilotingSubmersible() || GeoDrillerClientController.isPilotingDriller()) {
             ci.cancel();

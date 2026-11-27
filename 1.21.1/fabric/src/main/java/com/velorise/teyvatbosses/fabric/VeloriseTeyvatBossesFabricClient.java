@@ -12,6 +12,7 @@ import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.BossCameraShake;
+import com.velorise.teyvatbosses.entity.BossClientBridge;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapPartRenderer;
@@ -56,6 +57,7 @@ import net.minecraft.world.item.Item;
 public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        BossClientBridge.setShakeHandler(BossCameraShake::triggerAt);
         EntityModelLayerRegistry.registerModelLayer(CryoRegisvineModel.LAYER_LOCATION, CryoRegisvineModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);

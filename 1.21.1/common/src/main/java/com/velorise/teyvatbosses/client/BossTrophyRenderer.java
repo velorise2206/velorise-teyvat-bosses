@@ -47,6 +47,7 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
     private final RuinGuardModel<Entity> ruinModel;
     private final RuinNautilusModel<Entity> nautilusModel;
     private final PrimoGeovishapModel<Entity> primoModel;
+    private final PrimoGeovishapModel<Entity> primoEmissiveModel;
 
     public BossTrophyRenderer(BlockEntityRendererProvider.Context ctx) {
         this.cryoModel = new CryoRegisvineModel<>(ctx.bakeLayer(CryoRegisvineModel.LAYER_LOCATION));
@@ -54,6 +55,7 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         this.ruinModel = new RuinGuardModel<>(ctx.bakeLayer(RuinGuardModel.LAYER_LOCATION));
         this.nautilusModel = new RuinNautilusModel<>(ctx.bakeLayer(RuinNautilusModel.LAYER_LOCATION));
         this.primoModel = new PrimoGeovishapModel<>(ctx.bakeLayer(PrimoGeovishapModel.LAYER_LOCATION));
+        this.primoEmissiveModel = new PrimoGeovishapModel<>(ctx.bakeLayer(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE));
 
         CryoRegisvineAnimations.apply(cryoModel, "idle_combat", 0.0F);
         anemoModel.resetPose();
@@ -61,6 +63,7 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
         RuinNautilusAnimations.apply(nautilusModel, "idle_hover", 0.0F, false);
         if (nautilusModel.getBone("sub_cockpit_glass") != null) nautilusModel.getBone("sub_cockpit_glass").visible = false;
         PrimoGeovishapAnimations.apply(primoModel, "idle", 0.0F);
+        this.primoEmissiveModel.copyPoseFrom(this.primoModel);
     }
 
     @Override
@@ -103,11 +106,12 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
                 nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_NAUTILUS)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 nautilusModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_NAUTILUS_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
             }
-            default -> { // Primo Geovishap
+            default -> { // Primo Geovishap (Geo amber-gold back crystals)
                 poseStack.scale(-0.18F, -0.18F, 0.18F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 primoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-                primoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.eyes(TEX_PRIMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                primoModel.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
+                primoEmissiveModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFF2AA24);
             }
         }
         poseStack.popPose();

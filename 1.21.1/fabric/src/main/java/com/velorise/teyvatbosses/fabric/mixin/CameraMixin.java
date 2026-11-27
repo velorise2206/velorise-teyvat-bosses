@@ -21,6 +21,7 @@ public abstract class CameraMixin {
     @Shadow protected abstract void setRotation(float yRot, float xRot);
 
     @ModifyArg(
+            require = 0,
             method = "setup",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;getMaxZoom(F)F"),
             index = 0

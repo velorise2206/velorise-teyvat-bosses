@@ -5,7 +5,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
-import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
 import com.velorise.teyvatbosses.entity.ai.BossGroundNavigation;
@@ -334,6 +333,9 @@ public class PrimoGeovishapEntity extends Monster {
     public boolean removeWhenFarAway(double distSq) { return false; }
 
     @Override
+    protected boolean shouldDespawnInPeaceful() { return false; }
+
+    @Override
     public boolean isPushable() { return false; }
 
     @Override
@@ -432,9 +434,6 @@ public class PrimoGeovishapEntity extends Monster {
         } else if (st == STATE_COMBAT && getAnimId() == ANIM_PRIMORDIAL_SHOWER) {
             // Geo poise during ultimate charge
             amount *= 0.80F;
-        }
-        if (!level().isClientSide() && st == STATE_COMBAT && destroyBlocksTick <= 0 && (this.horizontalCollision || this.isInWall())) {
-            destroyBlocksTick = 20;
         }
         amount = damageCap.apply(this, source, amount, st == STATE_STAGGER);
         if (amount <= 0.0F) return false;
@@ -645,7 +644,7 @@ public class PrimoGeovishapEntity extends Monster {
         }
         if (intensity > 0.0F) {
             lastClientShakeKey = key;
-            BossCameraShake.triggerAt(position(), intensity, range);
+            BossClientBridge.triggerCameraShake(position(), intensity, range);
         }
     }
 
@@ -1688,9 +1687,19 @@ public class PrimoGeovishapEntity extends Monster {
         return null;
     }
 
+    private long lastPartHitTick = Long.MIN_VALUE;
+    private int lastPartAttackerId = -1;
+
     /** Forwards hits landing on Head (1.12x weakspot) or Tail (0.95x armored) child hitboxes to the main boss. */
     public boolean hurtFromPart(PrimoGeovishapPartEntity part, DamageSource source, float amount) {
         if (source.getEntity() == this || source.getDirectEntity() == this) return false;
+        long gt = level().getGameTime();
+        int attackerId = source.getEntity() != null ? source.getEntity().getId() : -1;
+        if (gt == lastPartHitTick && attackerId == lastPartAttackerId) {
+            return false; // Prevent single-tick AoE double-hits across body + head + tail
+        }
+        lastPartHitTick = gt;
+        lastPartAttackerId = attackerId;
         float mult = (part.getPartKind() == PrimoGeovishapPartEntity.PART_HEAD) ? 1.12F : 0.95F;
         return this.hurt(source, amount * mult);
     }

@@ -167,5 +167,9 @@
   "enchantment.velorise_teyvat_bosses.core_capacity.desc": "Tăng dung tích năng lượng Redstone tối đa cho lõi thiết bị (+900 mỗi cấp).",
   "enchantment.velorise_teyvat_bosses.energy_conservation": "Tiết Kiệm Năng Lượng",
   "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Giảm lượng năng lượng Redstone tiêu thụ của thiết bị (-15% mỗi cấp).",
-  "entity.velorise_teyvat_bosses.primo_geovishap_part": "Rồng Đất Cổ Đại"
+  "entity.velorise_teyvat_bosses.primo_geovishap_part": "Rồng Đất Cổ Đại",
+  "message.velorise_teyvat_bosses.damage_cap.too_far": "Quá xa! Hãy tiến vào trong bán kính %s block để gây sát thương lên boss.",
+  "message.velorise_teyvat_bosses.locator.busy": "La Bàn Boss đang cộng hưởng — vui lòng thử lại sau giây lát.",
+  "message.velorise_teyvat_bosses.locator.searching": "Đang dò tìm Đấu trường %s gần nhất...",
+  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Chỉ người chơi tham gia hạ gục boss mới có thể nhận chiến lợi phẩm."
 }

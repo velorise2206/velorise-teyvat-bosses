@@ -167,5 +167,9 @@
   "enchantment.velorise_teyvat_bosses.core_capacity.desc": "Increases maximum Redstone energy capacity of Khaenri'ah & Teyvat device cores (+900 per level).",
   "enchantment.velorise_teyvat_bosses.energy_conservation": "Energy Conservation",
   "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Reduces Redstone energy consumption of device skills and movement (-15% per level).",
-  "entity.velorise_teyvat_bosses.primo_geovishap_part": "Primo Geovishap"
+  "entity.velorise_teyvat_bosses.primo_geovishap_part": "Primo Geovishap",
+  "message.velorise_teyvat_bosses.damage_cap.too_far": "Too far! Move within %s blocks to damage this boss.",
+  "message.velorise_teyvat_bosses.locator.busy": "Boss Compass is resonating — please try again in a moment.",
+  "message.velorise_teyvat_bosses.locator.searching": "Resonating for nearest %s Arena...",
+  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Only players who participated in this boss fight can claim rewards."
 }

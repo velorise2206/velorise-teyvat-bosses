@@ -13,7 +13,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -44,7 +48,7 @@ import java.util.UUID;
  */
 public class TrounceBlossomEntity extends Entity {
 
-    public static final int LIFETIME_TICKS = 1200; // 60 seconds (1 minute)
+    public static final int LIFETIME_TICKS = 3600; // 180 seconds (3 minutes)
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
             SynchedEntityData.defineId(TrounceBlossomEntity.class, EntityDataSerializers.INT);
@@ -54,6 +58,7 @@ public class TrounceBlossomEntity extends Entity {
             SynchedEntityData.defineId(TrounceBlossomEntity.class, EntityDataSerializers.INT);
 
     private final Set<UUID> claimedPlayers = new HashSet<>();
+    private final Set<UUID> eligiblePlayers = new HashSet<>();
     private float savedYaw = 0.0F;
     private int ageTicks = 0;
 
@@ -71,6 +76,22 @@ public class TrounceBlossomEntity extends Entity {
         blossom.entityData.set(DATA_BLOOM_TICKS, 0);
         blossom.updateLabel(LIFETIME_TICKS);
         blossom.setCustomNameVisible(true);
+        // Snapshot all nearby non-spectator participants and grant shared multiplayer kill advancement
+        ResourceLocation advId = advancementForBossKind(bossKind);
+        AdvancementHolder advHolder = advId != null ? level.getServer().getAdvancements().get(advId) : null;
+        for (ServerPlayer sp : level.players()) {
+            if (!sp.isSpectator() && sp.position().distanceToSqr(pos) <= 64.0D * 64.0D) {
+                blossom.eligiblePlayers.add(sp.getUUID());
+                if (advHolder != null) {
+                    AdvancementProgress prog = sp.getAdvancements().getOrStartProgress(advHolder);
+                    if (!prog.isDone()) {
+                        for (String criterion : prog.getRemainingCriteria()) {
+                            sp.getAdvancements().award(advHolder, criterion);
+                        }
+                    }
+                }
+            }
+        }
         level.addFreshEntity(blossom);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.AMBIENT, 1.3F, 1.15F);
         level.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y + 1.0D, pos.z, 32, 0.8D, 0.9D, 0.8D, 0.07D);
@@ -111,6 +132,11 @@ public class TrounceBlossomEntity extends Entity {
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
         if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+            if (!eligiblePlayers.isEmpty() && !eligiblePlayers.contains(player.getUUID()) && !player.isCreative()) {
+                player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.not_contributor")
+                        .withStyle(ChatFormatting.RED), true);
+                return InteractionResult.CONSUME;
+            }
             if (claimedPlayers.contains(player.getUUID())) {
                 player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.trounce_blossom.already_claimed")
                         .withStyle(ChatFormatting.YELLOW), true);
@@ -262,6 +288,13 @@ public class TrounceBlossomEntity extends Entity {
                 claimedPlayers.add(NbtUtils.loadUUID(t));
             }
         }
+        eligiblePlayers.clear();
+        if (tag.contains("EligiblePlayers", Tag.TAG_LIST)) {
+            ListTag list = tag.getList("EligiblePlayers", Tag.TAG_INT_ARRAY);
+            for (Tag t : list) {
+                eligiblePlayers.add(NbtUtils.loadUUID(t));
+            }
+        }
     }
 
     @Override
@@ -276,5 +309,22 @@ public class TrounceBlossomEntity extends Entity {
             list.add(NbtUtils.createUUID(id));
         }
         tag.put("ClaimedPlayers", list);
+        ListTag eligList = new ListTag();
+        for (UUID id : eligiblePlayers) {
+            eligList.add(NbtUtils.createUUID(id));
+        }
+        tag.put("EligiblePlayers", eligList);
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static ResourceLocation advancementForBossKind(int kind) {
+        return switch (kind) {
+            case BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE -> com.velorise.teyvatbosses.TeyvatBossesConstants.id("kill_cryo_regisvine");
+            case BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS -> com.velorise.teyvatbosses.TeyvatBossesConstants.id("kill_anemo_hypostasis");
+            case BossRespawnAnchorEntity.BOSS_RUIN_GUARD -> com.velorise.teyvatbosses.TeyvatBossesConstants.id("kill_ruin_guard");
+            case BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS -> com.velorise.teyvatbosses.TeyvatBossesConstants.id("kill_ruin_nautilus");
+            case BossRespawnAnchorEntity.BOSS_PRIMO_GEOVISHAP -> com.velorise.teyvatbosses.TeyvatBossesConstants.id("kill_primo_geovishap");
+            default -> null;
+        };
     }
 }

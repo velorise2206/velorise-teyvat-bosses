@@ -802,6 +802,9 @@ public class RuinSubmersibleEntity extends Mob {
         tag.putInt("EnergyConservation", getConservationLevel());
         tag.putInt("TorpedoAmmo", getTorpedoAmmo());
         tag.putBoolean("Headlight", isHeadlightOn());
+        if (dynamicLightPos != null) {
+            tag.putLong("DynamicLightPos", dynamicLightPos.asLong());
+        }
     }
 
     @Override
@@ -813,6 +816,7 @@ public class RuinSubmersibleEntity extends Mob {
         if (tag.contains("Energy")) entityData.set(DATA_ENERGY, Mth.clamp(tag.getFloat("Energy"), 0.0F, getMaxEnergy()));
         if (tag.contains("TorpedoAmmo")) entityData.set(DATA_TORPEDO_AMMO, tag.getInt("TorpedoAmmo"));
         if (tag.contains("Headlight")) entityData.set(DATA_HEADLIGHT, tag.getBoolean("Headlight"));
+        dynamicLightPos = tag.contains("DynamicLightPos") ? BlockPos.of(tag.getLong("DynamicLightPos")) : null;
         updateAssemblyLabel();
     }
 }
