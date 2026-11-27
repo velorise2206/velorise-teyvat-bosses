@@ -142,20 +142,23 @@ public final class StavesElementBridge {
         float mainDmg = damage * (1.0F - ratio);
         float pierceDmg = damage * ratio;
 
-        boolean dealtViaApi = false;
-        if (isAvailable()) {
+        // 1. ALWAYS deal 100% base damage as Physical (mobAttack) so Omni elemental-immune mobs take full base damage
+        DamageSource physSrc = attacker != null ? target.damageSources().mobAttack(attacker) : target.damageSources().generic();
+        target.hurt(physSrc, mainDmg);
+
+        // 2. Attach elemental aura/reactions via VeloriseElementAPI when Staves is installed (non-blocking if immune)
+        if (isAvailable() && target.isAlive()) {
             Object elem = toElement(element);
             if (elem != null) {
+                int savedInvuln = target.invulnerableTime;
                 try {
-                    mDealElementalDamage.invoke(null, target, attacker, elem, mainDmg, gaugeUnits, toIcdPolicy(bypassIcd));
-                    dealtViaApi = true;
+                    target.invulnerableTime = 0;
+                    mDealElementalDamage.invoke(null, target, attacker, elem, 0.5F, gaugeUnits, toIcdPolicy(bypassIcd));
                 } catch (Throwable ignored) {
+                } finally {
+                    target.invulnerableTime = Math.max(savedInvuln, target.invulnerableTime);
                 }
             }
-        }
-        if (!dealtViaApi) {
-            DamageSource src = attacker != null ? target.damageSources().mobAttack(attacker) : target.damageSources().magic();
-            target.hurt(src, mainDmg);
         }
         if (pierceDmg > 0.5F && target.isAlive()) {
             int savedInvuln = target.invulnerableTime;

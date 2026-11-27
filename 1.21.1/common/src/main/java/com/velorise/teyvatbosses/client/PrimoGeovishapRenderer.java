@@ -46,18 +46,20 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     private final Map<PrimoGeovishapEntity, WalkStrideState> walkStates = new WeakHashMap<>();
 
     private static final class WalkStrideState {
-        float walkAnimSec = 0.0F;
+        float walkPhase = 0.0F;
+        float walkAmount = 0.0F;
         float lastClientSec = -1.0F;
         double lastX = 0.0D;
         double lastZ = 0.0D;
+        float lastBodyYaw = 0.0F;
         boolean hasPos = false;
         float ikFL = 0.0F, ikFR = 0.0F, ikBL = 0.0F, ikBR = 0.0F;
         float ikBodyDrop = 0.0F;
         float ikPitch = 0.0F;
         float ikRoll = 0.0F;
         int lastStaggerStartTick = -1;
-        int lastStepHalf = -1;
-        float tailLagRad = 0.0F;
+        int lastStepQuarter = -1;
+        final float[] tailLag = new float[4];
         float frozenClipSec = 0.0F;
         boolean wasHitstop = false;
     }
@@ -93,33 +95,48 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 BossCameraShake.triggerHitstop(entity.position().add(0.0D, 2.5D, 0.0D), 4, 0.68F, 48.0D);
             }
         }
-        if (animId == PrimoGeovishapEntity.ANIM_WALK) {
+        boolean isLocomotion = (animId == PrimoGeovishapEntity.ANIM_IDLE || animId == PrimoGeovishapEntity.ANIM_WALK);
+        if (isLocomotion) {
             double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
             double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
             if (!ws.hasPos || ws.lastClientSec < 0.0F || clientSec < ws.lastClientSec || (clientSec - ws.lastClientSec) > 0.35F) {
                 ws.lastX = ex;
                 ws.lastZ = ez;
+                ws.lastBodyYaw = bodyYaw;
                 ws.lastClientSec = clientSec;
                 ws.hasPos = true;
             } else {
-                float dtSec = clientSec - ws.lastClientSec;
+                float dtSec = Math.max(1.0E-4F, clientSec - ws.lastClientSec);
                 double distMoved = Math.hypot(ex - ws.lastX, ez - ws.lastZ);
-                // Natural stride of Primo Geovishap walk (1.60s loop @ 1.35x scale) is ~1.85 blocks per clip-second
-                float distAdvance = (float) (distMoved / 1.85D);
-                float turnFloor = dtSec * 0.60F;
-                ws.walkAnimSec += Math.max(distAdvance, turnFloor);
-                int stepHalf = (int) Math.floor((ws.walkAnimSec + 0.40F) / 0.80F);
-                if (stepHalf != ws.lastStepHalf && entity.onGround() && distMoved > 0.008D) {
-                    ws.lastStepHalf = stepHalf;
-                    BossCameraShake.triggerAt(entity.position(), 0.16F, 18.0D);
+                float yawDelta = Math.abs(Mth.wrapDegrees(bodyYaw - ws.lastBodyYaw));
+                float speedBlocksPerSec = (float) (distMoved / dtSec);
+                float turnStepDrive = Mth.clamp((yawDelta / dtSec) / 90.0F, 0.0F, 0.55F);
+                float targetWalkAmt = Mth.clamp(Math.max(speedBlocksPerSec / 3.4F, turnStepDrive), 0.0F, 1.0F);
+                if (animId == PrimoGeovishapEntity.ANIM_WALK) {
+                    targetWalkAmt = Math.max(targetWalkAmt, 0.45F);
+                }
+                float damp = 1.0F - (float) Math.exp(-dtSec * 8.5D);
+                ws.walkAmount = Mth.lerp(damp, ws.walkAmount, targetWalkAmt);
+                // Advance continuous gait phase strictly proportional to real ground distance (zero foot-skating!)
+                float phaseStep = (float) (distMoved * 1.95D) + (turnStepDrive * dtSec * 3.2F);
+                ws.walkPhase += phaseStep;
+                // Trigger weighty footstep camera thud on each of the 4 staggered paw plants
+                int stepQuarter = (int) Math.floor(ws.walkPhase / (Mth.HALF_PI));
+                if (stepQuarter != ws.lastStepQuarter && entity.onGround() && ws.walkAmount > 0.25F) {
+                    ws.lastStepQuarter = stepQuarter;
+                    BossCameraShake.triggerAt(entity.position(), 0.13F * ws.walkAmount, 18.0D);
                 }
                 ws.lastX = ex;
                 ws.lastZ = ez;
+                ws.lastBodyYaw = bodyYaw;
                 ws.lastClientSec = clientSec;
             }
-            evalClipSec = ws.walkAnimSec;
+            // Seamless Alex's Caves locomotion: always use living "idle" base + continuous procedural gait blend
+            clip = "idle";
+            evalClipSec = clientSec;
         } else {
             ws.hasPos = false;
+            ws.walkAmount = Mth.lerp(0.25F, ws.walkAmount, 0.0F);
         }
 
         if (BossCameraShake.isHitstopActive()) {
@@ -133,7 +150,9 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         }
         PrimoGeovishapAnimations.BlendState blend = blendStates.computeIfAbsent(
                 entity, k -> new PrimoGeovishapAnimations.BlendState());
-        PrimoGeovishapAnimations.applyBlended(model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch);
+        PrimoGeovishapAnimations.applyBlended(
+                model, blend, clip, evalClipSec, clientSec, headLookYaw, headLookPitch,
+                ws.walkPhase, isLocomotion ? ws.walkAmount : 0.0F);
         applyQuadrupedFootIK(entity, ws, animId, bodyYaw, partialTicks);
         applyTailYawLag(entity, ws, animId);
         emissiveModel.copyPoseFrom(model);
@@ -303,19 +322,31 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         applyLimbIK("leg_right", "shin_right", Math.max(0.0F, ws.ikBR - planeBR), 0.84F, 0.78F, solve);
     }
 
-    /** Inertial yaw-lag sway along tail_1..tail_4 when Primo Geovishap turns to chase targets. */
+    /**
+     * Alex's Caves Sauropod-style cascading multi-segment inertial yaw chain:
+     * each tail segment follows the previous segment with progressive damping so turning sends a
+     * fluid traveling S-wave down tail_1 -> tail_2 -> tail_3 -> tail_4.
+     */
     private void applyTailYawLag(PrimoGeovishapEntity entity, WalkStrideState ws, int animId) {
         boolean active = animId != PrimoGeovishapEntity.ANIM_DORMANT && animId != PrimoGeovishapEntity.ANIM_DEATH;
         float yawDeltaDeg = active ? Mth.wrapDegrees(entity.yBodyRot - entity.yBodyRotO) : 0.0F;
-        float targetLag = Mth.clamp(-yawDeltaDeg * 0.032F, -0.34F, 0.34F);
-        ws.tailLagRad = Mth.lerp(0.18F, ws.tailLagRad, targetLag);
-        if (Math.abs(ws.tailLagRad) < 0.004F) return;
+        float baseTarget = Mth.clamp(-yawDeltaDeg * 0.036F, -0.38F, 0.38F);
+        ws.tailLag[0] = Mth.lerp(0.24F, ws.tailLag[0], baseTarget);
+        ws.tailLag[1] = Mth.lerp(0.19F, ws.tailLag[1], ws.tailLag[0] * 1.15F);
+        ws.tailLag[2] = Mth.lerp(0.15F, ws.tailLag[2], ws.tailLag[1] * 1.12F);
+        ws.tailLag[3] = Mth.lerp(0.12F, ws.tailLag[3], ws.tailLag[2] * 1.10F);
 
         String[] tails = {"tail_1", "tail_2", "tail_3", "tail_4"};
-        float[] weights = {0.35F, 0.55F, 0.78F, 0.98F};
+        float[] weights = {0.42F, 0.56F, 0.68F, 0.80F};
         for (int i = 0; i < tails.length; i++) {
+            if (Math.abs(ws.tailLag[i]) < 0.002F) continue;
             net.minecraft.client.model.geom.ModelPart t = model.getBone(tails[i]);
-            if (t != null) t.yRot += ws.tailLagRad * weights[i];
+            if (t != null) t.yRot += ws.tailLag[i] * weights[i];
+        }
+        // Subtle counter-leading neck anticipation when turning
+        if (active && Math.abs(ws.tailLag[0]) > 0.003F) {
+            net.minecraft.client.model.geom.ModelPart neck = model.getBone("neck");
+            if (neck != null) neck.yRot -= ws.tailLag[0] * 0.28F;
         }
     }
 

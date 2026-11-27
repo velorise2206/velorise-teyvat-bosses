@@ -101,6 +101,8 @@ public class PrimoGeovishapEntity extends Monster {
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_TICK =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
+            SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_INFUSION =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
@@ -135,6 +137,10 @@ public class PrimoGeovishapEntity extends Monster {
     private static final double ARENA_SOFT_LEASH_RADIUS = 54.0D;
     private Vec3 homePos = null;
     private float savedSpawnYaw = 0.0F;
+    private boolean infusionInitialized = false;
+    private int clientAnimTick = 0;
+    private int lastSyncedAnim = -1;
+    private int lastSyncedEpoch = -1;
     private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
     private Vec3 burrowStart = Vec3.ZERO;
     private Vec3 burrowDest = Vec3.ZERO;
@@ -192,6 +198,7 @@ public class PrimoGeovishapEntity extends Monster {
         builder.define(DATA_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM, ANIM_DORMANT);
         builder.define(DATA_ANIM_TICK, 0);
+        builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_INFUSION, INFUSION_PYRO);
         builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
         builder.define(DATA_STONES_NBT, new CompoundTag());
@@ -200,7 +207,7 @@ public class PrimoGeovishapEntity extends Monster {
 
     public int getBossState() { return entityData.get(DATA_STATE); }
     public int getAnimId() { return entityData.get(DATA_ANIM); }
-    public int getAnimTick() { return entityData.get(DATA_ANIM_TICK); }
+    public int getAnimTick() { return level().isClientSide() ? clientAnimTick : stateTick; }
     public int getInfusion() { return entityData.get(DATA_INFUSION); }
     public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
     public CompoundTag getStonesTag() { return entityData.get(DATA_STONES_NBT); }
@@ -313,6 +320,7 @@ public class PrimoGeovishapEntity extends Monster {
         entityData.set(DATA_STATE, newState);
         entityData.set(DATA_ANIM, newAnim);
         entityData.set(DATA_ANIM_TICK, 0);
+        entityData.set(DATA_ANIM_EPOCH, entityData.get(DATA_ANIM_EPOCH) + 1);
         entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
         stateTick = 0;
         showerCountered = false;
@@ -415,6 +423,15 @@ public class PrimoGeovishapEntity extends Monster {
     public void tick() {
         super.tick();
         if (level().isClientSide()) {
+            int curA = getAnimId();
+            int curE = entityData.get(DATA_ANIM_EPOCH);
+            if (curA != lastSyncedAnim || curE != lastSyncedEpoch) {
+                lastSyncedAnim = curA;
+                lastSyncedEpoch = curE;
+                clientAnimTick = 0;
+            } else {
+                clientAnimTick++;
+            }
             BossMusicManager.update(this, BOSS_MUSIC_ID,
                     getBossState() == STATE_AWAKEN || getBossState() == STATE_COMBAT || getBossState() == STATE_STAGGER);
             triggerClientCameraShake();
@@ -433,9 +450,10 @@ public class PrimoGeovishapEntity extends Monster {
         if (homePos == null) {
             homePos = position();
             savedSpawnYaw = getYRot();
-            if (tickCount <= 2) {
-                entityData.set(DATA_INFUSION, random.nextInt(4));
-            }
+        }
+        if (!infusionInitialized) {
+            entityData.set(DATA_INFUSION, random.nextInt(4));
+            infusionInitialized = true;
         }
 
         stateTick++;
@@ -1468,6 +1486,12 @@ public class PrimoGeovishapEntity extends Monster {
         super.addAdditionalSaveData(tag);
         tag.putInt("BossState", getBossState());
         tag.putInt("Infusion", getInfusion());
+        if (homePos != null) {
+            tag.putDouble("HomeX", homePos.x);
+            tag.putDouble("HomeY", homePos.y);
+            tag.putDouble("HomeZ", homePos.z);
+            tag.putFloat("SavedSpawnYaw", savedSpawnYaw);
+        }
         tag.putInt("AttackCooldown", attackCooldown);
         tag.putInt("ShowerCooldown", showerCooldown);
         tag.putInt("SpringCooldown", springCooldown);
@@ -1476,7 +1500,14 @@ public class PrimoGeovishapEntity extends Monster {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        if (tag.contains("Infusion")) entityData.set(DATA_INFUSION, tag.getInt("Infusion"));
+        if (tag.contains("Infusion")) {
+            entityData.set(DATA_INFUSION, Mth.clamp(tag.getInt("Infusion"), 0, 3));
+            infusionInitialized = true;
+        }
+        if (tag.contains("HomeX") && tag.contains("HomeY") && tag.contains("HomeZ")) {
+            homePos = new Vec3(tag.getDouble("HomeX"), tag.getDouble("HomeY"), tag.getDouble("HomeZ"));
+            savedSpawnYaw = tag.getFloat("SavedSpawnYaw");
+        }
         if (tag.contains("BossState") && tag.getInt("BossState") != STATE_DEATH) {
             entityData.set(DATA_STATE, tag.getInt("BossState"));
         }
