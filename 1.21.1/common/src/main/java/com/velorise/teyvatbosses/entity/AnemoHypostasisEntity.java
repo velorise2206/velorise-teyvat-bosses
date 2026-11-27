@@ -22,6 +22,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -232,7 +233,13 @@ public class AnemoHypostasisEntity extends Monster {
     }
 
     @Override
+    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
+        return false;
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (source.is(DamageTypes.FALL)) return false;
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_AWAKEN || st == STATE_REVIVAL) {
             return false;
@@ -797,8 +804,18 @@ public class AnemoHypostasisEntity extends Monster {
             arenaInit = true;
             arenaCenter = new Vec3(tag.getDouble("AX"), tag.getDouble("AY"), tag.getDouble("AZ"));
             savedSpawnYaw = tag.getFloat("SavedYaw");
+            setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+            setYRot(savedSpawnYaw);
+            yBodyRot = savedSpawnYaw;
+            yHeadRot = savedSpawnYaw;
         }
-        revivalUsed = tag.getBoolean("RevivalUsed");
+        entityData.set(DATA_BOSS_STATE, STATE_DORMANT);
+        entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
+        revivalUsed = false;
+        bossEvent.setVisible(false);
+        setHealth(getMaxHealth());
+        setDeltaMovement(Vec3.ZERO);
+        returnHelper.reset();
     }
 
     @Override

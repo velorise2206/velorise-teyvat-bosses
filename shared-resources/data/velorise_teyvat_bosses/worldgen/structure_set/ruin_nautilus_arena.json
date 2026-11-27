@@ -9,6 +9,10 @@
     "type": "minecraft:random_spread",
     "spacing": 28,
     "separation": 12,
-    "salt": 63918427
+    "salt": 63918427,
+    "exclusion_zone": {
+      "other_set": "velorise_teyvat_bosses:land_boss_arenas",
+      "chunk_count": 6
+    }
   }
 }

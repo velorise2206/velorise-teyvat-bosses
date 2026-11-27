@@ -443,9 +443,19 @@ public final class CryoRegisvineAnimations {
         }
     }
 
+    private static void applyClipWeighted(CryoRegisvineModel<?> model, String clipName, float timeSeconds, float weight) {
+        if (clipName == null || weight <= 1e-4F) return;
+        BedrockAnimationLoader.Clip ext = BedrockAnimationLoader.getClip("cryo_regisvine_boss", clipName);
+        if (ext != null) {
+            BedrockAnimationLoader.applyWeighted(model::getBone, ext, timeSeconds, weight);
+        } else {
+            applyWeighted(model, CLIPS.get(clipName), timeSeconds, weight);
+        }
+    }
+
     public static void apply(CryoRegisvineModel<?> model, String clipName, float timeSeconds) {
         model.resetPose();
-        applyWeighted(model, CLIPS.get(clipName), timeSeconds, 1.0F);
+        applyClipWeighted(model, clipName, timeSeconds, 1.0F);
     }
 
     public static void applyBlended(CryoRegisvineModel<?> model, String prevClipName, float prevTimeSeconds, String currClipName, float currTimeSeconds, float blendAlpha) {
@@ -453,8 +463,8 @@ public final class CryoRegisvineAnimations {
         float a = Math.max(0.0F, Math.min(1.0F, blendAlpha));
         float smoothA = a * a * (3.0F - 2.0F * a);
         if (prevClipName != null && smoothA < 0.999F) {
-            applyWeighted(model, CLIPS.get(prevClipName), prevTimeSeconds, 1.0F - smoothA);
+            applyClipWeighted(model, prevClipName, prevTimeSeconds, 1.0F - smoothA);
         }
-        applyWeighted(model, CLIPS.get(currClipName), currTimeSeconds, smoothA);
+        applyClipWeighted(model, currClipName, currTimeSeconds, smoothA);
     }
 }

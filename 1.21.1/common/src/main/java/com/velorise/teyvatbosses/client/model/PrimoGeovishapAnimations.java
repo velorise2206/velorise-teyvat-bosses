@@ -519,6 +519,39 @@ public final class PrimoGeovishapAnimations {
     }
 
     private static void applyClipDirect(PrimoGeovishapModel<?> model, String clipName, float seconds) {
+        BedrockAnimationLoader.Clip ext = BedrockAnimationLoader.getClip("primo_geovishap_boss", clipName);
+        if (ext != null) {
+            applyPredatoryBaseStance(model, clipName);
+            for (BedrockAnimationLoader.Track tr : ext.tracks) {
+                ModelPart part = model.getBone(tr.bone);
+                if (part == null || tr.times.length == 0) continue;
+                float lag = getBonePhaseLag(tr.bone, clipName);
+                float sampleT = ext.loop
+                        ? (((seconds - lag) % ext.lengthSeconds) + ext.lengthSeconds) % ext.lengthSeconds
+                        : Mth.clamp(seconds - lag, 0.0F, ext.lengthSeconds);
+                float vx = sampleSmoothHermite(tr.times, tr.xs, sampleT, ext.loop);
+                float vy = sampleSmoothHermite(tr.times, tr.ys, sampleT, ext.loop);
+                float vz = sampleSmoothHermite(tr.times, tr.zs, sampleT, ext.loop);
+                if (tr.channel == BedrockAnimationLoader.CH_POS) {
+                    part.x += vx;
+                    part.y -= vy;
+                    part.z += vz;
+                } else if (tr.channel == BedrockAnimationLoader.CH_ROT) {
+                    if ("jaw".equals(tr.bone)) {
+                        part.xRot += vx * DEG;
+                    } else {
+                        part.xRot -= vx * DEG;
+                    }
+                    part.yRot -= vy * DEG;
+                    part.zRot += vz * DEG;
+                } else if (tr.channel == BedrockAnimationLoader.CH_SCALE) {
+                    part.xScale = vx;
+                    part.yScale = vy;
+                    part.zScale = vz;
+                }
+            }
+            return;
+        }
         Clip c = CLIPS.get(clipName);
         if (c == null) return;
         applyPredatoryBaseStance(model, clipName);

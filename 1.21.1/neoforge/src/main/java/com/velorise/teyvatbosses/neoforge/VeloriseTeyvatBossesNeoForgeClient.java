@@ -30,6 +30,7 @@ import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
+import com.velorise.teyvatbosses.client.model.BedrockAnimationLoader;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
@@ -49,6 +50,7 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 
 @EventBusSubscriber(modid = TeyvatBossesConstants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -108,7 +110,6 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
             CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
                     (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
             for (Item compass : new Item[]{
-                    VeloriseTeyvatBossesNeoForge.TEYVAT_BOSS_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.CRYO_REGISVINE_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.ANEMO_HYPOSTASIS_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.RUIN_GUARD_COMPASS.get(),
@@ -118,6 +119,11 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
                 ItemProperties.register(compass, ResourceLocation.withDefaultNamespace("angle"), bossCompassProp);
             }
         });
+    }
+
+    @SubscribeEvent
+    public static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(BedrockAnimationLoader.INSTANCE);
     }
 
     @SubscribeEvent

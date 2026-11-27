@@ -28,16 +28,9 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-import net.minecraft.server.level.ServerPlayer;
-
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Teyvat Boss Locator Compass — reusable survival structure locator with live 360-degree needle tracking.
@@ -69,14 +62,9 @@ public class TeyvatBossLocatorItem extends Item {
 
     private record CachedScan(@Nullable BlockPos pos, long expiresMs) {}
     private static final Map<String, CachedScan> LOCATOR_CACHE = new ConcurrentHashMap<>();
-    private static final Set<UUID> IN_FLIGHT_PLAYERS = ConcurrentHashMap.newKeySet();
-    private static final ExecutorService LOCATOR_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "velorise-boss-locator");
-        t.setDaemon(true);
-        return t;
-    });
     private static final long CACHE_TTL_MS = 300_000L; // 5 minutes per 256x256 block region
-    private static long lastGlobalScanGameTime = Long.MIN_VALUE;
+    private static final long GLOBAL_SCAN_COOLDOWN_MS = 1_000L;
+    private static volatile long lastGlobalScanMs = 0L;
 
     private final int fixedTargetIndex;
 
@@ -162,16 +150,15 @@ public class TeyvatBossLocatorItem extends Item {
             int radiusChunks = TeyvatBossesConfig.get().locatorSearchRadiusChunks;
             int regionX = player.blockPosition().getX() >> 8;
             int regionZ = player.blockPosition().getZ() >> 8;
-            String cacheKey = sl.dimension().location() + "|" + target.tagName() + "|" + regionX + "|" + regionZ + "|" + radiusChunks;
+            String cacheKey = sl.getSeed() + "|" + sl.dimension().location() + "|" + target.tagName()
+                    + "|" + regionX + "|" + regionZ + "|" + radiusChunks;
             long nowMs = System.currentTimeMillis();
             CachedScan cached = LOCATOR_CACHE.get(cacheKey);
             if (cached != null && cached.expiresMs() > nowMs) {
                 player.getCooldowns().addCooldown(this, 120);
                 deliverScanResult(sl, player, stack, target, cached.pos());
             } else {
-                long gameTime = sl.getGameTime();
-                UUID playerId = player.getUUID();
-                if (IN_FLIGHT_PLAYERS.contains(playerId) || (gameTime - lastGlobalScanGameTime < 20L)) {
+                if (nowMs - lastGlobalScanMs < GLOBAL_SCAN_COOLDOWN_MS) {
                     player.getCooldowns().addCooldown(this, 25);
                     player.displayClientMessage(
                             Component.translatable("message.velorise_teyvat_bosses.locator.busy")
@@ -180,34 +167,25 @@ public class TeyvatBossLocatorItem extends Item {
                     );
                     return InteractionResultHolder.sidedSuccess(stack, false);
                 }
-                lastGlobalScanGameTime = gameTime;
-                IN_FLIGHT_PLAYERS.add(playerId);
+                lastGlobalScanMs = nowMs;
                 player.getCooldowns().addCooldown(this, 120);
-                player.displayClientMessage(
-                        Component.translatable("message.velorise_teyvat_bosses.locator.searching",
-                                Component.translatable(target.langKey()).withStyle(target.color(), ChatFormatting.BOLD))
-                                .withStyle(ChatFormatting.GRAY),
-                        true
-                );
                 BlockPos origin = player.blockPosition().immutable();
-                CompletableFuture.supplyAsync(() -> sl.findNearestMapStructure(tagKey, origin, radiusChunks, false), LOCATOR_EXECUTOR)
-                        .whenComplete((foundPos, err) -> {
-                            IN_FLIGHT_PLAYERS.remove(playerId);
-                            sl.getServer().execute(() -> {
-                                if (err == null) {
-                                    if (LOCATOR_CACHE.size() > 256) LOCATOR_CACHE.clear();
-                                    LOCATOR_CACHE.put(cacheKey, new CachedScan(foundPos, System.currentTimeMillis() + CACHE_TTL_MS));
-                                }
-                                ServerPlayer online = sl.getServer().getPlayerList().getPlayer(playerId);
-                                if (online == null || online.level() != sl) return;
-                                ItemStack held = online.getItemInHand(hand);
-                                if (!(held.getItem() instanceof TeyvatBossLocatorItem)) {
-                                    held = online.getMainHandItem().getItem() instanceof TeyvatBossLocatorItem
-                                            ? online.getMainHandItem() : online.getOffhandItem();
-                                }
-                                deliverScanResult(sl, online, held, target, err == null ? foundPos : null);
-                            });
-                        });
+                // Execute directly on the Server thread (matching vanilla EnderEyeItem) to avoid off-thread
+                // ServerChunkCache.getChunk().join() stalls/deadlocks and permanently stuck player locks.
+                BlockPos foundPos = null;
+                boolean succeeded = false;
+                try {
+                    foundPos = sl.findNearestMapStructure(tagKey, origin, radiusChunks, false);
+                    succeeded = true;
+                } catch (Throwable t) {
+                    TeyvatBossesConstants.LOGGER.error("Boss Locator scan failed for {} at {} (radius={} chunks)",
+                            target.tagName(), origin, radiusChunks, t);
+                }
+                if (succeeded) {
+                    if (LOCATOR_CACHE.size() > 256) LOCATOR_CACHE.clear();
+                    LOCATOR_CACHE.put(cacheKey, new CachedScan(foundPos, System.currentTimeMillis() + CACHE_TTL_MS));
+                }
+                deliverScanResult(sl, player, stack, target, foundPos);
             }
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());

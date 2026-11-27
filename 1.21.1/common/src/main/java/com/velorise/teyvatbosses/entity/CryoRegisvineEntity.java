@@ -22,6 +22,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -324,7 +325,13 @@ public class CryoRegisvineEntity extends Monster {
     }
 
     @Override
+    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
+        return false;
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (source.is(DamageTypes.FALL)) return false;
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_AWAKEN) return false;
         if (!level().isClientSide() && source.getEntity() instanceof LivingEntity attacker
@@ -959,9 +966,15 @@ public class CryoRegisvineEntity extends Monster {
         if (tag.getBoolean("AnchorInit")) {
             anchorPos = new Vec3(tag.getDouble("AnchorX"), tag.getDouble("AnchorY"), tag.getDouble("AnchorZ"));
             anchorInitialized = true;
+            setPos(anchorPos.x, anchorPos.y, anchorPos.z);
         }
-        entityData.set(DATA_COROLLA_PHASE, tag.getInt("CorollaPhase"));
+        entityData.set(DATA_STATE, STATE_DORMANT);
+        entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
+        entityData.set(DATA_COROLLA_PHASE, 0);
         if (tag.contains("RootYaw")) entityData.set(DATA_ROOT_YAW, tag.getFloat("RootYaw"));
+        bossEvent.setVisible(false);
+        setHealth(getMaxHealth());
+        setDeltaMovement(Vec3.ZERO);
     }
 
     @Override

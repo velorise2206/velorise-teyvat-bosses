@@ -1312,9 +1312,19 @@ public final class RuinGuardAnimations {
         }
     }
 
+    private static void applyClipWeighted(RuinGuardModel<?> model, String clipName, float timeSeconds, float weight) {
+        if (clipName == null || weight <= 1e-4F) return;
+        BedrockAnimationLoader.Clip ext = BedrockAnimationLoader.getClip("ruin_guard_boss", clipName);
+        if (ext != null) {
+            BedrockAnimationLoader.applyWeighted(model::getBone, ext, timeSeconds, weight);
+        } else {
+            applyWeighted(model, CLIPS.get(clipName), timeSeconds, weight);
+        }
+    }
+
     public static void apply(RuinGuardModel<?> model, String clipName, float timeSeconds) {
         model.resetPose();
-        applyWeighted(model, CLIPS.get(clipName), timeSeconds, 1.0F);
+        applyClipWeighted(model, clipName, timeSeconds, 1.0F);
         applyShoulderArmCoupling(model);
     }
 
@@ -1323,9 +1333,9 @@ public final class RuinGuardAnimations {
         float a = Math.max(0.0F, Math.min(1.0F, blendAlpha));
         float smoothA = a * a * (3.0F - 2.0F * a);
         if (prevClipName != null && smoothA < 0.999F) {
-            applyWeighted(model, CLIPS.get(prevClipName), prevTimeSeconds, 1.0F - smoothA);
+            applyClipWeighted(model, prevClipName, prevTimeSeconds, 1.0F - smoothA);
         }
-        applyWeighted(model, CLIPS.get(currClipName), currTimeSeconds, smoothA);
+        applyClipWeighted(model, currClipName, currTimeSeconds, smoothA);
         applyShoulderArmCoupling(model);
     }
 

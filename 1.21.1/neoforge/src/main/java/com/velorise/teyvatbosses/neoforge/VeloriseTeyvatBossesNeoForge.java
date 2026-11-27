@@ -259,8 +259,6 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("geovishap_boots", () -> new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.BOOTS, new Item.Properties()));
 
     // Teyvat Boss Locator Compass
-    public static final DeferredHolder<Item, Item> TEYVAT_BOSS_COMPASS =
-            ITEMS.register("teyvat_boss_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_COMPASS =
             ITEMS.register("cryo_regisvine_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 0));
     public static final DeferredHolder<Item, Item> ANEMO_HYPOSTASIS_COMPASS =
@@ -373,7 +371,6 @@ public class VeloriseTeyvatBossesNeoForge {
                     .title(Component.translatable("itemGroup.velorise_teyvat_bosses.main"))
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG.get()))
                     .displayItems((params, output) -> {
-                        output.accept(TEYVAT_BOSS_COMPASS.get());
                         output.accept(CRYO_REGISVINE_COMPASS.get());
                         output.accept(ANEMO_HYPOSTASIS_COMPASS.get());
                         output.accept(RUIN_GUARD_COMPASS.get());

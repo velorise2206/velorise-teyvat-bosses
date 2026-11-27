@@ -31,6 +31,7 @@ import com.velorise.teyvatbosses.client.RuinTorpedoRenderer;
 import com.velorise.teyvatbosses.client.TrounceBlossomRenderer;
 import com.velorise.teyvatbosses.client.WindCurrentRenderer;
 import com.velorise.teyvatbosses.client.model.AnemoHypostasisModel;
+import com.velorise.teyvatbosses.client.model.BedrockAnimationLoader;
 import com.velorise.teyvatbosses.client.model.CryoRegisvineModel;
 import com.velorise.teyvatbosses.client.model.DepthMineModel;
 import com.velorise.teyvatbosses.client.model.GeoDrillerModel;
@@ -47,6 +48,10 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
 import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
@@ -58,6 +63,17 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BossClientBridge.setShakeHandler(BossCameraShake::triggerAt);
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+            @Override
+            public ResourceLocation getFabricId() {
+                return BedrockAnimationLoader.RELOAD_ID;
+            }
+
+            @Override
+            public void onResourceManagerReload(ResourceManager resourceManager) {
+                BedrockAnimationLoader.INSTANCE.onResourceManagerReload(resourceManager);
+            }
+        });
         EntityModelLayerRegistry.registerModelLayer(CryoRegisvineModel.LAYER_LOCATION, CryoRegisvineModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(AnemoHypostasisModel.LAYER_LOCATION, AnemoHypostasisModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(TrounceBlossomModel.LAYER_LOCATION, TrounceBlossomModel::createBodyLayer);
@@ -100,7 +116,6 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
                 (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
         for (Item compass : new Item[]{
-                VeloriseTeyvatBossesFabric.TEYVAT_BOSS_COMPASS,
                 VeloriseTeyvatBossesFabric.CRYO_REGISVINE_COMPASS,
                 VeloriseTeyvatBossesFabric.ANEMO_HYPOSTASIS_COMPASS,
                 VeloriseTeyvatBossesFabric.RUIN_GUARD_COMPASS,

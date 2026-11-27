@@ -161,14 +161,14 @@ public class TrounceBlossomEntity extends Entity {
         }
 
         if (kind == BossRespawnAnchorEntity.BOSS_ANEMO_HYPOSTASIS) {
-            if (TeyvatBossesItems.anemoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoDisc()));
+            if (TeyvatBossesItems.anemoDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoDisc()));
             if (TeyvatBossesItems.anemoPrismCube() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.anemoPrismCube(), 2 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.WIND_CHARGE, 12 + random.nextInt(9)));
             giveToPlayer(sl, player, new ItemStack(Items.EMERALD, 6 + random.nextInt(5)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.BREEZE_ROD, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_GUARD) {
-            if (TeyvatBossesItems.ruinGuardDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
+            if (TeyvatBossesItems.ruinGuardDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinGuardDisc()));
             int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Mech salvage parts
             for (int i = 0; i < partDrops; i++) {
                 Item mechPart = pickSmartPart(player, TeyvatBossesItems.mechPartPool());
@@ -179,17 +179,16 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.BLAZE_ROD, 4 + random.nextInt(4)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS) {
-            if (TeyvatBossesItems.ruinNautilusDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinNautilusDisc()));
-            int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Submersible salvage parts
-            for (int i = 0; i < partDrops; i++) {
-                Item subPart = pickSmartPart(player, TeyvatBossesItems.subPartPool());
+            if (TeyvatBossesItems.ruinNautilusDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.ruinNautilusDisc()));
+            // Drop all 4 distinct Ruin Submersible parts on first clear so the player can assemble & pilot immediately
+            for (Item subPart : TeyvatBossesItems.subPartPool()) {
                 if (subPart != null) giveToPlayer(sl, player, new ItemStack(subPart));
             }
             giveToPlayer(sl, player, new ItemStack(Items.SEA_LANTERN, 3 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.PRISMARINE_BRICKS, 8 + random.nextInt(6)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
-            if (TeyvatBossesItems.cryoDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.cryoDisc()));
+            if (TeyvatBossesItems.cryoDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.cryoDisc()));
             int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Cryo Turret salvage parts
             for (int i = 0; i < partDrops; i++) {
                 Item cryoPart = pickSmartPart(player, TeyvatBossesItems.cryoTurretPartPool());
@@ -198,7 +197,7 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.BLUE_ICE, 16));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
         } else { // Primo Geovishap: drops 2-3 Primordial Jade (crafts both Dragon-Scale Armor & Geo Driller!)
-            if (TeyvatBossesItems.primoGeovishapDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primoGeovishapDisc()));
+            if (TeyvatBossesItems.primoGeovishapDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primoGeovishapDisc()));
             if (TeyvatBossesItems.primordialJade() != null) {
                 giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primordialJade(), 2 + random.nextInt(2)));
             }

@@ -273,9 +273,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.BOOTS, new Item.Properties()));
 
     // Teyvat Boss Locator Compass
-    public static final Item TEYVAT_BOSS_COMPASS = Registry.register(
-            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("teyvat_boss_compass"),
-            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final Item CRYO_REGISVINE_COMPASS = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_compass"),
             new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 0));
@@ -434,7 +431,6 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                     .title(Component.translatable("itemGroup.velorise_teyvat_bosses.main"))
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG))
                     .displayItems((params, output) -> {
-                        output.accept(TEYVAT_BOSS_COMPASS);
                         output.accept(CRYO_REGISVINE_COMPASS);
                         output.accept(ANEMO_HYPOSTASIS_COMPASS);
                         output.accept(RUIN_GUARD_COMPASS);

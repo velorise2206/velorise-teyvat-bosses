@@ -30,6 +30,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -384,6 +385,8 @@ public class PrimoGeovishapEntity extends Monster {
     private boolean isValidCombatTarget(LivingEntity le) {
         if (le == null || !le.isAlive() || le == this || le instanceof PrimoGeovishapEntity) return false;
         if (le instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        double refY = homePos != null ? homePos.y : getY();
+        if (Math.abs(le.getY() - refY) > 12.0D) return false;
         return le.distanceToSqr(this) <= 44.0D * 44.0D;
     }
 
@@ -401,7 +404,13 @@ public class PrimoGeovishapEntity extends Monster {
     }
 
     @Override
+    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
+        return false;
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (source.is(DamageTypes.FALL)) return false;
         int st = getBossState();
         if (st == STATE_DEATH) return false;
         if (returnHelper.isHardReset()) return false;
@@ -1824,10 +1833,19 @@ public class PrimoGeovishapEntity extends Monster {
         if (tag.contains("HomeX") && tag.contains("HomeY") && tag.contains("HomeZ")) {
             homePos = new Vec3(tag.getDouble("HomeX"), tag.getDouble("HomeY"), tag.getDouble("HomeZ"));
             savedSpawnYaw = tag.getFloat("SavedSpawnYaw");
+            setPos(homePos.x, homePos.y, homePos.z);
+            setYRot(savedSpawnYaw);
+            yBodyRot = savedSpawnYaw;
+            yHeadRot = savedSpawnYaw;
         }
-        if (tag.contains("BossState") && tag.getInt("BossState") != STATE_DEATH) {
-            entityData.set(DATA_STATE, tag.getInt("BossState"));
-        }
+        // Reset cleanly to dormant at arena center with full HP on chunk reload
+        entityData.set(DATA_STATE, STATE_DORMANT);
+        entityData.set(DATA_ANIM, ANIM_DORMANT);
+        entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+        bossEvent.setVisible(false);
+        setHealth(getMaxHealth());
+        setDeltaMovement(Vec3.ZERO);
+        returnHelper.reset();
         attackCooldown = tag.getInt("AttackCooldown");
         showerCooldown = tag.getInt("ShowerCooldown");
         if (tag.contains("SpringCooldown")) springCooldown = tag.getInt("SpringCooldown");

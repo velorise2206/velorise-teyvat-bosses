@@ -714,11 +714,18 @@ public class GeoDrillerEntity extends Mob {
                 this.yHeadRot = this.getYRot();
             }
             boolean hasFuel = getFuel() > 0;
+            Vec3 fwdVec = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize();
+            boolean drillBlockedAhead = (getPartMask() & PART_DRILL) != 0 && isDrillBlockedAhead(fwdVec);
             if (isSurging()) {
-                // Rapid RMB forward drill surge (~4.5-5.5 blocks burst)
-                float surgeFrac = Mth.clamp(getSurgeTicks() / 12.0F, 0.25F, 1.0F);
-                this.setSpeed(0.56F * surgeFrac);
-                super.travel(new Vec3(0.0D, travelVector.y, 1.0D));
+                // Rapid RMB forward drill surge (~4.5-5.5 blocks burst); lodge drill tip mid-block on solid walls
+                if (drillBlockedAhead) {
+                    cancelForwardMomentum(fwdVec);
+                    super.travel(Vec3.ZERO);
+                } else {
+                    float surgeFrac = Mth.clamp(getSurgeTicks() / 12.0F, 0.25F, 1.0F);
+                    this.setSpeed(0.56F * surgeFrac);
+                    super.travel(new Vec3(0.0D, travelVector.y, 1.0D));
+                }
             } else {
                 // Advance driveSpool directly from live pilot input on controlling client so driving never stalls!
                 boolean clientWantsDrive = hasFuel && Math.abs(fwd) > 0.05F;
@@ -727,9 +734,14 @@ public class GeoDrillerEntity extends Mob {
                 }
                 float torque = Mth.clamp((driveSpool - 0.25F) / 0.75F, 0.0F, 1.0F);
                 if (clientWantsDrive && torque > 0.02F) {
-                    float baseSpd = fwd > 0 ? 0.22F : 0.13F;
-                    this.setSpeed(baseSpd * torque);
-                    super.travel(new Vec3(0.0D, travelVector.y, fwd));
+                    if (fwd > 0.0F && drillBlockedAhead) {
+                        cancelForwardMomentum(fwdVec);
+                        super.travel(Vec3.ZERO);
+                    } else {
+                        float baseSpd = fwd > 0 ? 0.22F : 0.13F;
+                        this.setSpeed(baseSpd * torque);
+                        super.travel(new Vec3(0.0D, travelVector.y, fwd));
+                    }
                 } else {
                     setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
                     super.travel(Vec3.ZERO);
@@ -738,6 +750,43 @@ public class GeoDrillerEntity extends Mob {
             return;
         }
         super.travel(travelVector);
+    }
+
+    /**
+     * Checks whether a solid wall sits ahead of the bore head so the drill tip lodges
+     * cleanly mid-block (~0.5 blocks deep) instead of letting the chassis clip into the wall.
+     * Probes at wall height (y + 1.05 and y + 1.85) so 1-block terrain steps remain climbable.
+     */
+    private boolean isDrillBlockedAhead(Vec3 fwd) {
+        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
+        double yBias = getPitchMode() == PITCH_UP ? 0.20D : 0.0D;
+        double[] checkDepths = {2.10D, 2.65D};
+        double[] checkOffsets = {-0.45D, 0.0D, 0.45D};
+        double[] checkYs = {1.05D + yBias, 1.85D + yBias};
+        for (double depth : checkDepths) {
+            double bx = getX() + fwd.x * depth;
+            double bz = getZ() + fwd.z * depth;
+            for (double dx : checkOffsets) {
+                double px = bx + right.x * dx;
+                double pz = bz + right.z * dx;
+                for (double dy : checkYs) {
+                    BlockPos bp = BlockPos.containing(px, getY() + dy, pz);
+                    BlockState state = level().getBlockState(bp);
+                    if (!state.getCollisionShape(level(), bp).isEmpty()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void cancelForwardMomentum(Vec3 fwd) {
+        Vec3 vel = getDeltaMovement();
+        double fwdSpeed = vel.x * fwd.x + vel.z * fwd.z;
+        if (fwdSpeed > 0.0D) {
+            setDeltaMovement(vel.x - fwd.x * fwdSpeed, vel.y, vel.z - fwd.z * fwdSpeed);
+        }
     }
 
     private ItemStack buildVirtualPickaxe(ServerLevel sl) {
@@ -770,7 +819,7 @@ public class GeoDrillerEntity extends Mob {
 
         boolean minedAny = false;
         int baseY = Mth.floor(getY()) + yShift;
-        double[] depths = {0.95D, 1.55D, 2.20D, 2.85D};
+        double[] depths = {0.95D, 1.55D, 2.20D, 2.75D, 3.15D};
         for (double depth : depths) {
             Vec3 slice = position().add(fwd.scale(depth));
 
@@ -857,10 +906,29 @@ public class GeoDrillerEntity extends Mob {
         }
     }
 
+    private boolean isLightSlotAvailable(ServerLevel sl, BlockPos pos) {
+        BlockState state = sl.getBlockState(pos);
+        return state.isAir() || (pos.equals(activeLightPos) && state.is(Blocks.LIGHT));
+    }
+
     private void updateHeadlight(ServerLevel sl, Vec3 fwd) {
-        BlockPos desired = BlockPos.containing(getX() + fwd.x * 3.2D, getY() + 2.2D, getZ() + fwd.z * 3.2D);
-        if (!sl.getBlockState(desired).isAir()) {
-            desired = BlockPos.containing(getX() + fwd.x * 2.6D, getY() + 1.4D, getZ() + fwd.z * 2.6D);
+        double[][] candidates = {
+                {2.8D, 2.2D},
+                {2.0D, 2.2D},
+                {1.2D, 2.2D},
+                {0.0D, 2.3D}
+        };
+        BlockPos desired = null;
+        for (double[] c : candidates) {
+            BlockPos pos = BlockPos.containing(getX() + fwd.x * c[0], getY() + c[1], getZ() + fwd.z * c[0]);
+            if (isLightSlotAvailable(sl, pos)) {
+                desired = pos;
+                break;
+            }
+        }
+        if (desired == null) {
+            clearHeadlight(sl);
+            return;
         }
         if (desired.equals(activeLightPos)) return;
         clearHeadlight(sl);

@@ -343,6 +343,7 @@ public class RuinNautilusEntity extends Mob {
     }
 
     private void startAwaken() {
+        bossEvent.setVisible(true);
         transitionTo(STATE_AWAKEN, ANIM_AWAKEN);
         playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 1.5F, 0.80F);
         if (level() instanceof ServerLevel sl) {
@@ -462,6 +463,9 @@ public class RuinNautilusEntity extends Mob {
             } else if (anim == ANIM_RECOVER && t >= 34) {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
                 attackCooldown = 24;
+            } else if (anim != ANIM_STUNNED && anim != ANIM_RECOVER) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+                attackCooldown = 16;
             }
             return;
         }
@@ -513,6 +517,11 @@ public class RuinNautilusEntity extends Mob {
             entityData.set(DATA_HULL_PITCH, Mth.lerp(0.15F, getHullPitchDeg(), desiredPitch));
         }
 
+        if (anim == ANIM_DORMANT || anim == ANIM_AWAKEN || anim == ANIM_STUNNED || anim == ANIM_RECOVER || anim == ANIM_DEATH || anim == ANIM_PHASE2_TRANS) {
+            setAnim(ANIM_IDLE);
+            anim = ANIM_IDLE;
+            attackCooldown = Math.min(attackCooldown, 16);
+        }
         if (anim == ANIM_IDLE || anim == ANIM_SWIM) {
             Vec3 desiredVel;
             double strafeSign = ((tickCount / 80) % 2 == 0) ? 1.0D : -1.0D;
@@ -880,6 +889,7 @@ public class RuinNautilusEntity extends Mob {
         tag.putDouble("ArenaX", arenaCenter.x);
         tag.putDouble("ArenaY", arenaCenter.y);
         tag.putDouble("ArenaZ", arenaCenter.z);
+        tag.putFloat("SavedYaw", savedSpawnYaw);
         tag.putInt("BossState", getBossState());
         tag.putBoolean("Phase2", isPhase2());
     }
@@ -890,17 +900,23 @@ public class RuinNautilusEntity extends Mob {
         if (tag.getBoolean("ArenaInit")) {
             arenaInit = true;
             arenaCenter = new Vec3(tag.getDouble("ArenaX"), tag.getDouble("ArenaY"), tag.getDouble("ArenaZ"));
+            if (tag.contains("SavedYaw")) savedSpawnYaw = tag.getFloat("SavedYaw");
+            setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+            setYRot(savedSpawnYaw);
+            yBodyRot = savedSpawnYaw;
+            yHeadRot = savedSpawnYaw;
         }
-        if (tag.contains("BossState")) {
-            int st = tag.getInt("BossState");
-            entityData.set(DATA_STATE, st);
-            if (st == STATE_DORMANT) entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
-        }
-        if (tag.contains("Phase2")) {
-            boolean p2 = tag.getBoolean("Phase2");
-            entityData.set(DATA_PHASE2, p2);
-            if (p2) bossEvent.setColor(BossEvent.BossBarColor.PURPLE);
-        }
+        // Reset cleanly to dormant at arena center with full HP on chunk reload
+        entityData.set(DATA_STATE, STATE_DORMANT);
+        entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
+        entityData.set(DATA_PHASE2, false);
+        entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+        entityData.set(DATA_HULL_PITCH, 0.0F);
+        bossEvent.setColor(BossEvent.BossBarColor.BLUE);
+        bossEvent.setVisible(false);
+        setHealth(getMaxHealth());
+        setDeltaMovement(Vec3.ZERO);
+        returnHelper.reset();
     }
 
     @Override

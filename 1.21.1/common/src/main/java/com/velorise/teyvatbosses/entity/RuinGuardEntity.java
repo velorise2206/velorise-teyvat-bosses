@@ -26,6 +26,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -357,7 +358,13 @@ public class RuinGuardEntity extends Monster {
     }
 
     @Override
+    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
+        return false;
+    }
+
+    @Override
     public boolean hurt(DamageSource source, float amount) {
+        if (source.is(DamageTypes.FALL)) return false;
         int st = getBossState();
         if (st == STATE_DEATH) return false;
         if (returnHelper.isHardReset()) return false;
@@ -1526,8 +1533,18 @@ public class RuinGuardEntity extends Monster {
             arenaInit = true;
             arenaCenter = new Vec3(tag.getDouble("AX"), tag.getDouble("AY"), tag.getDouble("AZ"));
             savedSpawnYaw = tag.getFloat("SavedYaw");
+            setPos(arenaCenter.x, arenaCenter.y, arenaCenter.z);
+            setYRot(savedSpawnYaw);
+            yBodyRot = savedSpawnYaw;
+            yHeadRot = savedSpawnYaw;
         }
-        entityData.set(DATA_PHASE2, tag.getBoolean("Phase2"));
+        entityData.set(DATA_BOSS_STATE, STATE_DORMANT);
+        entityData.set(DATA_ANIM_ID, ANIM_DORMANT);
+        entityData.set(DATA_PHASE2, false);
+        bossEvent.setVisible(false);
+        setHealth(getMaxHealth());
+        setDeltaMovement(Vec3.ZERO);
+        returnHelper.reset();
     }
 
     @Override

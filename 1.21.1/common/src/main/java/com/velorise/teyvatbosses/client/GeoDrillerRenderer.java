@@ -157,14 +157,14 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             poseStack.translate(0.0D, 0.82D + chestRem * 0.42D, 0.96D + chestRem * 0.22D);
             float scale = 0.62F;
             poseStack.scale(scale, scale, scale);
-            // Rotate whole chest assembly 180 deg so latch faces cleanly backward (+Z) out of rear deck
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+            // Vanilla chest lock is on +Z, which already faces cleanly backward (+Z) out of the rear deck
             if (chestCount == 1) {
                 renderChestHalf(singleChestModel, Sheets.CHEST_LOCATION, -0.5D, poseStack, buf, packedLight);
             } else {
-                // Before parent 180-deg flip: LEFT (-1.0) open seam at +X meets RIGHT (0.0) open seam at -X!
-                renderChestHalf(doubleChestLeftModel, Sheets.CHEST_LOCATION_LEFT, -1.0D, poseStack, buf, packedLight);
-                renderChestHalf(doubleChestRightModel, Sheets.CHEST_LOCATION_RIGHT, 0.0D, poseStack, buf, packedLight);
+                // DOUBLE_CHEST_RIGHT spans x=[1/16, 1] (open seam at +X=1) and DOUBLE_CHEST_LEFT spans x=[0, 15/16] (open seam at -X=0).
+                // Placing RIGHT at -1.0 and LEFT at 0.0 merges both open seams seamlessly at x=0 with the latch centered on +Z.
+                renderChestHalf(doubleChestRightModel, Sheets.CHEST_LOCATION_RIGHT, -1.0D, poseStack, buf, packedLight);
+                renderChestHalf(doubleChestLeftModel, Sheets.CHEST_LOCATION_LEFT, 0.0D, poseStack, buf, packedLight);
             }
             poseStack.popPose();
         }
