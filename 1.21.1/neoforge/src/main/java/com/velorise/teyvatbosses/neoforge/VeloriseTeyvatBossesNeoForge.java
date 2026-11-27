@@ -53,6 +53,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.PoweredBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -173,6 +175,8 @@ public class VeloriseTeyvatBossesNeoForge {
             BLOCKS.register("ruin_nautilus_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_RUIN_NAUTILUS, trophyProps()));
     public static final DeferredHolder<Block, BossTrophyBlock> PRIMO_GEOVISHAP_TROPHY =
             BLOCKS.register("primo_geovishap_trophy", () -> new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_PRIMO_GEOVISHAP, trophyProps()));
+    public static final DeferredHolder<Block, Block> CONDENSED_REDSTONE_BLOCK =
+            BLOCKS.register("condensed_redstone_block", () -> new PoweredBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.REDSTONE_BLOCK).strength(7.0F, 9.0F)));
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<BossTrophyBlockEntity>> BOSS_TROPHY_BE =
             BLOCK_ENTITIES.register("boss_trophy", () -> BlockEntityType.Builder.of(
@@ -192,6 +196,8 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("ruin_nautilus_trophy", () -> new BlockItem(RUIN_NAUTILUS_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
     public static final DeferredHolder<Item, Item> PRIMO_GEOVISHAP_TROPHY_ITEM =
             ITEMS.register("primo_geovishap_trophy", () -> new BlockItem(PRIMO_GEOVISHAP_TROPHY.get(), new Item.Properties().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> CONDENSED_REDSTONE_BLOCK_ITEM =
+            ITEMS.register("condensed_redstone_block", () -> new BlockItem(CONDENSED_REDSTONE_BLOCK.get(), new Item.Properties().rarity(Rarity.UNCOMMON)));
 
     // Modular Salvage Parts & Gear
     public static final DeferredHolder<Item, Item> RUIN_MECH_CORE =
@@ -358,6 +364,7 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(RUIN_GUARD_TROPHY_ITEM.get());
                         output.accept(RUIN_NAUTILUS_TROPHY_ITEM.get());
                         output.accept(PRIMO_GEOVISHAP_TROPHY_ITEM.get());
+                        output.accept(CONDENSED_REDSTONE_BLOCK_ITEM.get());
                         output.accept(RUIN_MECH_CORE.get());
                         output.accept(RUIN_MECH_LEFT_ARM.get());
                         output.accept(RUIN_MECH_RIGHT_ARM.get());
@@ -412,6 +419,8 @@ public class VeloriseTeyvatBossesNeoForge {
                 CRYO_REGISVINE_TROPHY, ANEMO_HYPOSTASIS_TROPHY,
                 RUIN_GUARD_TROPHY, RUIN_NAUTILUS_TROPHY, PRIMO_GEOVISHAP_TROPHY, BOSS_TROPHY_BE
         );
+        TeyvatBossesBlocks.bindCondensedRedstone(CONDENSED_REDSTONE_BLOCK);
+        TeyvatBossesItems.bindCondensedRedstone(CONDENSED_REDSTONE_BLOCK_ITEM);
         TeyvatBossesItems.bind(
                 MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
                 MUSIC_DISC_RUIN_NAUTILUS, MUSIC_DISC_PRIMO_GEOVISHAP,

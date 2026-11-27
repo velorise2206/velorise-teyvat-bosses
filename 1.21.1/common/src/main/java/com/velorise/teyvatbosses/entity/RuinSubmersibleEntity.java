@@ -82,6 +82,10 @@ public class RuinSubmersibleEntity extends Mob {
             SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_ENERGY =
             SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> DATA_CAPACITY_LEVEL =
+            SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_CONSERVATION_LEVEL =
+            SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_TORPEDO_AMMO =
             SynchedEntityData.defineId(RuinSubmersibleEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_HEADLIGHT =
@@ -144,7 +148,9 @@ public class RuinSubmersibleEntity extends Mob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_PARTS_MASK, FULL_PARTS);
-        builder.define(DATA_ENERGY, 600.0F);
+        builder.define(DATA_ENERGY, 0.0F);
+        builder.define(DATA_CAPACITY_LEVEL, 0);
+        builder.define(DATA_CONSERVATION_LEVEL, 0);
         builder.define(DATA_TORPEDO_AMMO, MAX_TORPEDOES);
         builder.define(DATA_HEADLIGHT, true);
         builder.define(DATA_HULL_PITCH, 0.0F);
@@ -153,7 +159,7 @@ public class RuinSubmersibleEntity extends Mob {
 
     public void initAssemblyChassis() {
         entityData.set(DATA_PARTS_MASK, PART_HULL);
-        entityData.set(DATA_ENERGY, 400.0F);
+        entityData.set(DATA_ENERGY, 0.0F);
         entityData.set(DATA_TORPEDO_AMMO, MAX_TORPEDOES);
         updateAssemblyLabel();
     }
@@ -201,6 +207,14 @@ public class RuinSubmersibleEntity extends Mob {
     public boolean isFullyAssembled() { return (getPartsMask() & FULL_PARTS) == FULL_PARTS; }
     public boolean hasPart(int bit) { return (getPartsMask() & bit) != 0; }
     public float getEnergy() { return entityData.get(DATA_ENERGY); }
+    public int getCapacityLevel() { return entityData.get(DATA_CAPACITY_LEVEL); }
+    public int getConservationLevel() { return entityData.get(DATA_CONSERVATION_LEVEL); }
+    public float getMaxEnergy() { return DeviceEnergyHelper.maxEnergyForLevel(getCapacityLevel()); }
+
+    public void setCoreEnchants(int capacityLevel, int conservationLevel) {
+        entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(capacityLevel, 0, 5));
+        entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(conservationLevel, 0, 5));
+    }
     public int getTorpedoAmmo() { return entityData.get(DATA_TORPEDO_AMMO); }
     public boolean isHeadlightOn() { return entityData.get(DATA_HEADLIGHT); }
 
@@ -241,7 +255,8 @@ public class RuinSubmersibleEntity extends Mob {
     }
 
     private void addEnergy(float delta) {
-        entityData.set(DATA_ENERGY, Mth.clamp(getEnergy() + delta, 0.0F, MAX_ENERGY));
+        float applied = (delta < 0.0F) ? -DeviceEnergyHelper.scaleCost(-delta, getConservationLevel()) : delta;
+        entityData.set(DATA_ENERGY, Mth.clamp(getEnergy() + applied, 0.0F, getMaxEnergy()));
     }
 
     private void updateAssemblyLabel() {
@@ -522,10 +537,8 @@ public class RuinSubmersibleEntity extends Mob {
             return InteractionResult.CONSUME;
         }
 
-        float fuelGain = 0.0F;
-        if (stack.is(Items.SEA_LANTERN)) fuelGain = 250.0F;
-        else if (stack.is(Items.PRISMARINE_BRICKS) || stack.is(Items.REDSTONE_BLOCK)) fuelGain = 100.0F;
-        if (fuelGain > 0.0F && getEnergy() < MAX_ENERGY - 1.0F) {
+        float fuelGain = DeviceEnergyHelper.getRedstoneFuelValue(stack);
+        if (fuelGain > 0.0F && getEnergy() < getMaxEnergy() - 0.5F) {
             addEnergy(fuelGain);
             if (!player.getAbilities().instabuild) stack.shrink(1);
             playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.BEACON_POWER_SELECT, 1.0F, 1.25F);
@@ -785,6 +798,8 @@ public class RuinSubmersibleEntity extends Mob {
         super.addAdditionalSaveData(tag);
         tag.putInt("PartsMask", getPartsMask());
         tag.putFloat("Energy", getEnergy());
+        tag.putInt("CoreCapacity", getCapacityLevel());
+        tag.putInt("EnergyConservation", getConservationLevel());
         tag.putInt("TorpedoAmmo", getTorpedoAmmo());
         tag.putBoolean("Headlight", isHeadlightOn());
     }
@@ -793,7 +808,9 @@ public class RuinSubmersibleEntity extends Mob {
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.contains("PartsMask")) entityData.set(DATA_PARTS_MASK, tag.getInt("PartsMask"));
-        if (tag.contains("Energy")) entityData.set(DATA_ENERGY, tag.getFloat("Energy"));
+        if (tag.contains("CoreCapacity")) entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(tag.getInt("CoreCapacity"), 0, 5));
+        if (tag.contains("EnergyConservation")) entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(tag.getInt("EnergyConservation"), 0, 5));
+        if (tag.contains("Energy")) entityData.set(DATA_ENERGY, Mth.clamp(tag.getFloat("Energy"), 0.0F, getMaxEnergy()));
         if (tag.contains("TorpedoAmmo")) entityData.set(DATA_TORPEDO_AMMO, tag.getInt("TorpedoAmmo"));
         if (tag.contains("Headlight")) entityData.set(DATA_HEADLIGHT, tag.getBoolean("Headlight"));
         updateAssemblyLabel();

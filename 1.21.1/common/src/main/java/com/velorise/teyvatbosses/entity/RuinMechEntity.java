@@ -136,6 +136,13 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_MISSILE_AMMO =
             SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_CAPACITY_LEVEL =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_CONSERVATION_LEVEL =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_RECHARGE_CONDENSED =
+            SynchedEntityData.defineId(RuinMechEntity.class, EntityDataSerializers.BOOLEAN);
+    private float pendingRechargeAmount = ENERGY_PER_BLOCK;
 
     private int serverAnimTick = 0;
     private int clientAnimTick = 0;
@@ -189,6 +196,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         builder.define(DATA_LEAP_TY, 0.0F);
         builder.define(DATA_LEAP_TZ, 0.0F);
         builder.define(DATA_MISSILE_AMMO, MAX_MISSILE_AMMO);
+        builder.define(DATA_CAPACITY_LEVEL, 0);
+        builder.define(DATA_CONSERVATION_LEVEL, 0);
+        builder.define(DATA_RECHARGE_CONDENSED, false);
     }
 
     public void initAssemblyChassis() {
@@ -212,6 +222,16 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public int getLockedTargetId() { return entityData.get(DATA_LOCKED_TARGET_ID); }
     public boolean isHardLocked() { return entityData.get(DATA_HARD_LOCKED); }
     public int getMissileAmmo() { return entityData.get(DATA_MISSILE_AMMO); }
+    public int getCapacityLevel() { return entityData.get(DATA_CAPACITY_LEVEL); }
+    public int getConservationLevel() { return entityData.get(DATA_CONSERVATION_LEVEL); }
+    public boolean isRechargingCondensed() { return entityData.get(DATA_RECHARGE_CONDENSED); }
+    public float getMaxEnergy() { return DeviceEnergyHelper.maxEnergyForLevel(getCapacityLevel()); }
+    public int getMaxRedstoneCells() { return Math.max(10, Math.round(getMaxEnergy() / ENERGY_PER_BLOCK)); }
+
+    public void setCoreEnchants(int capacityLevel, int conservationLevel) {
+        entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(capacityLevel, 0, 5));
+        entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(conservationLevel, 0, 5));
+    }
 
     public String getBaseClipName() {
         return switch (getAnimId()) {
@@ -485,7 +505,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     }
 
     private void consumeEnergy(float amt) {
-        entityData.set(DATA_ENERGY, Math.max(0.0F, getEnergy() - amt));
+        float scaled = DeviceEnergyHelper.scaleCost(amt, getConservationLevel());
+        entityData.set(DATA_ENERGY, Math.max(0.0F, getEnergy() - scaled));
     }
 
     private void setCooldown(int ticks) {
@@ -545,10 +566,14 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             }
         }
 
-        // 3. Redstone Block -> Open rear reactor hatch & insert energy cell (+100 Energy, up to 10 blocks = 1000)
-        if (stack.is(Items.REDSTONE_BLOCK)) {
-            if (getEnergy() < MAX_ENERGY - 0.5F && getAnimId() != ANIM_RECHARGE_BACK) {
+        // 3. Redstone-only Energy Recharge (Dust +11.12 instant, Block +100, Condensed Redstone Block +900)
+        float fuelVal = DeviceEnergyHelper.getRedstoneFuelValue(stack);
+        if (fuelVal > 0.0F) {
+            float maxE = getMaxEnergy();
+            if (getEnergy() < maxE - 0.5F && getAnimId() != ANIM_RECHARGE_BACK) {
                 if (!player.getAbilities().instabuild) stack.shrink(1);
+                pendingRechargeAmount = fuelVal;
+                entityData.set(DATA_RECHARGE_CONDENSED, DeviceEnergyHelper.isCondensedRedstone(stack));
                 playAnim(ANIM_RECHARGE_BACK);
                 sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.3F, 0.70F);
                 return InteractionResult.CONSUME;
@@ -575,8 +600,11 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
 
 
     private void dismantleAndDropParts(ServerLevel sl) {
-        if (hasPart(PART_CORE) && TeyvatBossesItems.mechCore() != null)
-            spawnAtLocation(new ItemStack(TeyvatBossesItems.mechCore()));
+        if (hasPart(PART_CORE) && TeyvatBossesItems.mechCore() != null) {
+            ItemStack coreStack = new ItemStack(TeyvatBossesItems.mechCore());
+            DeviceEnergyHelper.applyCoreEnchants(sl, coreStack, getCapacityLevel(), getConservationLevel());
+            spawnAtLocation(coreStack);
+        }
         if (hasPart(PART_LEFT_ARM) && TeyvatBossesItems.mechLeftArm() != null)
             spawnAtLocation(new ItemStack(TeyvatBossesItems.mechLeftArm()));
         if (hasPart(PART_RIGHT_ARM) && TeyvatBossesItems.mechRightArm() != null)
@@ -644,8 +672,9 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 sl.sendParticles(DustParticleOptions.REDSTONE, bx, by, bz, 10, 0.25D, 0.25D, 0.25D, 0.02D);
             } else if (t == 36) {
                 // Phase 3b: Hydraulic lock-in slam -> +100 Energy + redstone/gold spark burst
-                float nextE = Math.min(MAX_ENERGY, getEnergy() + ENERGY_PER_BLOCK);
+                float nextE = Math.min(getMaxEnergy(), getEnergy() + pendingRechargeAmount);
                 entityData.set(DATA_ENERGY, nextE);
+                pendingRechargeAmount = ENERGY_PER_BLOCK;
                 sl.playSound(null, bx, by, bz, SoundEvents.PISTON_CONTRACT, SoundSource.PLAYERS, 1.35F, 0.72F);
                 sl.playSound(null, bx, by, bz, SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.4F, 1.15F);
                 sl.sendParticles(DustParticleOptions.REDSTONE, bx, by, bz, 28, 0.45D, 0.40D, 0.45D, 0.08D);
@@ -670,6 +699,11 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         if (anim == ANIM_ENTER_COCKPIT && t >= 26) {
             playAnim(ANIM_IDLE);
             return;
+        }
+        // Fix relog-while-seated bug: world reload resets ANIM_ID to ANIM_DORMANT even while pilot is seated
+        if (isVehicle() && isFullyAssembled() && anim == ANIM_DORMANT) {
+            playAnim(ANIM_IDLE);
+            anim = ANIM_IDLE;
         }
 
         // Slow passive missile pod recharge (1 missile per 9s while powered) so flying enemies never soft-lock the mech
@@ -1384,13 +1418,17 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         tag.putFloat("MechEnergy", getEnergy());
         tag.putFloat("MechArmor", getArmorIntegrity());
         tag.putInt("MechMissiles", getMissileAmmo());
+        tag.putInt("CoreCapacity", getCapacityLevel());
+        tag.putInt("EnergyConservation", getConservationLevel());
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.contains("PartsMask")) entityData.set(DATA_PARTS_MASK, tag.getInt("PartsMask"));
-        if (tag.contains("MechEnergy")) entityData.set(DATA_ENERGY, tag.getFloat("MechEnergy"));
+        if (tag.contains("CoreCapacity")) entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(tag.getInt("CoreCapacity"), 0, 5));
+        if (tag.contains("EnergyConservation")) entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(tag.getInt("EnergyConservation"), 0, 5));
+        if (tag.contains("MechEnergy")) entityData.set(DATA_ENERGY, Mth.clamp(tag.getFloat("MechEnergy"), 0.0F, getMaxEnergy()));
         if (tag.contains("MechArmor")) entityData.set(DATA_ARMOR, tag.getFloat("MechArmor"));
         if (tag.contains("MechMissiles")) entityData.set(DATA_MISSILE_AMMO, Mth.clamp(tag.getInt("MechMissiles"), 0, MAX_MISSILE_AMMO));
         updateAssemblyLabel();

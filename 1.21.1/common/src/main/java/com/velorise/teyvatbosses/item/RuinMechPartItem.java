@@ -4,6 +4,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.TooltipFlag;
 import java.util.List;
 
+import com.velorise.teyvatbosses.entity.DeviceEnergyHelper;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import net.minecraft.core.BlockPos;
@@ -51,6 +52,7 @@ public class RuinMechPartItem extends Item {
                 mech.setYBodyRot(yaw);
                 mech.setYHeadRot(yaw);
                 mech.initAssemblyChassis();
+                mech.setCoreEnchants(DeviceEnergyHelper.getCapacityLevel(sl, ctx.getItemInHand()), DeviceEnergyHelper.getConservationLevel(sl, ctx.getItemInHand()));
                 sl.addFreshEntity(mech);
                 sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.3F, 0.72F);
                 sl.sendParticles(ParticleTypes.FLAME, spawnPos.x, spawnPos.y + 1.2D, spawnPos.z, 18, 0.6D, 0.5D, 0.6D, 0.05D);
@@ -69,5 +71,15 @@ public class RuinMechPartItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.ruin_mech_part").withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public boolean isEnchantable(ItemStack stack) {
+        return partBit == RuinMechEntity.PART_CORE;
+    }
+
+    @Override
+    public int getEnchantmentValue() {
+        return partBit == RuinMechEntity.PART_CORE ? 15 : 0;
     }
 }

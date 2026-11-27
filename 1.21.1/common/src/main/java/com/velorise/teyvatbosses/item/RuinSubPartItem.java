@@ -3,6 +3,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.TooltipFlag;
 import java.util.List;
 
+import com.velorise.teyvatbosses.entity.DeviceEnergyHelper;
 import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
@@ -81,6 +82,7 @@ public class RuinSubPartItem extends Item {
         sub.setYBodyRot(yaw);
         sub.setYHeadRot(yaw);
         sub.initAssemblyChassis();
+        sub.setCoreEnchants(DeviceEnergyHelper.getCapacityLevel(sl, stack), DeviceEnergyHelper.getConservationLevel(sl, stack));
         sl.addFreshEntity(sub);
         var sfx = TeyvatBossesSounds.subBallastHiss() != null ? TeyvatBossesSounds.subBallastHiss() : SoundEvents.NETHERITE_BLOCK_PLACE;
         sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, sfx, SoundSource.PLAYERS, 1.2F, 0.90F);
@@ -94,5 +96,15 @@ public class RuinSubPartItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.ruin_sub_part").withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public boolean isEnchantable(ItemStack stack) {
+        return partBit == RuinSubmersibleEntity.PART_HULL;
+    }
+
+    @Override
+    public int getEnchantmentValue() {
+        return partBit == RuinSubmersibleEntity.PART_HULL ? 15 : 0;
     }
 }

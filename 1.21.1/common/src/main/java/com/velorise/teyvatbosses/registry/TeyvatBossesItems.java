@@ -30,6 +30,7 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> geoDrillerChassis;
     private static Supplier<Item> geoDrillerDrill;
     private static Supplier<Item> geoDrillerEngine;
+    private static Supplier<Item> condensedRedstoneBlock;
 
     private TeyvatBossesItems() {}
 
@@ -106,4 +107,6 @@ public final class TeyvatBossesItems {
     public static Item[] subPartPool() { return new Item[]{ruinSubHull(), ruinSubCockpit(), ruinSubPropeller(), ruinSubTorpedoPod()}; }
     public static Item[] cryoTurretPartPool() { return new Item[]{cryoTurretRoot(), cryoTurretStem(), cryoTurretCorolla()}; }
     public static Item[] geoDrillerPartPool() { return new Item[]{geoDrillerChassis(), geoDrillerDrill(), geoDrillerEngine()}; }
+    public static void bindCondensedRedstone(Supplier<Item> supplier) { condensedRedstoneBlock = supplier; }
+    public static Item condensedRedstoneBlock() { return condensedRedstoneBlock != null ? condensedRedstoneBlock.get() : null; }
 }

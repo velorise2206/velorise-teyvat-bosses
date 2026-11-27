@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
 import com.velorise.teyvatbosses.client.model.RuinGuardAnimations;
 import com.velorise.teyvatbosses.client.model.RuinGuardModel;
 import com.velorise.teyvatbosses.entity.RuinMechEntity;
@@ -348,7 +349,7 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
 
             if (socketGlow > 0.05F) {
                 poseStack.pushPose();
-                float chargeRatio = Mth.clamp(entity.getEnergy() / RuinMechEntity.MAX_ENERGY, 0.0F, 1.0F);
+                float chargeRatio = Mth.clamp(entity.getEnergy() / Math.max(1.0F, entity.getMaxEnergy()), 0.0F, 1.0F);
                 // True 3D recessed interior chamber walls + internal power rails + live charge core inside carved torso bay
                 drawRecessedBatteryBay(bufferSource.getBuffer(RenderType.debugQuads()), poseStack.last().pose(), socketGlow, chargeRatio);
                 poseStack.translate(0.0D, 0.0D, -0.28D);
@@ -371,7 +372,7 @@ public class RuinMechRenderer extends EntityRenderer<RuinMechEntity> {
                 poseStack.scale(-uniformScale, -uniformScale, uniformScale);
                 poseStack.translate(-0.5D, -0.5D, -0.5D);
                 mc.getBlockRenderer().renderSingleBlock(
-                        Blocks.REDSTONE_BLOCK.defaultBlockState(),
+                        (entity.isRechargingCondensed() && TeyvatBossesBlocks.condensedRedstoneBlock() != null ? TeyvatBossesBlocks.condensedRedstoneBlock().defaultBlockState() : Blocks.REDSTONE_BLOCK.defaultBlockState()),
                         poseStack,
                         bufferSource,
                         LightTexture.FULL_BRIGHT,

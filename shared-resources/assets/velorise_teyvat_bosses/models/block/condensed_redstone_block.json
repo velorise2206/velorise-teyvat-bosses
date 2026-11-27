@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "velorise_teyvat_bosses:block/condensed_redstone_block"
+  }
+}

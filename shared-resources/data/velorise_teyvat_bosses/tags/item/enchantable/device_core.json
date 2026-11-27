@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "velorise_teyvat_bosses:ruin_mech_core",
+    "velorise_teyvat_bosses:ruin_sub_hull",
+    "velorise_teyvat_bosses:geo_driller_chassis"
+  ]
+}

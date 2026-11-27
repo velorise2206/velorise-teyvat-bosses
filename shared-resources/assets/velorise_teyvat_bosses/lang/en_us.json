@@ -160,5 +160,11 @@
   "item.velorise_teyvat_bosses.ruin_nautilus_compass": "Ruin Nautilus Compass",
   "item.velorise_teyvat_bosses.primo_geovishap_compass": "Primo Geovishap Compass",
   "tooltip.velorise_teyvat_bosses.locator.locked": "Locked Arena: [%s, %s]",
-  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Right-Click: Scan & Lock Arena (Needle tracks live)"
+  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Right-Click: Scan & Lock Arena (Needle tracks live)",
+  "block.velorise_teyvat_bosses.condensed_redstone_block": "Condensed Redstone Block",
+  "item.velorise_teyvat_bosses.condensed_redstone_block": "Condensed Redstone Block",
+  "enchantment.velorise_teyvat_bosses.core_capacity": "Core Capacity",
+  "enchantment.velorise_teyvat_bosses.core_capacity.desc": "Increases maximum Redstone energy capacity of Khaenri'ah & Teyvat device cores (+1000 per level).",
+  "enchantment.velorise_teyvat_bosses.energy_conservation": "Energy Conservation",
+  "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Reduces Redstone energy consumption of device skills and movement (-15% per level)."
 }

@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.item;
 
+import com.velorise.teyvatbosses.entity.DeviceEnergyHelper;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
 import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import net.minecraft.ChatFormatting;
@@ -51,6 +52,7 @@ public class GeoDrillerPartItem extends Item {
                 driller.setYBodyRot(yaw);
                 driller.setYHeadRot(yaw);
                 driller.initAssemblyChassis();
+                driller.setCoreEnchants(DeviceEnergyHelper.getCapacityLevel(sl, ctx.getItemInHand()), DeviceEnergyHelper.getConservationLevel(sl, ctx.getItemInHand()));
                 sl.addFreshEntity(driller);
                 sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 1.1F, 0.85F);
                 sl.sendParticles(ParticleTypes.CRIT, spawnPos.x, spawnPos.y + 0.8D, spawnPos.z, 20, 0.7D, 0.4D, 0.7D, 0.05D);
@@ -70,5 +72,15 @@ public class GeoDrillerPartItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         tooltipComponents.add(Component.translatable("tooltip.velorise_teyvat_bosses.geo_driller_part").withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public boolean isEnchantable(ItemStack stack) {
+        return partBit == GeoDrillerEntity.PART_CHASSIS;
+    }
+
+    @Override
+    public int getEnchantmentValue() {
+        return partBit == GeoDrillerEntity.PART_CHASSIS ? 15 : 0;
     }
 }

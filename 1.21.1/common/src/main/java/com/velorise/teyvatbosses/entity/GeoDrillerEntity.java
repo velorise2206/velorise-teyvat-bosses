@@ -87,6 +87,10 @@ public class GeoDrillerEntity extends Mob {
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_FUEL =
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_CAPACITY_LEVEL =
+            SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_CONSERVATION_LEVEL =
+            SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_DRILL_ARMED =
             SynchedEntityData.defineId(GeoDrillerEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_PITCH_MODE =
@@ -149,7 +153,9 @@ public class GeoDrillerEntity extends Mob {
         super.defineSynchedData(builder);
         builder.define(DATA_PARTS, PART_ALL);
         builder.define(DATA_CHEST_COUNT, 0);
-        builder.define(DATA_FUEL, MAX_FUEL);
+        builder.define(DATA_FUEL, 0);
+        builder.define(DATA_CAPACITY_LEVEL, 0);
+        builder.define(DATA_CONSERVATION_LEVEL, 0);
         builder.define(DATA_DRILL_ARMED, false); // Default OFF so driving near base never breaks walls accidentally
         builder.define(DATA_PITCH_MODE, PITCH_LEVEL);
         builder.define(DATA_HEADLIGHT, false);
@@ -167,7 +173,7 @@ public class GeoDrillerEntity extends Mob {
     public void initAssemblyChassis() {
         entityData.set(DATA_PARTS, PART_CHASSIS);
         entityData.set(DATA_CHEST_COUNT, 0);
-        entityData.set(DATA_FUEL, MAX_FUEL / 2);
+        entityData.set(DATA_FUEL, 0);
     }
 
     public int getPartMask() { return entityData.get(DATA_PARTS); }
@@ -175,6 +181,14 @@ public class GeoDrillerEntity extends Mob {
     public int getAssembledCount() { return Integer.bitCount(getPartMask() & PART_ALL); }
     public int getChestCount() { return entityData.get(DATA_CHEST_COUNT); }
     public int getFuel() { return entityData.get(DATA_FUEL); }
+    public int getCapacityLevel() { return entityData.get(DATA_CAPACITY_LEVEL); }
+    public int getConservationLevel() { return entityData.get(DATA_CONSERVATION_LEVEL); }
+    public int getMaxFuel() { return DeviceEnergyHelper.maxIntFuelForLevel(getCapacityLevel()); }
+
+    public void setCoreEnchants(int capacityLevel, int conservationLevel) {
+        entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(capacityLevel, 0, 5));
+        entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(conservationLevel, 0, 5));
+    }
     public boolean isDrillArmed() { return entityData.get(DATA_DRILL_ARMED); }
     public boolean isDrilling() { return isDrillArmed() && isVehicle() && getFuel() > 0; }
     public int getPitchMode() { return entityData.get(DATA_PITCH_MODE); }
@@ -360,18 +374,17 @@ public class GeoDrillerEntity extends Mob {
             return InteractionResult.PASS;
         }
 
-        // 5. Fuel recharge & Hull repair
-        int fuelAdd = stack.is(Items.COAL) || stack.is(Items.CHARCOAL) ? 100
-                : stack.is(Items.REDSTONE_BLOCK) ? 300
-                : stack.is(Items.COAL_BLOCK) ? 900 : 0;
-        if (fuelAdd > 0 && getFuel() < MAX_FUEL) {
+        // 5. Redstone-only Fuel recharge (Dust +11, Redstone Block +100, Condensed Redstone Block +900) & Hull repair
+        int fuelAdd = DeviceEnergyHelper.getRedstoneIntFuelValue(stack);
+        int maxFuel = getMaxFuel();
+        if (fuelAdd > 0 && getFuel() < maxFuel) {
             if (!level().isClientSide()) {
-                int nextFuel = Math.min(MAX_FUEL, getFuel() + fuelAdd);
+                int nextFuel = Math.min(maxFuel, getFuel() + fuelAdd);
                 entityData.set(DATA_FUEL, nextFuel);
                 if (!player.getAbilities().instabuild) stack.shrink(1);
                 level().playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.9F, 1.1F);
                 player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.geo_driller.recharged",
-                        nextFuel, MAX_FUEL).withStyle(ChatFormatting.GOLD), true);
+                        nextFuel, maxFuel).withStyle(ChatFormatting.GOLD), true);
             }
             return InteractionResult.sidedSuccess(level().isClientSide());
         }
@@ -472,8 +485,11 @@ public class GeoDrillerEntity extends Mob {
 
     private void dropPartsAndCargo(ServerLevel sl) {
         int mask = getPartMask();
-        if ((mask & PART_CHASSIS) != 0 && TeyvatBossesItems.geoDrillerChassis() != null)
-            spawnAtLocation(new ItemStack(TeyvatBossesItems.geoDrillerChassis()));
+        if ((mask & PART_CHASSIS) != 0 && TeyvatBossesItems.geoDrillerChassis() != null) {
+            ItemStack chassisStack = new ItemStack(TeyvatBossesItems.geoDrillerChassis());
+            DeviceEnergyHelper.applyCoreEnchants(sl, chassisStack, getCapacityLevel(), getConservationLevel());
+            spawnAtLocation(chassisStack);
+        }
         if ((mask & PART_DRILL) != 0 && TeyvatBossesItems.geoDrillerDrill() != null)
             spawnAtLocation(new ItemStack(TeyvatBossesItems.geoDrillerDrill()));
         if ((mask & PART_ENGINE) != 0 && TeyvatBossesItems.geoDrillerEngine() != null)
@@ -651,7 +667,8 @@ public class GeoDrillerEntity extends Mob {
     private void consumeFuel(int amount) {
         int unb = getUnbreakingLevel();
         if (unb > 0 && random.nextInt(unb + 1) != 0) return;
-        entityData.set(DATA_FUEL, Math.max(0, getFuel() - amount));
+        int scaled = DeviceEnergyHelper.scaleIntCost(amount, getConservationLevel(), this.random);
+        entityData.set(DATA_FUEL, Math.max(0, getFuel() - scaled));
     }
 
     @Override
@@ -846,6 +863,8 @@ public class GeoDrillerEntity extends Mob {
         tag.putInt("Parts", getPartMask());
         tag.putInt("ChestCount", getChestCount());
         tag.putInt("Fuel", getFuel());
+        tag.putInt("CoreCapacity", getCapacityLevel());
+        tag.putInt("EnergyConservation", getConservationLevel());
         tag.putBoolean("DrillArmed", isDrillArmed());
         tag.putInt("PitchMode", getPitchMode());
         tag.putBoolean("PaveEnabled", isPaveEnabled());
@@ -871,7 +890,9 @@ public class GeoDrillerEntity extends Mob {
         super.readAdditionalSaveData(tag);
         if (tag.contains("Parts")) entityData.set(DATA_PARTS, tag.getInt("Parts"));
         if (tag.contains("ChestCount")) entityData.set(DATA_CHEST_COUNT, Mth.clamp(tag.getInt("ChestCount"), 0, 2));
-        if (tag.contains("Fuel")) entityData.set(DATA_FUEL, Mth.clamp(tag.getInt("Fuel"), 0, MAX_FUEL));
+        if (tag.contains("CoreCapacity")) entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(tag.getInt("CoreCapacity"), 0, 5));
+        if (tag.contains("EnergyConservation")) entityData.set(DATA_CONSERVATION_LEVEL, Mth.clamp(tag.getInt("EnergyConservation"), 0, 5));
+        if (tag.contains("Fuel")) entityData.set(DATA_FUEL, Mth.clamp(tag.getInt("Fuel"), 0, getMaxFuel()));
         if (tag.contains("DrillArmed")) entityData.set(DATA_DRILL_ARMED, tag.getBoolean("DrillArmed"));
         if (tag.contains("PitchMode")) entityData.set(DATA_PITCH_MODE, Mth.clamp(tag.getInt("PitchMode"), 0, 2));
         if (tag.contains("PaveEnabled")) entityData.set(DATA_PAVE_ENABLED, tag.getBoolean("PaveEnabled"));

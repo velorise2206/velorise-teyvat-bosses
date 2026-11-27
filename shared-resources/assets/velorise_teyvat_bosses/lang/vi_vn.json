@@ -160,5 +160,11 @@
   "item.velorise_teyvat_bosses.ruin_nautilus_compass": "La Bàn Tàu Ngầm Di Tích",
   "item.velorise_teyvat_bosses.primo_geovishap_compass": "La Bàn Rồng Đất Cổ",
   "tooltip.velorise_teyvat_bosses.locator.locked": "Đấu trường đã khóa: [%s, %s]",
-  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Chuột phải: Quét & khóa đấu trường (Kim xoay tự động)"
+  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Chuột phải: Quét & khóa đấu trường (Kim xoay tự động)",
+  "block.velorise_teyvat_bosses.condensed_redstone_block": "Khối Redstone Nén",
+  "item.velorise_teyvat_bosses.condensed_redstone_block": "Khối Redstone Nén",
+  "enchantment.velorise_teyvat_bosses.core_capacity": "Dung Tích Lõi",
+  "enchantment.velorise_teyvat_bosses.core_capacity.desc": "Tăng dung tích năng lượng Redstone tối đa cho lõi thiết bị (+1000 mỗi cấp).",
+  "enchantment.velorise_teyvat_bosses.energy_conservation": "Tiết Kiệm Năng Lượng",
+  "enchantment.velorise_teyvat_bosses.energy_conservation.desc": "Giảm lượng năng lượng Redstone tiêu thụ của thiết bị (-15% mỗi cấp)."
 }

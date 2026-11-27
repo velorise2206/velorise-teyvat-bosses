@@ -52,11 +52,11 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
             }
 
             int energy = Math.round(mech.getEnergy());
-            int maxEnergy = Math.round(RuinMechEntity.MAX_ENERGY);
+            int maxEnergy = Math.round(mech.getMaxEnergy());
             int cells = Mth.clamp((int) Math.ceil(mech.getEnergy() / RuinMechEntity.ENERGY_PER_BLOCK),
-                    0, RuinMechEntity.MAX_REDSTONE_CELLS);
+                    0, mech.getMaxRedstoneCells());
             ChatFormatting energyCol = cells <= 1 ? ChatFormatting.RED : ChatFormatting.GOLD;
-            tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.energy", energy, maxEnergy, cells, RuinMechEntity.MAX_REDSTONE_CELLS)
+            tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.energy", energy, maxEnergy, cells, mech.getMaxRedstoneCells())
                     .withStyle(energyCol));
 
             int armor = Math.round(mech.getArmorIntegrity());
@@ -109,7 +109,7 @@ public class TeyvatBossesJadePlugin implements IWailaPlugin {
                 return;
             }
             int energy = Math.round(sub.getEnergy());
-            int maxEnergy = Math.round(RuinSubmersibleEntity.MAX_ENERGY);
+            int maxEnergy = Math.round(sub.getMaxEnergy());
             tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.sub_energy", energy, maxEnergy)
                     .withStyle(energy < 150 ? ChatFormatting.RED : ChatFormatting.AQUA));
             tooltip.add(Component.translatable("jade.velorise_teyvat_bosses.torpedoes", sub.getTorpedoAmmo(), RuinSubmersibleEntity.MAX_TORPEDOES)

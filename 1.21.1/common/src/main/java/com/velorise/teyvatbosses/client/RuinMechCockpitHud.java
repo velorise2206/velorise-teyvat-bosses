@@ -66,16 +66,19 @@ public final class RuinMechCockpitHud {
         gui.drawString(mc.font, Math.round(mech.getArmorIntegrity()) + "%", panelX + 95, panelY + 20, armPct < 0.30F ? 0xFFFFAB91 : 0xFFD6EEFF, true);
 
         float energy = mech.getEnergy();
-        int fullCells = Mth.clamp((int) Math.ceil(energy / RuinMechEntity.ENERGY_PER_BLOCK), 0, RuinMechEntity.MAX_REDSTONE_CELLS);
+        float maxEnergy = Math.max(1.0F, mech.getMaxEnergy());
+        int maxCells = mech.getMaxRedstoneCells();
+        int fullCells = Mth.clamp((int) Math.ceil(energy / RuinMechEntity.ENERGY_PER_BLOCK), 0, maxCells);
+        int litBars = Mth.clamp((int) Math.ceil((energy / maxEnergy) * 10.0F), 0, 10);
         gui.blit(HUD_TEX, panelX + 4, panelY + 32, 32, 0, 14, 14, 256, 128);
-        for (int i = 0; i < RuinMechEntity.MAX_REDSTONE_CELLS; i++) {
+        for (int i = 0; i < 10; i++) {
             int cx = panelX + 20 + i * 7;
             int cy = panelY + 34;
-            boolean lit = i < fullCells;
+            boolean lit = i < litBars;
             gui.blit(HUD_TEX, cx, cy, lit ? 48 : 56, 2, 6, 10, 256, 128);
         }
-        int cellColor = fullCells <= 1 ? 0xFFFF5555 : 0xFFFFCC66;
-        gui.drawString(mc.font, fullCells + "/10", panelX + 95, panelY + 35, cellColor, true);
+        int cellColor = fullCells <= 1 ? 0xFFFF5555 : (maxCells > 10 ? 0xFFFF8866 : 0xFFFFCC66);
+        gui.drawString(mc.font, fullCells + "/" + maxCells, panelX + 93, panelY + 35, cellColor, true);
 
         // 4. Compact Bottom-Right 2x3 Skill Grid (Top: L1/L2/L+, Bottom: R1/R2/R+)
         //    Only 76px wide at far right edge -> zero overlap with vanilla hotbar or mount hearts!

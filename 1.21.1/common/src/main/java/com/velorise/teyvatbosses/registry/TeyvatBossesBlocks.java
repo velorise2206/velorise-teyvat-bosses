@@ -3,6 +3,7 @@ package com.velorise.teyvatbosses.registry;
 import com.velorise.teyvatbosses.block.BossTrophyBlock;
 import com.velorise.teyvatbosses.block.BossTrophyBlockEntity;
 import com.velorise.teyvatbosses.entity.BossRespawnAnchorEntity;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
 import java.util.function.Supplier;
@@ -17,6 +18,7 @@ public final class TeyvatBossesBlocks {
     private static Supplier<BossTrophyBlock> ruinNautilusTrophy;
     private static Supplier<BossTrophyBlock> primoGeovishapTrophy;
     private static Supplier<BlockEntityType<BossTrophyBlockEntity>> bossTrophyBe;
+    private static Supplier<Block> condensedRedstoneBlock;
 
     private TeyvatBossesBlocks() {}
 
@@ -42,6 +44,8 @@ public final class TeyvatBossesBlocks {
     public static BossTrophyBlock ruinNautilusTrophy() { return ruinNautilusTrophy.get(); }
     public static BossTrophyBlock primoGeovishapTrophy() { return primoGeovishapTrophy.get(); }
     public static BlockEntityType<BossTrophyBlockEntity> bossTrophyBe() { return bossTrophyBe.get(); }
+    public static void bindCondensedRedstone(Supplier<Block> supplier) { condensedRedstoneBlock = supplier; }
+    public static Block condensedRedstoneBlock() { return condensedRedstoneBlock != null ? condensedRedstoneBlock.get() : null; }
 
     public static BossTrophyBlock trophyForBossKind(int bossKind) {
         return switch (bossKind) {

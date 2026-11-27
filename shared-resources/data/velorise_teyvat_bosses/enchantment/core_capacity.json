@@ -1,0 +1,20 @@
+{
+  "description": {
+    "translate": "enchantment.velorise_teyvat_bosses.core_capacity"
+  },
+  "supported_items": "#velorise_teyvat_bosses:enchantable/device_core",
+  "weight": 5,
+  "max_level": 3,
+  "min_cost": {
+    "base": 12,
+    "per_level_above_first": 12
+  },
+  "max_cost": {
+    "base": 42,
+    "per_level_above_first": 15
+  },
+  "anvil_cost": 4,
+  "slots": [
+    "any"
+  ]
+}

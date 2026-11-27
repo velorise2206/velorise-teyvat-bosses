@@ -59,6 +59,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.PoweredBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -158,6 +161,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final BossTrophyBlock PRIMO_GEOVISHAP_TROPHY = Registry.register(
             BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("primo_geovishap_trophy"),
             new BossTrophyBlock(BossRespawnAnchorEntity.BOSS_PRIMO_GEOVISHAP, trophyProps()));
+    public static final Block CONDENSED_REDSTONE_BLOCK = Registry.register(
+            BuiltInRegistries.BLOCK, TeyvatBossesConstants.id("condensed_redstone_block"),
+            new PoweredBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.REDSTONE_BLOCK).strength(7.0F, 9.0F)));
 
     public static final BlockEntityType<BossTrophyBlockEntity> BOSS_TROPHY_BE = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE, TeyvatBossesConstants.id("boss_trophy"),
@@ -181,6 +187,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item PRIMO_GEOVISHAP_TROPHY_ITEM = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("primo_geovishap_trophy"),
             new BlockItem(PRIMO_GEOVISHAP_TROPHY, new Item.Properties().rarity(Rarity.EPIC)));
+    public static final Item CONDENSED_REDSTONE_BLOCK_ITEM = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("condensed_redstone_block"),
+            new BlockItem(CONDENSED_REDSTONE_BLOCK, new Item.Properties().rarity(Rarity.UNCOMMON)));
 
     // Modular Salvage Parts & Gear
     public static final Item RUIN_MECH_CORE = Registry.register(
@@ -410,6 +419,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(RUIN_GUARD_TROPHY_ITEM);
                         output.accept(RUIN_NAUTILUS_TROPHY_ITEM);
                         output.accept(PRIMO_GEOVISHAP_TROPHY_ITEM);
+                        output.accept(CONDENSED_REDSTONE_BLOCK_ITEM);
                         output.accept(RUIN_MECH_CORE);
                         output.accept(RUIN_MECH_LEFT_ARM);
                         output.accept(RUIN_MECH_RIGHT_ARM);
@@ -450,6 +460,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> CRYO_REGISVINE_TROPHY, () -> ANEMO_HYPOSTASIS_TROPHY,
                 () -> RUIN_GUARD_TROPHY, () -> RUIN_NAUTILUS_TROPHY, () -> PRIMO_GEOVISHAP_TROPHY, () -> BOSS_TROPHY_BE
         );
+        TeyvatBossesBlocks.bindCondensedRedstone(() -> CONDENSED_REDSTONE_BLOCK);
+        TeyvatBossesItems.bindCondensedRedstone(() -> CONDENSED_REDSTONE_BLOCK_ITEM);
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,

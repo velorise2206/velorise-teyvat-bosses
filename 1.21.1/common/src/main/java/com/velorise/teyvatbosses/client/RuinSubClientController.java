@@ -201,7 +201,7 @@ public final class RuinSubClientController {
         g.renderOutline(lx, yBase, lw, lh, 0xFF22D3EE);
 
         int hpPct = Math.round(sub.getHealth() * 100.0F / sub.getMaxHealth());
-        int enPct = Math.round(sub.getEnergy() * 100.0F / RuinSubmersibleEntity.MAX_ENERGY);
+        int enPct = Math.round(sub.getEnergy() * 100.0F / Math.max(1.0F, sub.getMaxEnergy()));
         int hpBarCol = hpPct > 40 ? 0xFF22D3EE : (hpPct > 20 ? 0xFFF59E0B : 0xFFEF4444);
 
         g.drawString(mc.font, Component.translatable("hud.velorise_teyvat_bosses.sub.hull", hpPct), lx + 5, yBase + 4, 0xFF67E8F9, false);
