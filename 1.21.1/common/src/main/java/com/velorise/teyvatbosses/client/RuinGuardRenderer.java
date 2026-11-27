@@ -273,26 +273,45 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
         model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
 
-        // Genshin Wiki faithful: weakpoints (eye & back core) are extinguished/closed while paralyzed!
+        // Dynamic Weakpoint Light Telegraph: eye & back-core brightness/color shifts live with weakpoint vulnerability!
         int bossSt = entity.getBossState();
+        int wpState = entity.getWeakpointState();
         float emissiveAlpha = 1.0F;
-        if (bossSt == RuinGuardEntity.STATE_DORMANT || bossSt == RuinGuardEntity.STATE_DEATH) {
+        float tintR = 1.0F, tintG = 1.0F, tintB = 1.0F;
+        if (bossSt == RuinGuardEntity.STATE_DORMANT || bossSt == RuinGuardEntity.STATE_DEATH
+                || wpState == RuinGuardEntity.WP_CLOSED) {
             emissiveAlpha = 0.0F;
-        } else if (bossSt == RuinGuardEntity.STATE_STUNNED) {
+        } else if (bossSt == RuinGuardEntity.STATE_STUNNED || wpState == RuinGuardEntity.WP_PARALYZED) {
             if (animId == RuinGuardEntity.ANIM_STUNNED) {
                 emissiveAlpha = (currSec < 0.45F) ? Mth.clamp(1.0F - currSec / 0.45F, 0.0F, 1.0F) : 0.0F;
             } else if (animId == RuinGuardEntity.ANIM_STUN_RECOVERY) {
-                emissiveAlpha = Mth.clamp((currSec - 0.30F) / 0.80F, 0.0F, 1.0F);
+                emissiveAlpha = Mth.clamp((currSec - 0.30F) / 0.80F, 0.0F, 0.24F);
+                tintR = 0.78F; tintG = 0.38F; tintB = 0.28F;
             } else {
                 emissiveAlpha = 0.0F;
             }
-        } else if (animId == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && currSec < 0.35F) {
-            // Brief orange eye dim/flicker on Hit-1 weakpoint stagger before reigniting bright
-            emissiveAlpha = (currSec < 0.14F) ? 0.32F : Mth.lerp((currSec - 0.14F) / 0.21F, 0.32F, 1.0F);
+        } else if (wpState == RuinGuardEntity.WP_IMMUNE) {
+            // Weakpoint temporarily shielded (post-stun runes or Phase 2 hyper-armor attack): clearly dimmed!
+            emissiveAlpha = 0.16F + 0.04F * Mth.sin(liveTick * 0.25F);
+            tintR = 0.72F; tintG = 0.34F; tintB = 0.26F;
+        } else if (wpState == RuinGuardEntity.WP_CRACKED) {
+            // Cracked weakpoint (1/2 or 1-2/3): unstable high-contrast flicker signaling more shots will paralyze!
+            if (animId == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && currSec < 0.35F) {
+                emissiveAlpha = (currSec < 0.14F) ? 0.30F : Mth.lerp((currSec - 0.14F) / 0.21F, 0.30F, 1.0F);
+            } else {
+                float flick = 0.62F + 0.38F * Mth.sin(liveTick * 1.65F) * Mth.cos(liveTick * 0.85F);
+                emissiveAlpha = Mth.clamp(flick, 0.45F, 1.0F);
+            }
+            tintR = 1.0F; tintG = 0.96F; tintB = 0.84F;
+        } else {
+            // WP_EXPOSED: bright warm breathing glow — unmistakable live weakpoint!
+            emissiveAlpha = 0.92F + 0.08F * Mth.sin(liveTick * 0.22F);
         }
         if (emissiveAlpha > 0.02F) {
-            int ec = Mth.clamp((int) (255.0F * emissiveAlpha), 0, 255);
-            int emColor = (0xFF << 24) | (ec << 16) | (ec << 8) | ec;
+            int er = Mth.clamp((int) (255.0F * emissiveAlpha * tintR), 0, 255);
+            int eg = Mth.clamp((int) (255.0F * emissiveAlpha * tintG), 0, 255);
+            int eb = Mth.clamp((int) (255.0F * emissiveAlpha * tintB), 0, 255);
+            int emColor = (0xFF << 24) | (er << 16) | (eg << 8) | eb;
             VertexConsumer evc = bufferSource.getBuffer(RenderType.eyes(EMISSIVE));
             model.renderToBuffer(poseStack, evc, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, emColor);
         }
@@ -565,6 +584,18 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
                 vc.addVertex(arcMat, ex - w, ey, ez).setColor(160, 225, 255, 180);
             }
             poseStack.popPose();
+        }
+
+        // Live Weakpoint Beacon: subtle warm-gold eye star while EXPOSED/CRACKED (vanishes when IMMUNE/PARALYZED!)
+        int wpVfx = entity.getWeakpointState();
+        if (wpVfx == RuinGuardEntity.WP_EXPOSED || wpVfx == RuinGuardEntity.WP_CRACKED) {
+            float wpPulse = (wpVfx == RuinGuardEntity.WP_CRACKED)
+                    ? (0.45F + 0.40F * Math.abs(Mth.sin(liveTick * 0.75F)))
+                    : (0.28F + 0.14F * Mth.sin(liveTick * 0.20F));
+            int gr = 255;
+            int gg = (wpVfx == RuinGuardEntity.WP_CRACKED) ? 235 : 195;
+            int gb = (wpVfx == RuinGuardEntity.WP_CRACKED) ? 180 : 85;
+            drawEyeGlintStar(vc, poseStack, bodyYaw, 3.05D, 1.06D, wpPulse * 0.42F, gr, gg, gb);
         }
 
         // Pre-attack eye glint telegraph before heavy jump slam / Phase 2 overdrive finisher

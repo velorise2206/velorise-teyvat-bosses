@@ -40,6 +40,12 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
+import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
+import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 
 @EventBusSubscriber(modid = TeyvatBossesConstants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -89,6 +95,23 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_INFUSED_STONE.get(), PrimoInfusedStoneRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
+                    (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
+            for (Item compass : new Item[]{
+                    VeloriseTeyvatBossesNeoForge.CRYO_REGISVINE_COMPASS.get(),
+                    VeloriseTeyvatBossesNeoForge.ANEMO_HYPOSTASIS_COMPASS.get(),
+                    VeloriseTeyvatBossesNeoForge.RUIN_GUARD_COMPASS.get(),
+                    VeloriseTeyvatBossesNeoForge.RUIN_NAUTILUS_COMPASS.get(),
+                    VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP_COMPASS.get()
+            }) {
+                ItemProperties.register(compass, ResourceLocation.withDefaultNamespace("angle"), bossCompassProp);
+            }
+        });
     }
 
     @SubscribeEvent

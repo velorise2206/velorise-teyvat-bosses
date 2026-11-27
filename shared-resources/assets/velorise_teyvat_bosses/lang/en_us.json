@@ -150,5 +150,15 @@
   "advancement.velorise_teyvat_bosses.kill_primo_geovishap.title": "Primordial Shower",
   "advancement.velorise_teyvat_bosses.kill_primo_geovishap.description": "Defeat the Primo Geovishap in its subterranean lair.",
   "advancement.velorise_teyvat_bosses.teyvat_conqueror.title": "Conqueror of Teyvat",
-  "advancement.velorise_teyvat_bosses.teyvat_conqueror.description": "Vanquish all five Teyvat World Bosses."
+  "advancement.velorise_teyvat_bosses.teyvat_conqueror.description": "Vanquish all five Teyvat World Bosses.",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_shielded": "❖ Weakpoint Shielded — Wait for the eye core to reignite!",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_eye": "✦ Eye Weakpoint Cracked (%s/%s) — Keep shooting to paralyze!",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_rear": "✦ Back-Core Weakpoint Cracked (%s/%s) — Keep shooting to paralyze!",
+  "item.velorise_teyvat_bosses.cryo_regisvine_compass": "Cryo Regisvine Compass",
+  "item.velorise_teyvat_bosses.anemo_hypostasis_compass": "Anemo Hypostasis Compass",
+  "item.velorise_teyvat_bosses.ruin_guard_compass": "Ruin Guard Compass",
+  "item.velorise_teyvat_bosses.ruin_nautilus_compass": "Ruin Nautilus Compass",
+  "item.velorise_teyvat_bosses.primo_geovishap_compass": "Primo Geovishap Compass",
+  "tooltip.velorise_teyvat_bosses.locator.locked": "Locked Arena: [%s, %s]",
+  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Right-Click: Scan & Lock Arena (Needle tracks live)"
 }

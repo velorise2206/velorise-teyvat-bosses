@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "velorise_teyvat_bosses:item/cryo_regisvine_compass_01"
+  }
+}

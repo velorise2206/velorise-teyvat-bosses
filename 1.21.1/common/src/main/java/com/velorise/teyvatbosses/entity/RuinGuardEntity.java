@@ -73,10 +73,18 @@ public class RuinGuardEntity extends Monster {
     public static final int ANIM_WEAKPOINT_FLINCH   = 17;
 
     private static final int DEATH_DURATION_TICKS    = 58;
-    private static final int STUN_COLLAPSE_TICKS     = 122;
-    private static final int STUN_RECOVERY_TICKS     = 28;
-    private static final int WEAKPOINT_FLINCH_TICKS  = 19;
-    private static final int WEAKPOINT_IMMUNE_TICKS  = 80;
+    public static final int WP_CLOSED    = 0;
+    public static final int WP_EXPOSED   = 1;
+    public static final int WP_CRACKED   = 2;
+    public static final int WP_IMMUNE    = 3;
+    public static final int WP_PARALYZED = 4;
+
+    private static final int STUN_COLLAPSE_TICKS_P1    = 122;
+    private static final int STUN_COLLAPSE_TICKS_P2    = 90;
+    private static final int STUN_RECOVERY_TICKS       = 28;
+    private static final int WEAKPOINT_FLINCH_TICKS    = 19;
+    private static final int WEAKPOINT_IMMUNE_TICKS_P1 = 220;
+    private static final int WEAKPOINT_IMMUNE_TICKS_P2 = 300;
     private static final double ARENA_SOFT_LEASH_RADIUS = 56.0D;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_STATE =
@@ -87,6 +95,8 @@ public class RuinGuardEntity extends Monster {
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_PHASE2 =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DATA_WEAKPOINT_STATE =
+            SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_TELEGRAPH_RADIUS =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_TELEGRAPH_X =
@@ -152,6 +162,7 @@ public class RuinGuardEntity extends Monster {
         builder.define(DATA_ANIM_ID, ANIM_DORMANT);
         builder.define(DATA_ANIM_EPOCH, 0);
         builder.define(DATA_PHASE2, false);
+        builder.define(DATA_WEAKPOINT_STATE, WP_CLOSED);
         builder.define(DATA_TELEGRAPH_RADIUS, 0.0F);
         builder.define(DATA_TELEGRAPH_X, 0.0F);
         builder.define(DATA_TELEGRAPH_Y, 0.0F);
@@ -181,6 +192,37 @@ public class RuinGuardEntity extends Monster {
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : stateTick; }
     public boolean isPhase2() { return entityData.get(DATA_PHASE2); }
+    public int getWeakpointState() { return entityData.get(DATA_WEAKPOINT_STATE); }
+
+    /** Phase 2 hyper-armor attacks temporarily seal weakpoints so the player must dodge heavy moves first. */
+    public boolean isWeakpointLockedByAttack() {
+        if (!isPhase2()) return false;
+        int anim = getAnimId();
+        return anim == ANIM_CYCLONE_WINDUP
+                || anim == ANIM_CYCLONE_ACTIVE
+                || anim == ANIM_LEAP_SLAM
+                || anim == ANIM_OVERDRIVE_FINISHER
+                || anim == ANIM_PHASE2_OVERDRIVE;
+    }
+
+    private void syncWeakpointState() {
+        int st = getBossState();
+        int nextWp;
+        if (st == STATE_DORMANT || st == STATE_AWAKEN || st == STATE_DEATH) {
+            nextWp = WP_CLOSED;
+        } else if (st == STATE_STUNNED) {
+            nextWp = WP_PARALYZED;
+        } else if (weakpointImmuneTicks > 0 || isWeakpointLockedByAttack()) {
+            nextWp = WP_IMMUNE;
+        } else if (eyeHits > 0) {
+            nextWp = WP_CRACKED;
+        } else {
+            nextWp = WP_EXPOSED;
+        }
+        if (entityData.get(DATA_WEAKPOINT_STATE) != nextWp) {
+            entityData.set(DATA_WEAKPOINT_STATE, nextWp);
+        }
+    }
     public float getTelegraphRadius() { return entityData.get(DATA_TELEGRAPH_RADIUS); }
     public Vec3 getTelegraphPos() {
         return new Vec3(entityData.get(DATA_TELEGRAPH_X), entityData.get(DATA_TELEGRAPH_Y), entityData.get(DATA_TELEGRAPH_Z));
@@ -254,6 +296,7 @@ public class RuinGuardEntity extends Monster {
         entityData.set(DATA_BOSS_STATE, newState);
         entityData.set(DATA_ANIM_ID, newAnim);
         entityData.set(DATA_ANIM_EPOCH, getAnimEpoch() + 1);
+        syncWeakpointState();
         clearTelegraph();
         stateTick = 0;
     }
@@ -319,8 +362,8 @@ public class RuinGuardEntity extends Monster {
             return false;
         }
 
-        // Eye & Back-Reactor Weakpoint Detection (Genshin-accurate: front eye + rear core, not exposed while paralyzed)
-        if (st == STATE_COMBAT && weakpointImmuneTicks <= 0 && !level().isClientSide()
+        // Eye & Back-Reactor Weakpoint Detection (Phase 1: 2 hits | Phase 2: 3 hits + shielded during heavy attacks & post-stun cooldown)
+        if (st == STATE_COMBAT && !level().isClientSide()
                 && source.getDirectEntity() instanceof Projectile proj) {
             if (proj.getY() >= getY() + 2.25D && proj.getY() <= getY() + 4.15D) {
                 Vec3 toProj = new Vec3(proj.getX() - getX(), 0.0D, proj.getZ() - getZ());
@@ -329,34 +372,49 @@ public class RuinGuardEntity extends Monster {
                 boolean hitFrontEye = dot >= 0.28D;
                 boolean hitRearCore = dot <= -0.28D;
                 if (hitFrontEye || hitRearCore) {
-                    eyeHits++;
-                    eyeResetTimer = 140;
                     ServerLevel sl = (ServerLevel) level();
-                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 1.72F);
-                    sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.95F, 1.35F);
-                    sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 3.1D, getZ(), 26, 0.45D, 0.45D, 0.45D, 0.16D);
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.1D, getZ(), 22, 0.45D, 0.35D, 0.45D, 0.15D);
-                    amount *= 1.35F;
-                    if (eyeHits >= 2 || (proj instanceof AbstractArrow && eyeHits >= 2)) {
-                        weakpointRearHit = false;
-                        triggerEyeStun(sl);
-                    } else {
-                        // First weakpoint hit: trigger mechanical flinch/stagger animation; swivel to attacker if hit from rear core
-                        weakpointRearHit = hitRearCore;
-                        if (source.getEntity() instanceof LivingEntity attacker) {
-                            double dx = attacker.getX() - getX();
-                            double dz = attacker.getZ() - getZ();
-                            weakpointSwivelTargetYaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
-                        } else {
-                            weakpointSwivelTargetYaw = getYRot() + 180.0F;
-                        }
-                        transitionTo(STATE_COMBAT, ANIM_WEAKPOINT_FLINCH);
+                    if (weakpointImmuneTicks > 0 || isWeakpointLockedByAttack()) {
+                        sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.HOSTILE, 0.9F, 1.35F);
+                        sl.sendParticles(ParticleTypes.SMOKE, getX(), getY() + 3.1D, getZ(), 10, 0.35D, 0.25D, 0.35D, 0.04D);
                         if (source.getEntity() instanceof Player p) {
-                            p.displayClientMessage(Component.literal(hitRearCore
-                                    ? "✦ Back-Core Weakpoint Cracked (1/2) — Shoot again to paralyze!"
-                                    : "✦ Eye Weakpoint Cracked (1/2) — Shoot again to paralyze!")
-                                    .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), true);
+                            p.displayClientMessage(
+                                    Component.translatable("message.velorise_teyvat_bosses.ruin_guard.weakpoint_shielded")
+                                            .withStyle(ChatFormatting.GRAY, ChatFormatting.BOLD),
+                                    true);
                         }
+                    } else {
+                        int requiredHits = isPhase2() ? 3 : 2;
+                        eyeHits++;
+                        eyeResetTimer = isPhase2() ? 160 : 140;
+                        sl.playSound(null, getX(), getY() + 3.0D, getZ(), (TeyvatBossesSounds.mechMetalClank() != null ? TeyvatBossesSounds.mechMetalClank() : SoundEvents.IRON_GOLEM_DAMAGE), SoundSource.HOSTILE, 1.15F, 1.72F);
+                        sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.95F, 1.35F);
+                        sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 3.1D, getZ(), 26, 0.45D, 0.45D, 0.45D, 0.16D);
+                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.1D, getZ(), 22, 0.45D, 0.35D, 0.45D, 0.15D);
+                        amount *= 1.35F;
+                        if (eyeHits >= requiredHits) {
+                            weakpointRearHit = false;
+                            triggerEyeStun(sl);
+                        } else {
+                            weakpointRearHit = hitRearCore;
+                            if (source.getEntity() instanceof LivingEntity attacker) {
+                                double dx = attacker.getX() - getX();
+                                double dz = attacker.getZ() - getZ();
+                                weakpointSwivelTargetYaw = (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+                            } else {
+                                weakpointSwivelTargetYaw = getYRot() + 180.0F;
+                            }
+                            transitionTo(STATE_COMBAT, ANIM_WEAKPOINT_FLINCH);
+                            if (source.getEntity() instanceof Player p) {
+                                String key = hitRearCore
+                                        ? "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_rear"
+                                        : "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_eye";
+                                p.displayClientMessage(
+                                        Component.translatable(key, eyeHits, requiredHits)
+                                                .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD),
+                                        true);
+                            }
+                        }
+                        syncWeakpointState();
                     }
                 }
             }
@@ -498,6 +556,7 @@ public class RuinGuardEntity extends Monster {
         if (weakpointImmuneTicks > 0) {
             weakpointImmuneTicks--;
         }
+        syncWeakpointState();
         if (finisherCooldown > 0) {
             finisherCooldown--;
         }
@@ -575,7 +634,7 @@ public class RuinGuardEntity extends Monster {
                     if (stateTick % 12 == 0) {
                         sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.0D, getZ(), 8, 0.7D, 0.5D, 0.7D, 0.05D);
                     }
-                    if (stateTick >= STUN_COLLAPSE_TICKS) {
+                    if (stateTick >= (isPhase2() ? STUN_COLLAPSE_TICKS_P2 : STUN_COLLAPSE_TICKS_P1)) {
                         sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 1.25F, 0.85F);
                         sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.35F, 0.68F);
                         transitionTo(STATE_STUNNED, ANIM_STUN_RECOVERY);
@@ -586,7 +645,7 @@ public class RuinGuardEntity extends Monster {
                         sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.3F, 0.62F);
                     }
                     if (stateTick >= STUN_RECOVERY_TICKS) {
-                        weakpointImmuneTicks = WEAKPOINT_IMMUNE_TICKS;
+                        weakpointImmuneTicks = isPhase2() ? WEAKPOINT_IMMUNE_TICKS_P2 : WEAKPOINT_IMMUNE_TICKS_P1;
                         transitionTo(STATE_COMBAT, ANIM_IDLE);
                         attackCooldown = 42;
                     }

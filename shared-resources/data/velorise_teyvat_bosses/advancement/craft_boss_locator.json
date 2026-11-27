@@ -21,7 +21,14 @@
       "conditions": {
         "items": [
           {
-            "items": "velorise_teyvat_bosses:teyvat_boss_compass"
+            "items": [
+              "velorise_teyvat_bosses:teyvat_boss_compass",
+              "velorise_teyvat_bosses:cryo_regisvine_compass",
+              "velorise_teyvat_bosses:anemo_hypostasis_compass",
+              "velorise_teyvat_bosses:ruin_guard_compass",
+              "velorise_teyvat_bosses:ruin_nautilus_compass",
+              "velorise_teyvat_bosses:primo_geovishap_compass"
+            ]
           }
         ]
       }

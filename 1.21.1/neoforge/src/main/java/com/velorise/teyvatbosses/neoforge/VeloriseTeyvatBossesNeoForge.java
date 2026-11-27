@@ -230,6 +230,16 @@ public class VeloriseTeyvatBossesNeoForge {
     // Teyvat Boss Locator Compass
     public static final DeferredHolder<Item, Item> TEYVAT_BOSS_COMPASS =
             ITEMS.register("teyvat_boss_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> CRYO_REGISVINE_COMPASS =
+            ITEMS.register("cryo_regisvine_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 0));
+    public static final DeferredHolder<Item, Item> ANEMO_HYPOSTASIS_COMPASS =
+            ITEMS.register("anemo_hypostasis_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 1));
+    public static final DeferredHolder<Item, Item> RUIN_GUARD_COMPASS =
+            ITEMS.register("ruin_guard_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 2));
+    public static final DeferredHolder<Item, Item> RUIN_NAUTILUS_COMPASS =
+            ITEMS.register("ruin_nautilus_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 3));
+    public static final DeferredHolder<Item, Item> PRIMO_GEOVISHAP_COMPASS =
+            ITEMS.register("primo_geovishap_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 4));
 
     // 5 Boss Spawn Eggs
     public static final DeferredHolder<Item, Item> CRYO_REGISVINE_SPAWN_EGG =
@@ -333,6 +343,11 @@ public class VeloriseTeyvatBossesNeoForge {
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG.get()))
                     .displayItems((params, output) -> {
                         output.accept(TEYVAT_BOSS_COMPASS.get());
+                        output.accept(CRYO_REGISVINE_COMPASS.get());
+                        output.accept(ANEMO_HYPOSTASIS_COMPASS.get());
+                        output.accept(RUIN_GUARD_COMPASS.get());
+                        output.accept(RUIN_NAUTILUS_COMPASS.get());
+                        output.accept(PRIMO_GEOVISHAP_COMPASS.get());
                         output.accept(CRYO_REGISVINE_SPAWN_EGG.get());
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG.get());
                         output.accept(RUIN_GUARD_SPAWN_EGG.get());

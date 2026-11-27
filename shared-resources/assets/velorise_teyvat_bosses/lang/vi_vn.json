@@ -150,5 +150,15 @@
   "advancement.velorise_teyvat_bosses.kill_primo_geovishap.title": "Hơi Thở Nguyên Sơ",
   "advancement.velorise_teyvat_bosses.kill_primo_geovishap.description": "Đánh bại Rồng Đất Cổ trong hang ổ ngầm.",
   "advancement.velorise_teyvat_bosses.teyvat_conqueror.title": "Kẻ Chinh Phục Teyvat",
-  "advancement.velorise_teyvat_bosses.teyvat_conqueror.description": "Hạ gục toàn bộ năm World Boss của Teyvat."
+  "advancement.velorise_teyvat_bosses.teyvat_conqueror.description": "Hạ gục toàn bộ năm World Boss của Teyvat.",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_shielded": "❖ Điểm yếu đang khóa giáp — Chờ mắt sáng lại rồi hãy bắn!",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_eye": "✦ Đã nứt điểm yếu Mắt (%s/%s) — Bắn tiếp để làm tê liệt!",
+  "message.velorise_teyvat_bosses.ruin_guard.weakpoint_cracked_rear": "✦ Đã nứt điểm yếu Lõi Lưng (%s/%s) — Bắn tiếp để làm tê liệt!",
+  "item.velorise_teyvat_bosses.cryo_regisvine_compass": "La Bàn Cây Cấp Đông",
+  "item.velorise_teyvat_bosses.anemo_hypostasis_compass": "La Bàn Phong Nguyên Bản",
+  "item.velorise_teyvat_bosses.ruin_guard_compass": "La Bàn Thủ Vệ Di Tích",
+  "item.velorise_teyvat_bosses.ruin_nautilus_compass": "La Bàn Tàu Ngầm Di Tích",
+  "item.velorise_teyvat_bosses.primo_geovishap_compass": "La Bàn Rồng Đất Cổ",
+  "tooltip.velorise_teyvat_bosses.locator.locked": "Đấu trường đã khóa: [%s, %s]",
+  "tooltip.velorise_teyvat_bosses.locator.usage_single": "Chuột phải: Quét & khóa đấu trường (Kim xoay tự động)"
 }

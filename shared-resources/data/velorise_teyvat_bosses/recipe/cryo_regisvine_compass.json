@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " E ",
+    "MCM",
+    " B "
+  ],
+  "key": {
+    "E": {
+      "item": "minecraft:ender_eye"
+    },
+    "M": {
+      "item": "minecraft:blue_ice"
+    },
+    "C": {
+      "item": "minecraft:compass"
+    },
+    "B": {
+      "item": "minecraft:amethyst_shard"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:cryo_regisvine_compass",
+    "count": 1
+  }
+}

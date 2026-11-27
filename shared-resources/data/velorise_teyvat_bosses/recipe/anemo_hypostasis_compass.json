@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " E ",
+    "MCM",
+    " B "
+  ],
+  "key": {
+    "E": {
+      "item": "minecraft:ender_eye"
+    },
+    "M": {
+      "item": "minecraft:feather"
+    },
+    "C": {
+      "item": "minecraft:compass"
+    },
+    "B": {
+      "item": "minecraft:emerald"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:anemo_hypostasis_compass",
+    "count": 1
+  }
+}

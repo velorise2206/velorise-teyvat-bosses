@@ -236,6 +236,21 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item TEYVAT_BOSS_COMPASS = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("teyvat_boss_compass"),
             new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
+    public static final Item CRYO_REGISVINE_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("cryo_regisvine_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 0));
+    public static final Item ANEMO_HYPOSTASIS_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_hypostasis_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 1));
+    public static final Item RUIN_GUARD_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_guard_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 2));
+    public static final Item RUIN_NAUTILUS_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_nautilus_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 3));
+    public static final Item PRIMO_GEOVISHAP_COMPASS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("primo_geovishap_compass"),
+            new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 4));
 
     // 5 Boss Spawn Eggs
     public static final Item CRYO_REGISVINE_SPAWN_EGG = Registry.register(
@@ -380,6 +395,11 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                     .icon(() -> new ItemStack(PRIMO_GEOVISHAP_SPAWN_EGG))
                     .displayItems((params, output) -> {
                         output.accept(TEYVAT_BOSS_COMPASS);
+                        output.accept(CRYO_REGISVINE_COMPASS);
+                        output.accept(ANEMO_HYPOSTASIS_COMPASS);
+                        output.accept(RUIN_GUARD_COMPASS);
+                        output.accept(RUIN_NAUTILUS_COMPASS);
+                        output.accept(PRIMO_GEOVISHAP_COMPASS);
                         output.accept(CRYO_REGISVINE_SPAWN_EGG);
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG);
                         output.accept(RUIN_GUARD_SPAWN_EGG);

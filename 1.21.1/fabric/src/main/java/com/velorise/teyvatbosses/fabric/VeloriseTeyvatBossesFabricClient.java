@@ -45,7 +45,12 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.renderer.item.CompassItemPropertyFunction;
+import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 
 public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
     @Override
@@ -87,6 +92,18 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_INFUSED_STONE, PrimoInfusedStoneRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
+
+        CompassItemPropertyFunction bossCompassProp = new CompassItemPropertyFunction(
+                (level, stack, entity) -> TeyvatBossLocatorItem.getLockedTarget(stack));
+        for (Item compass : new Item[]{
+                VeloriseTeyvatBossesFabric.CRYO_REGISVINE_COMPASS,
+                VeloriseTeyvatBossesFabric.ANEMO_HYPOSTASIS_COMPASS,
+                VeloriseTeyvatBossesFabric.RUIN_GUARD_COMPASS,
+                VeloriseTeyvatBossesFabric.RUIN_NAUTILUS_COMPASS,
+                VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP_COMPASS
+        }) {
+            ItemProperties.register(compass, ResourceLocation.withDefaultNamespace("angle"), bossCompassProp);
+        }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             RuinMechCameraController.clientTick();
