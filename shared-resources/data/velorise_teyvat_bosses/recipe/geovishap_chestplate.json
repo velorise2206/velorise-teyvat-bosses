@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "I I",
+    "III",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "velorise_teyvat_bosses:primordial_geo_ingot"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:geovishap_chestplate",
+    "count": 1
+  }
+}

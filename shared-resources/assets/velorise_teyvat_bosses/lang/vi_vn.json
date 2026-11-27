@@ -118,7 +118,7 @@
   "item.velorise_teyvat_bosses.geo_driller_drill": "Đầu Mũi Khoan Địa Mạch",
   "item.velorise_teyvat_bosses.geo_driller_engine": "Động Cơ Lò Phản Ứng Nham",
   "tooltip.velorise_teyvat_bosses.geo_driller_part": "Chuột phải Khung Xe ra đất, hàn Đầu Khoan & Động Cơ. Chuột phải Rương thường 1-2 lần để gắn kho 27/54 ô.",
-  "jei.velorise_teyvat_bosses.geo_driller": "Rơi từ Rồng Đất Cổ (1-2 mảnh/lần hạ). Đặt Khung Xe ngoài trời, hàn Đầu Khoan & Động Cơ, sau đó chuột phải bằng 1 hoặc 2 Rương vanilla (27 / 54 ô). Shift+Chuột phải mở rương; Chuột phải lên lái để khoan hầm 3x3 tự động gom đồ.",
+  "jei.velorise_teyvat_bosses.geo_driller": "Chế tạo từ Ngọc Cổ Nham rơi bởi Boss Rồng Đất Cổ (Hang Ổ Ngầm).\n\nCách ghép ngoài trời (3 mảnh): Đặt Khung Xe Khoan xuống đất, sau đó hàn Đầu Mũi Khoan & Động Cơ vào. Chuột phải bằng 1 hoặc 2 Rương vanilla (27 / 54 ô) để tự động gom khoáng sản, và dùng Sách Phù Phép (Fortune, Silk Touch, Efficiency, Sweeping Edge, Unbreaking) để nâng cấp đầu khoan.\n\nĐiều khiển: R hoặc Chuột trái (Bật/tắt mũi khoan), Chuột phải (Đột kích khoan nhanh), Space (Đổi góc khoan: Ngang / Xuống / Lên), B (Bật/tắt tự lót đường bằng đá trong rương), F (Đèn pha). Nạp nhiên liệu: Bụi / Khối Redstone / Khối Redstone Nén. Sửa: Phôi Sắt / Khối Sắt. Shift+Chuột phải mở rương; Shift+Cuốc để tháo dỡ.",
   "message.velorise_teyvat_bosses.primo_geovishap.shower_warn": "Rồng Đất Cổ đang tụ Nham Bộc Nguyên Sơ — giơ Khiên để phản đòn!",
   "message.velorise_teyvat_bosses.primo_geovishap.countered": "Phản Đòn Thành Công! Rồng Đất Cổ bị choáng!",
   "message.velorise_teyvat_bosses.geo_driller.chassis_placed": "Đã đặt Khung Xe Khoan (1/3). Hãy hàn thêm Đầu Khoan & Động Cơ.",
@@ -171,5 +171,16 @@
   "message.velorise_teyvat_bosses.damage_cap.too_far": "Quá xa! Hãy tiến vào trong bán kính %s block để gây sát thương lên boss.",
   "message.velorise_teyvat_bosses.locator.busy": "La Bàn Boss đang cộng hưởng — vui lòng thử lại sau giây lát.",
   "message.velorise_teyvat_bosses.locator.searching": "Đang dò tìm Đấu trường %s gần nhất...",
-  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Chỉ người chơi tham gia hạ gục boss mới có thể nhận chiến lợi phẩm."
+  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Chỉ người chơi tham gia hạ gục boss mới có thể nhận chiến lợi phẩm.",
+  "item.velorise_teyvat_bosses.primordial_jade": "Ngọc Cổ Nham",
+  "item.velorise_teyvat_bosses.primordial_geo_ingot": "Thỏi Vảy Rồng Nham",
+  "item.velorise_teyvat_bosses.geovishap_helmet": "Mũ Vảy Rồng Nham Cổ",
+  "item.velorise_teyvat_bosses.geovishap_chestplate": "Áo Giáp Vảy Rồng Nham Cổ",
+  "item.velorise_teyvat_bosses.geovishap_leggings": "Quần Vảy Rồng Nham Cổ",
+  "item.velorise_teyvat_bosses.geovishap_boots": "Giày Vảy Rồng Nham Cổ",
+  "tooltip.velorise_teyvat_bosses.geovishap_armor.set_2pc": "Bộ 2 món (Vảy Địa Nham): Kháng Sát Thương I & tự phản chiêu Primordial Shower",
+  "tooltip.velorise_teyvat_bosses.geovishap_armor.set_4pc": "Bộ 4 món (Hộ Thể Cổ Nham): Kháng Lửa & tự nạp Khiên Nham (+8 HP mỗi 15s)",
+  "message.velorise_teyvat_bosses.geo_driller.upgraded": "Đã nâng cấp đầu khoan! Khổ khoan hiện tại: %s",
+  "jei.velorise_teyvat_bosses.primordial_jade": "Rơi từ Boss Rồng Đất Cổ (2–3 Ngọc Cổ Nham mỗi lần hạ gục từ Hoa Địa Mạch).\n\n2 nhánh chế tạo chính:\n• Nhánh chiến đấu: Rèn Thỏi Vảy Rồng Nham để chế bộ Giáp Vảy Rồng Nham Cổ (2 món Kháng Sát Thương I & tự phản chiêu Primordial Shower; 4 món Kháng Lửa & tự nạp Khiên Nham +8 HP mỗi 15 giây).\n• Nhánh sinh tồn: Ghép cùng Sắt, Đồng, Kim Cương & Redstone để chế 3 bộ phận của Xe Khoan Địa Mạch (Geo Driller).",
+  "jei.velorise_teyvat_bosses.geovishap_armor": "Rèn từ Ngọc Cổ Nham & Thỏi Vảy Rồng Nham (rơi từ Boss Rồng Đất Cổ).\n\n• Bộ 2 món (Vảy Địa Nham): Nhận Kháng Sát Thương I vĩnh viễn và tự động tính là Khiên Nham để phản chiêu Primordial Shower của Rồng Đất Cổ.\n• Bộ 4 món (Hộ Thể Cổ Nham): Kháng Lửa vĩnh viễn và tự nạp lớp Khiên Nham hấp thụ +8 HP mỗi 15 giây.\nChống cháy, độ bền và kháng bật lùi cao; sửa chữa bằng Thỏi Vảy Rồng Nham hoặc Ngọc Cổ Nham."
 }

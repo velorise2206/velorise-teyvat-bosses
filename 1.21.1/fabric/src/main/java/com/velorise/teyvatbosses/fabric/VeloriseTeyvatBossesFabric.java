@@ -28,6 +28,10 @@ import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
+import com.velorise.teyvatbosses.item.GeovishapArmorItem;
+import net.minecraft.core.Holder;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterial;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
@@ -245,6 +249,29 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geo_driller_engine"),
             new GeoDrillerPartItem(GeoDrillerEntity.PART_ENGINE, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
+    // Primo Geovishap Primordial Jade, Geo Scale Ingot & Dragon-Scale Armor
+    public static final Holder<ArmorMaterial> GEOVISHAP_ARMOR_MATERIAL = Registry.registerForHolder(
+            BuiltInRegistries.ARMOR_MATERIAL, TeyvatBossesConstants.id("geovishap"),
+            GeovishapArmorItem.createArmorMaterial());
+    public static final Item PRIMORDIAL_JADE = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("primordial_jade"),
+            new Item(new Item.Properties().fireResistant().rarity(Rarity.EPIC)));
+    public static final Item PRIMORDIAL_GEO_INGOT = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("primordial_geo_ingot"),
+            new Item(new Item.Properties().fireResistant().rarity(Rarity.RARE)));
+    public static final Item GEOVISHAP_HELMET = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geovishap_helmet"),
+            new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.HELMET, new Item.Properties()));
+    public static final Item GEOVISHAP_CHESTPLATE = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geovishap_chestplate"),
+            new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.CHESTPLATE, new Item.Properties()));
+    public static final Item GEOVISHAP_LEGGINGS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geovishap_leggings"),
+            new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.LEGGINGS, new Item.Properties()));
+    public static final Item GEOVISHAP_BOOTS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("geovishap_boots"),
+            new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.BOOTS, new Item.Properties()));
+
     // Teyvat Boss Locator Compass
     public static final Item TEYVAT_BOSS_COMPASS = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("teyvat_boss_compass"),
@@ -440,6 +467,12 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(GEO_DRILLER_CHASSIS);
                         output.accept(GEO_DRILLER_DRILL);
                         output.accept(GEO_DRILLER_ENGINE);
+                        output.accept(PRIMORDIAL_JADE);
+                        output.accept(PRIMORDIAL_GEO_INGOT);
+                        output.accept(GEOVISHAP_HELMET);
+                        output.accept(GEOVISHAP_CHESTPLATE);
+                        output.accept(GEOVISHAP_LEGGINGS);
+                        output.accept(GEOVISHAP_BOOTS);
                         output.accept(MUSIC_DISC_CRYO_REGISVINE);
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS);
                         output.accept(MUSIC_DISC_RUIN_GUARD);
@@ -467,6 +500,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         );
         TeyvatBossesBlocks.bindCondensedRedstone(() -> CONDENSED_REDSTONE_BLOCK);
         TeyvatBossesItems.bindCondensedRedstone(() -> CONDENSED_REDSTONE_BLOCK_ITEM);
+        TeyvatBossesItems.bindGeovishapGear(
+                () -> PRIMORDIAL_JADE, () -> PRIMORDIAL_GEO_INGOT,
+                () -> GEOVISHAP_HELMET, () -> GEOVISHAP_CHESTPLATE, () -> GEOVISHAP_LEGGINGS, () -> GEOVISHAP_BOOTS);
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,

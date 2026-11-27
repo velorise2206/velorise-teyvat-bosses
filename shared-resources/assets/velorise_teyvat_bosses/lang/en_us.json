@@ -118,7 +118,7 @@
   "item.velorise_teyvat_bosses.geo_driller_drill": "Geo Driller Bore Head",
   "item.velorise_teyvat_bosses.geo_driller_engine": "Geo Driller Reactor Engine",
   "tooltip.velorise_teyvat_bosses.geo_driller_part": "Right-click ground with Chassis, then weld Bore Head & Engine. Attach 1-2 Vanilla Chests for 27/54-slot auto-mining storage.",
-  "jei.velorise_teyvat_bosses.geo_driller": "Dropped by Primo Geovishap (1-2 parts per kill). Place Geo Driller Chassis outdoors, weld Bore Head & Reactor Engine, then right-click with 1 or 2 vanilla Chests (27 / 54 slots). Shift+RMB opens cargo; RMB mounts to bore 3x3 tunnels automatically.",
+  "jei.velorise_teyvat_bosses.geo_driller": "Crafted using Primordial Jade dropped by Primo Geovishap (Subterranean Lair).\n\nOutdoor Assembly (3 Parts): Place Geo Driller Chassis on the ground, then weld Bore Head & Reactor Engine onto it. Right-click with 1 or 2 vanilla Chests (27 / 54 slots) for auto-mining storage, and apply Enchanted Books (Fortune, Silk Touch, Efficiency, Sweeping Edge, Unbreaking) to upgrade the Bore Head.\n\nControls: R or LMB (Toggle Drill), RMB (Forward Drill Surge), Space (Cycle Pitch: Level / Down / Up), B (Toggle Auto-Pave using cargo stone), F (Headlight). Refuel: Redstone Dust / Block / Condensed Redstone Block. Repair: Iron Ingot / Iron Block. Shift+RMB opens cargo; Shift+Pickaxe disassembles.",
   "message.velorise_teyvat_bosses.primo_geovishap.shower_warn": "Primo Geovishap is gathering Primordial Shower — raise a Shield to counter!",
   "message.velorise_teyvat_bosses.primo_geovishap.countered": "Primordial Shower Reflected! Primo Geovishap is staggered!",
   "message.velorise_teyvat_bosses.geo_driller.chassis_placed": "Geo Driller Chassis deployed (1/3). Weld Bore Head & Reactor Engine.",
@@ -171,5 +171,16 @@
   "message.velorise_teyvat_bosses.damage_cap.too_far": "Too far! Move within %s blocks to damage this boss.",
   "message.velorise_teyvat_bosses.locator.busy": "Boss Compass is resonating — please try again in a moment.",
   "message.velorise_teyvat_bosses.locator.searching": "Resonating for nearest %s Arena...",
-  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Only players who participated in this boss fight can claim rewards."
+  "message.velorise_teyvat_bosses.trounce_blossom.not_contributor": "Only players who participated in this boss fight can claim rewards.",
+  "item.velorise_teyvat_bosses.primordial_jade": "Primordial Jade",
+  "item.velorise_teyvat_bosses.primordial_geo_ingot": "Geo Scale Ingot",
+  "item.velorise_teyvat_bosses.geovishap_helmet": "Primo Geovishap Helmet",
+  "item.velorise_teyvat_bosses.geovishap_chestplate": "Primo Geovishap Chestplate",
+  "item.velorise_teyvat_bosses.geovishap_leggings": "Primo Geovishap Leggings",
+  "item.velorise_teyvat_bosses.geovishap_boots": "Primo Geovishap Boots",
+  "tooltip.velorise_teyvat_bosses.geovishap_armor.set_2pc": "2-Piece (Geo Scales): Resistance I & reflects Primordial Shower",
+  "tooltip.velorise_teyvat_bosses.geovishap_armor.set_4pc": "4-Piece (Primordial Aegis): Fire Resistance & auto Geo Shield (+8 HP / 15s)",
+  "message.velorise_teyvat_bosses.geo_driller.upgraded": "Bore Head upgraded! Current bore size: %s",
+  "jei.velorise_teyvat_bosses.primordial_jade": "Dropped by Primo Geovishap (2–3 Primordial Jade per defeat from the Trounce Blossom).\n\nDual Progression Uses:\n• Combat Branch: Forge Geo Scale Ingots to craft the Primo Geovishap Dragon-Scale Armor set (2-Piece Resistance I & reflects Primordial Shower; 4-Piece Fire Resistance & auto-recharging +8 HP Geo Shield).\n• Survival Branch: Combine with Iron, Copper, Diamond & Redstone to craft the 3 modular parts of the Geo Tunnel Driller.",
+  "jei.velorise_teyvat_bosses.geovishap_armor": "Forged from Primordial Jade & Geo Scale Ingots (dropped by Primo Geovishap).\n\n• 2-Piece Bonus (Geo Scales): Permanent Resistance I and counts as an active Geo Shield to reflect Primo Geovishap's Primordial Shower.\n• 4-Piece Bonus (Primordial Aegis): Permanent Fire Resistance and automatically recharges a +8 HP Absorption Geo Shield every 15 seconds.\nFireproof with high toughness & knockback resistance; repair with Geo Scale Ingots or Primordial Jade."
 }

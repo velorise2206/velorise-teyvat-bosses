@@ -16,9 +16,9 @@ import net.minecraft.server.level.ServerPlayer;
 public record GeoDrillerControlPayload(int action) implements CustomPacketPayload {
     public static final int ACTION_TOGGLE_DRILL = 1;
     public static final int ACTION_CYCLE_PITCH  = 2;
-    public static final int ACTION_TOGGLE_LIGHT = 3;
     public static final int ACTION_TOGGLE_PAVE  = 4;
     public static final int ACTION_DRILL_SURGE  = 5;
+    public static final int ACTION_OPEN_CARGO   = 6;
 
     public static final Type<GeoDrillerControlPayload> TYPE =
             new Type<>(TeyvatBossesConstants.id("geo_driller_control"));

@@ -40,16 +40,42 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
         registerBone("missile_tip_1", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_1"));
         registerBone("missile_tip_3", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_3"));
         registerBone("missile_tip_5", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("missile_pod_l").getChild("missile_tip_5"));
-        registerBone("shoulder_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r"));
-        registerBone("upper_arm_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r"));
-        registerBone("forearm_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r").getChild("forearm_r"));
-        registerBone("hand_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r").getChild("forearm_r").getChild("hand_r"));
-        registerBone("vfx_fist_r", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_r").getChild("upper_arm_r").getChild("forearm_r").getChild("hand_r").getChild("vfx_fist_r"));
-        registerBone("shoulder_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_l"));
-        registerBone("upper_arm_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_l").getChild("upper_arm_l"));
-        registerBone("forearm_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_l").getChild("upper_arm_l").getChild("forearm_l"));
-        registerBone("hand_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_l").getChild("upper_arm_l").getChild("forearm_l").getChild("hand_l"));
-        registerBone("vfx_fist_l", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("shoulder_l").getChild("upper_arm_l").getChild("forearm_l").getChild("hand_l").getChild("vfx_fist_l"));
+        ModelPart mTorso = rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso");
+        ModelPart mShR = mTorso.getChild("shoulder_r");
+        ModelPart mUpR = mShR.getChild("upper_arm_r");
+        ModelPart mUpRMid = mUpR.getChild("upper_arm_r_mid");
+        ModelPart mUpRLow = mUpRMid.getChild("upper_arm_r_low");
+        ModelPart mFoR = mUpRLow.getChild("forearm_r");
+        ModelPart mFoRMid = mFoR.getChild("forearm_r_mid");
+        ModelPart mFoRLow = mFoRMid.getChild("forearm_r_low");
+        ModelPart mHaR = mFoRLow.getChild("hand_r");
+        registerBone("shoulder_r", mShR);
+        registerBone("upper_arm_r", mUpR);
+        registerBone("upper_arm_r_mid", mUpRMid);
+        registerBone("upper_arm_r_low", mUpRLow);
+        registerBone("forearm_r", mFoR);
+        registerBone("forearm_r_mid", mFoRMid);
+        registerBone("forearm_r_low", mFoRLow);
+        registerBone("hand_r", mHaR);
+        registerBone("vfx_fist_r", mHaR.getChild("vfx_fist_r"));
+
+        ModelPart mShL = mTorso.getChild("shoulder_l");
+        ModelPart mUpL = mShL.getChild("upper_arm_l");
+        ModelPart mUpLMid = mUpL.getChild("upper_arm_l_mid");
+        ModelPart mUpLLow = mUpLMid.getChild("upper_arm_l_low");
+        ModelPart mFoL = mUpLLow.getChild("forearm_l");
+        ModelPart mFoLMid = mFoL.getChild("forearm_l_mid");
+        ModelPart mFoLLow = mFoLMid.getChild("forearm_l_low");
+        ModelPart mHaL = mFoLLow.getChild("hand_l");
+        registerBone("shoulder_l", mShL);
+        registerBone("upper_arm_l", mUpL);
+        registerBone("upper_arm_l_mid", mUpLMid);
+        registerBone("upper_arm_l_low", mUpLLow);
+        registerBone("forearm_l", mFoL);
+        registerBone("forearm_l_mid", mFoLMid);
+        registerBone("forearm_l_low", mFoLLow);
+        registerBone("hand_l", mHaL);
+        registerBone("vfx_fist_l", mHaL.getChild("vfx_fist_l"));
         registerBone("vfx_eye_anchor", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("vfx_eye_anchor"));
         registerBone("vfx_chest_anchor", rootPart.getChild("root").getChild("pelvis").getChild("waist").getChild("torso").getChild("vfx_chest_anchor"));
         registerBone("hip_r", rootPart.getChild("root").getChild("pelvis").getChild("hip_r"));
@@ -268,31 +294,44 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(136, 171).addBox(0.50F, -4.50F, -7.50F, 8.0F, 5.0F, 2.0F, new CubeDeformation(-0.008F))
             .texOffs(157, 171).addBox(0.50F, -4.50F, 5.50F, 8.0F, 5.0F, 2.0F, new CubeDeformation(-0.015F))
             , PartPose.offset(16.00F, -17.00F, 0.00F));
+        // Articulated 6-segment right arm chain (smooth Genshin C-curve bending across all rings!)
         PartDefinition b_upper_arm_r = b_shoulder_r.addOrReplaceChild("upper_arm_r", CubeListBuilder.create()
-            .texOffs(178, 171).addBox(-2.00F, -1.00F, -2.00F, 4.0F, 16.0F, 4.0F)
+            .texOffs(178, 171).addBox(-2.00F, -1.00F, -2.00F, 4.0F, 6.5F, 4.0F)
             .texOffs(195, 171).addBox(-4.00F, -0.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.015F))
             .texOffs(228, 171).addBox(-4.50F, -0.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
             .texOffs(259, 171).addBox(-3.50F, 2.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.022F))
-            .texOffs(288, 171).addBox(-4.00F, 5.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
-            .texOffs(321, 171).addBox(-4.50F, 6.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
-            .texOffs(352, 171).addBox(-3.50F, 8.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.036F))
-            .texOffs(381, 171).addBox(-4.00F, 11.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.008F))
-            .texOffs(414, 171).addBox(-4.50F, 12.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
             , PartPose.offset(5.00F, 5.00F, 0.00F));
-        PartDefinition b_forearm_r = b_upper_arm_r.addOrReplaceChild("forearm_r", CubeListBuilder.create()
+        PartDefinition b_upper_arm_r_mid = b_upper_arm_r.addOrReplaceChild("upper_arm_r_mid", CubeListBuilder.create()
+            .texOffs(178, 176).addBox(-2.00F, -0.50F, -2.00F, 4.0F, 6.0F, 4.0F)
+            .texOffs(288, 171).addBox(-4.00F, 0.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
+            .texOffs(321, 171).addBox(-4.50F, 1.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
+            .texOffs(352, 171).addBox(-3.50F, 3.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.036F))
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_upper_arm_r_low = b_upper_arm_r_mid.addOrReplaceChild("upper_arm_r_low", CubeListBuilder.create()
+            .texOffs(178, 180).addBox(-2.00F, -0.50F, -2.00F, 4.0F, 6.0F, 4.0F)
+            .texOffs(381, 171).addBox(-4.00F, 1.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.008F))
+            .texOffs(414, 171).addBox(-4.50F, 2.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_forearm_r = b_upper_arm_r_low.addOrReplaceChild("forearm_r", CubeListBuilder.create()
             .texOffs(445, 171).addBox(-3.00F, -2.00F, -3.50F, 6.0F, 4.0F, 7.0F)
             .texOffs(472, 171).addBox(2.80F, -1.50F, -1.50F, 1.0F, 3.0F, 3.0F, new CubeDeformation(-0.015F))
-            .texOffs(481, 171).addBox(-2.50F, -0.00F, -2.50F, 5.0F, 14.0F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(481, 171).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.5F, 5.0F, new CubeDeformation(-0.022F))
             .texOffs(0, 192).addBox(-4.00F, 2.00F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
-            .texOffs(33, 192).addBox(-4.00F, 4.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.036F))
-            .texOffs(66, 192).addBox(-4.50F, 5.00F, -4.50F, 9.0F, 1.0F, 9.0F, new CubeDeformation(-0.02F))
-            .texOffs(103, 192).addBox(-4.50F, 7.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.008F))
-            .texOffs(140, 192).addBox(-4.50F, 9.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.015F))
-            .texOffs(177, 192).addBox(-4.50F, 12.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.022F))
-            .texOffs(214, 192).addBox(-5.00F, 12.50F, -5.00F, 10.0F, 1.0F, 10.0F, new CubeDeformation(-0.02F))
-            .texOffs(255, 192).addBox(4.10F, 6.00F, -1.00F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
-            , PartPose.offset(0.00F, 15.00F, 0.00F));
-        PartDefinition b_hand_r = b_forearm_r.addOrReplaceChild("hand_r", CubeListBuilder.create()
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_forearm_r_mid = b_forearm_r.addOrReplaceChild("forearm_r_mid", CubeListBuilder.create()
+            .texOffs(481, 176).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.5F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(33, 192).addBox(-4.00F, 0.00F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.036F))
+            .texOffs(66, 192).addBox(-4.50F, 0.50F, -4.50F, 9.0F, 1.0F, 9.0F, new CubeDeformation(-0.02F))
+            .texOffs(103, 192).addBox(-4.50F, 2.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.008F))
+            .texOffs(255, 192).addBox(4.10F, 1.50F, -1.00F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
+            , PartPose.offset(0.00F, 4.50F, 0.00F));
+        PartDefinition b_forearm_r_low = b_forearm_r_mid.addOrReplaceChild("forearm_r_low", CubeListBuilder.create()
+            .texOffs(481, 180).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.8F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(140, 192).addBox(-4.50F, 0.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.015F))
+            .texOffs(177, 192).addBox(-4.50F, 3.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.022F))
+            .texOffs(214, 192).addBox(-5.00F, 3.50F, -5.00F, 10.0F, 1.0F, 10.0F, new CubeDeformation(-0.02F))
+            , PartPose.offset(0.00F, 4.50F, 0.00F));
+        PartDefinition b_hand_r = b_forearm_r_low.addOrReplaceChild("hand_r", CubeListBuilder.create()
             .texOffs(262, 192).addBox(-4.00F, -0.00F, -4.00F, 8.0F, 4.0F, 8.0F)
             .texOffs(295, 192).addBox(2.80F, -0.00F, -3.50F, 2.0F, 4.0F, 7.0F, new CubeDeformation(-0.015F))
             .texOffs(314, 192).addBox(0.00F, 3.20F, -3.80F, 3.0F, 4.0F, 2.0F, new CubeDeformation(-0.022F))
@@ -303,7 +342,7 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(365, 192).addBox(-0.50F, 6.20F, 1.80F, 2.0F, 2.0F, 2.0F, new CubeDeformation(-0.022F))
             .texOffs(374, 192).addBox(-4.00F, 2.50F, -3.50F, 3.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
             .texOffs(385, 192).addBox(-2.50F, 5.50F, -3.50F, 2.0F, 2.0F, 2.0F, new CubeDeformation(-0.036F))
-            , PartPose.offset(0.00F, 14.00F, 0.00F));
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
         PartDefinition b_vfx_fist_r = b_hand_r.addOrReplaceChild("vfx_fist_r", CubeListBuilder.create()
             .texOffs(196, 268).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.49F))
             , PartPose.offset(0.00F, 6.00F, 0.00F));
@@ -316,31 +355,44 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(54, 211).addBox(-8.50F, -4.50F, -7.50F, 8.0F, 5.0F, 2.0F, new CubeDeformation(-0.008F))
             .texOffs(75, 211).addBox(-8.50F, -4.50F, 5.50F, 8.0F, 5.0F, 2.0F, new CubeDeformation(-0.015F))
             , PartPose.offset(-16.00F, -17.00F, 0.00F));
+        // Articulated 6-segment left arm chain (smooth Genshin C-curve bending across all rings!)
         PartDefinition b_upper_arm_l = b_shoulder_l.addOrReplaceChild("upper_arm_l", CubeListBuilder.create()
-            .texOffs(96, 211).addBox(-2.00F, -1.00F, -2.00F, 4.0F, 16.0F, 4.0F)
+            .texOffs(96, 211).addBox(-2.00F, -1.00F, -2.00F, 4.0F, 6.5F, 4.0F)
             .texOffs(113, 211).addBox(-4.00F, -0.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.015F))
             .texOffs(146, 211).addBox(-4.50F, -0.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
             .texOffs(177, 211).addBox(-3.50F, 2.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.022F))
-            .texOffs(206, 211).addBox(-4.00F, 5.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
-            .texOffs(239, 211).addBox(-4.50F, 6.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
-            .texOffs(270, 211).addBox(-3.50F, 8.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.036F))
-            .texOffs(299, 211).addBox(-4.00F, 11.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.008F))
-            .texOffs(332, 211).addBox(-4.50F, 12.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
             , PartPose.offset(-5.00F, 5.00F, 0.00F));
-        PartDefinition b_forearm_l = b_upper_arm_l.addOrReplaceChild("forearm_l", CubeListBuilder.create()
+        PartDefinition b_upper_arm_l_mid = b_upper_arm_l.addOrReplaceChild("upper_arm_l_mid", CubeListBuilder.create()
+            .texOffs(96, 216).addBox(-2.00F, -0.50F, -2.00F, 4.0F, 6.0F, 4.0F)
+            .texOffs(206, 211).addBox(-4.00F, 0.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
+            .texOffs(239, 211).addBox(-4.50F, 1.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
+            .texOffs(270, 211).addBox(-3.50F, 3.50F, -3.50F, 7.0F, 2.0F, 7.0F, new CubeDeformation(-0.036F))
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_upper_arm_l_low = b_upper_arm_l_mid.addOrReplaceChild("upper_arm_l_low", CubeListBuilder.create()
+            .texOffs(96, 220).addBox(-2.00F, -0.50F, -2.00F, 4.0F, 6.0F, 4.0F)
+            .texOffs(299, 211).addBox(-4.00F, 1.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.008F))
+            .texOffs(332, 211).addBox(-4.50F, 2.00F, -3.00F, 9.0F, 1.0F, 6.0F, new CubeDeformation(-0.02F))
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_forearm_l = b_upper_arm_l_low.addOrReplaceChild("forearm_l", CubeListBuilder.create()
             .texOffs(363, 211).addBox(-3.00F, -2.00F, -3.50F, 6.0F, 4.0F, 7.0F)
             .texOffs(390, 211).addBox(-3.80F, -1.50F, -1.50F, 1.0F, 3.0F, 3.0F, new CubeDeformation(-0.015F))
-            .texOffs(399, 211).addBox(-2.50F, -0.00F, -2.50F, 5.0F, 14.0F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(399, 211).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.5F, 5.0F, new CubeDeformation(-0.022F))
             .texOffs(420, 211).addBox(-4.00F, 2.00F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.029F))
-            .texOffs(453, 211).addBox(-4.00F, 4.50F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.036F))
-            .texOffs(0, 232).addBox(-4.50F, 5.00F, -4.50F, 9.0F, 1.0F, 9.0F, new CubeDeformation(-0.02F))
-            .texOffs(37, 232).addBox(-4.50F, 7.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.008F))
-            .texOffs(74, 232).addBox(-4.50F, 9.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.015F))
-            .texOffs(111, 232).addBox(-4.50F, 12.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.022F))
-            .texOffs(148, 232).addBox(-5.00F, 12.50F, -5.00F, 10.0F, 1.0F, 10.0F, new CubeDeformation(-0.02F))
-            .texOffs(189, 232).addBox(-5.10F, 6.00F, -1.00F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
-            , PartPose.offset(0.00F, 15.00F, 0.00F));
-        PartDefinition b_hand_l = b_forearm_l.addOrReplaceChild("hand_l", CubeListBuilder.create()
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
+        PartDefinition b_forearm_l_mid = b_forearm_l.addOrReplaceChild("forearm_l_mid", CubeListBuilder.create()
+            .texOffs(399, 216).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.5F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(453, 211).addBox(-4.00F, 0.00F, -4.00F, 8.0F, 2.0F, 8.0F, new CubeDeformation(-0.036F))
+            .texOffs(0, 232).addBox(-4.50F, 0.50F, -4.50F, 9.0F, 1.0F, 9.0F, new CubeDeformation(-0.02F))
+            .texOffs(37, 232).addBox(-4.50F, 2.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.008F))
+            .texOffs(189, 232).addBox(-5.10F, 1.50F, -1.00F, 1.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
+            , PartPose.offset(0.00F, 4.50F, 0.00F));
+        PartDefinition b_forearm_l_low = b_forearm_l_mid.addOrReplaceChild("forearm_l_low", CubeListBuilder.create()
+            .texOffs(399, 220).addBox(-2.50F, -0.50F, -2.50F, 5.0F, 5.8F, 5.0F, new CubeDeformation(-0.022F))
+            .texOffs(74, 232).addBox(-4.50F, 0.50F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.015F))
+            .texOffs(111, 232).addBox(-4.50F, 3.00F, -4.50F, 9.0F, 2.0F, 9.0F, new CubeDeformation(-0.022F))
+            .texOffs(148, 232).addBox(-5.00F, 3.50F, -5.00F, 10.0F, 1.0F, 10.0F, new CubeDeformation(-0.02F))
+            , PartPose.offset(0.00F, 4.50F, 0.00F));
+        PartDefinition b_hand_l = b_forearm_l_low.addOrReplaceChild("hand_l", CubeListBuilder.create()
             .texOffs(196, 232).addBox(-4.00F, -0.00F, -4.00F, 8.0F, 4.0F, 8.0F)
             .texOffs(229, 232).addBox(-4.80F, -0.00F, -3.50F, 2.0F, 4.0F, 7.0F, new CubeDeformation(-0.015F))
             .texOffs(248, 232).addBox(-3.00F, 3.20F, -3.80F, 3.0F, 4.0F, 2.0F, new CubeDeformation(-0.022F))
@@ -351,7 +403,7 @@ public class RuinGuardModel<T extends Entity> extends EntityModel<T> {
             .texOffs(299, 232).addBox(-1.50F, 6.20F, 1.80F, 2.0F, 2.0F, 2.0F, new CubeDeformation(-0.022F))
             .texOffs(308, 232).addBox(1.00F, 2.50F, -3.50F, 3.0F, 4.0F, 2.0F, new CubeDeformation(-0.029F))
             .texOffs(319, 232).addBox(0.50F, 5.50F, -3.50F, 2.0F, 2.0F, 2.0F, new CubeDeformation(-0.036F))
-            , PartPose.offset(0.00F, 14.00F, 0.00F));
+            , PartPose.offset(0.00F, 5.00F, 0.00F));
         PartDefinition b_vfx_fist_l = b_hand_l.addOrReplaceChild("vfx_fist_l", CubeListBuilder.create()
             .texOffs(201, 268).addBox(-0.50F, -0.50F, -0.50F, 1.0F, 1.0F, 1.0F, new CubeDeformation(-0.49F))
             , PartPose.offset(0.00F, 6.00F, 0.00F));

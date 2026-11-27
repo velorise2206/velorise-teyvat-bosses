@@ -28,7 +28,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
@@ -119,6 +121,7 @@ public class GeoDrillerEntity extends Mob {
 
     private final SimpleContainer cargo = new SimpleContainer(54);
     private BlockPos activeLightPos = null;
+    private int pendingPartClankTicks = 0;
     private int mineCooldown = 0;
     private int surgeCooldown = 0;
 
@@ -146,7 +149,7 @@ public class GeoDrillerEntity extends Mob {
                 .add(Attributes.ARMOR_TOUGHNESS, 6.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.24D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.STEP_HEIGHT, 1.15D);
+                .add(Attributes.STEP_HEIGHT, 1.25D);
     }
 
     @Override
@@ -231,18 +234,18 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dims, float partialTick) {
-        // Centered cleanly on the cockpit seat cushion (+Z is forward) with clear eye-line over the hood
-        return new Vec3(0.0D, 0.78D, 0.24D);
+        // Seated down inside the cockpit on the brown leather cushion under the roll cage
+        return new Vec3(0.0D, 0.36D, 0.16D);
     }
 
     @Override
     protected void positionRider(Entity passenger, MoveFunction callback) {
         if (!hasPassenger(passenger)) return;
-        // Exact trigonometric seat lock matching GeoDrillerModel cockpit seat (+0.24 blocks forward along hull yaw)
+        // Place rider directly on the cockpit seat cushion (without double-adding vehicle attachment Y!)
         float rad = this.getYRot() * Mth.DEG_TO_RAD;
-        double seatFwd = 0.24D;
+        double seatFwd = 0.16D;
         double px = this.getX() - Mth.sin(rad) * seatFwd;
-        double py = this.getY() + 0.78D + passenger.getVehicleAttachmentPoint(this).y;
+        double py = this.getY() + 0.36D;
         double pz = this.getZ() + Mth.cos(rad) * seatFwd;
         callback.accept(passenger, px, py, pz);
         clampPassengerBody(passenger);
@@ -272,11 +275,6 @@ public class GeoDrillerEntity extends Mob {
             int next = (getPitchMode() + 1) % 3;
             entityData.set(DATA_PITCH_MODE, next);
             level().playSound(null, getX(), getY() + 1.1D, getZ(), SoundEvents.LEVER_CLICK, SoundSource.PLAYERS, 1.0F, 0.9F + next * 0.15F);
-        } else if (action == GeoDrillerControlPayload.ACTION_TOGGLE_LIGHT) {
-            boolean next = !isHeadlightOn();
-            entityData.set(DATA_HEADLIGHT, next);
-            level().playSound(null, getX(), getY() + 1.1D, getZ(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.9F, next ? 1.3F : 0.8F);
-            if (!next && level() instanceof ServerLevel sl) clearHeadlight(sl);
         } else if (action == GeoDrillerControlPayload.ACTION_TOGGLE_PAVE) {
             boolean next = !isPaveEnabled();
             entityData.set(DATA_PAVE_ENABLED, next);
@@ -308,8 +306,7 @@ public class GeoDrillerEntity extends Mob {
                     if (!level().isClientSide() && level() instanceof ServerLevel sl) {
                         entityData.set(DATA_PARTS, getPartMask() | bit);
                         if (!player.getAbilities().instabuild) stack.shrink(1);
-                        sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.ANVIL_USE, SoundSource.PLAYERS, 1.0F, 1.05F);
-                        sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.2D, getZ(), 20, 0.8D, 0.6D, 0.8D, 0.08D);
+                        pendingPartClankTicks = 14;
                         if (isFullyAssembled()) {
                             player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.geo_driller.complete")
                                     .withStyle(ChatFormatting.GOLD), true);
@@ -354,8 +351,9 @@ public class GeoDrillerEntity extends Mob {
                     if (!player.getAbilities().instabuild) stack.shrink(1);
                     return InteractionResult.CONSUME;
                 }
+                return InteractionResult.PASS;
             }
-            return InteractionResult.sidedSuccess(level().isClientSide());
+            return InteractionResult.SUCCESS;
         }
 
         // 4. Shift + RMB: dismantle with Pickaxe, or open attached Vanilla Chest (27/54 slots)
@@ -452,11 +450,8 @@ public class GeoDrillerEntity extends Mob {
         if (upgraded) {
             sl.playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.2F, 1.05F);
             sl.sendParticles(ParticleTypes.ENCHANT, getX(), getY() + 1.6D, getZ(), 28, 0.9D, 0.6D, 0.9D, 0.15D);
-            player.displayClientMessage(Component.literal("Bore Head Upgraded! Bore: " + getBoreLabel()
-                    + (hasSilkTouch() ? " | Silk Touch" : (getFortuneLevel() > 0 ? " | Fortune " + getFortuneLevel() : ""))
-                    + (getEfficiencyLevel() > 0 ? " | Eff " + getEfficiencyLevel() : "")
-                    + (getUnbreakingLevel() > 0 ? " | Unb " + getUnbreakingLevel() : "")
-            ).withStyle(ChatFormatting.LIGHT_PURPLE), true);
+            player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.geo_driller.upgraded",
+                    getBoreLabel()).withStyle(ChatFormatting.LIGHT_PURPLE), true);
         }
         return upgraded;
     }
@@ -470,6 +465,24 @@ public class GeoDrillerEntity extends Mob {
             dropPartsAndCargo(sl);
             discard();
             return true;
+        }
+        // Tunnel driller is immune to suffocation, cramming, fire, lava, fall damage, and pilot self-hits
+        if (source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)
+                || source.is(DamageTypes.LAVA) || source.is(DamageTypes.IN_FIRE)
+                || source.is(DamageTypes.ON_FIRE) || source.is(DamageTypes.HOT_FLOOR)
+                || source.is(DamageTypes.FALL)) {
+            return false;
+        }
+        if (source.getEntity() != null && this.hasPassenger(source.getEntity())) {
+            return false;
+        }
+        // Heavy armored chassis deflects bare-hand / weak spam hits (< 4.0 raw damage)
+        if (!source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !source.is(DamageTypeTags.BYPASSES_ARMOR) && amount < 4.0F) {
+            if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+                sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.70F, 0.72F);
+                sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.0D, getZ(), 4, 0.45D, 0.45D, 0.45D, 0.06D);
+            }
+            return false;
         }
         return super.hurt(source, amount);
     }
@@ -510,6 +523,14 @@ public class GeoDrillerEntity extends Mob {
 
     @Override
     public void tick() {
+        if (!level().isClientSide() && pendingPartClankTicks > 0 && --pendingPartClankTicks == 0 && level() instanceof ServerLevel sl) {
+            var heavySfx = TeyvatBossesSounds.mechMetalClank() != null
+                    ? TeyvatBossesSounds.mechMetalClank()
+                    : SoundEvents.IRON_GOLEM_REPAIR;
+            sl.playSound(null, getX(), getY() + 1.0D, getZ(), heavySfx, SoundSource.PLAYERS, 1.15F, 0.56F);
+            sl.playSound(null, getX(), getY() + 1.0D, getZ(), SoundEvents.PISTON_CONTRACT, SoundSource.PLAYERS, 0.85F, 0.52F);
+            sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.2D, getZ(), 20, 0.8D, 0.6D, 0.8D, 0.08D);
+        }
         prevWheelSpinL = wheelSpinL;
         prevWheelSpinR = wheelSpinR;
         prevDrillSpin = drillSpin;
@@ -534,9 +555,11 @@ public class GeoDrillerEntity extends Mob {
         boolean wantsDrive = engineRunning && (Math.abs(thr) > 0.05F || surging);
         boolean wantsDrill = isDrilling() || (engineRunning && surging);
 
-        // Heavy mechanical inertia: ~0.65s (13 ticks) engine spool-up before full drive torque
-        driveSpool = wantsDrive ? Math.min(1.0F, driveSpool + 0.08F) : Math.max(0.0F, driveSpool - 0.12F);
-        drillSpool = wantsDrill ? Math.min(1.0F, drillSpool + 0.075F) : Math.max(0.0F, drillSpool - 0.10F);
+        // Heavy mechanical inertia: gradual drive spool-up + weighty ~3.0s drill flywheel coast-down on stop/dismount
+        driveSpool = wantsDrive ? Math.min(1.0F, driveSpool + 0.08F) : Math.max(0.0F, driveSpool - 0.10F);
+        drillSpool = wantsDrill
+                ? Math.min(1.0F, drillSpool + 0.055F)
+                : Math.max(0.0F, drillSpool - (0.011F + drillSpool * 0.014F));
 
         // Left lever = forward/reverse throttle; Right lever = drill engage + pitch angle
         float targetLeverL = wantsDrive ? Mth.clamp(thr, -1.0F, 1.0F) * 0.42F : 0.0F;
@@ -568,7 +591,8 @@ public class GeoDrillerEntity extends Mob {
         float tankSteerDelta = (engineRunning && Math.abs(steer) > 0.05F) ? steer * 0.24F : 0.0F;
         wheelSpinL += rollDelta - tankSteerDelta;
         wheelSpinR += rollDelta + tankSteerDelta;
-        drillSpin += drillSpool * (surging ? 1.35F : 0.78F) + (engineRunning ? 0.04F : 0.0F);
+        float inertiaCurve = drillSpool * (0.35F + 0.65F * drillSpool);
+        drillSpin += inertiaCurve * (surging ? 1.42F : 0.85F) + (engineRunning ? 0.03F : 0.0F);
 
         if (level().isClientSide()) {
             // Twin industrial smokestack exhaust plumes
@@ -612,10 +636,11 @@ public class GeoDrillerEntity extends Mob {
         }
 
         if (isAlive() && isFullyAssembled() && getControllingPassenger() instanceof Player pilot) {
-            float pFwd = pilot.zza;
-            float pSide = pilot.xxa;
-            entityData.set(DATA_THROTTLE, pFwd);
-            entityData.set(DATA_STEER, pSide);
+            // Player.zza/xxa are client-only; infer real drive throttle on server from signed displacement!
+            float inferredThr = Math.abs(signedDist) > 0.012D ? (signedDist > 0.0D ? 1.0F : -1.0F) : 0.0F;
+            float inferredSteer = Mth.clamp(Mth.wrapDegrees(this.yRotO - this.getYRot()) / 3.6F, -1.0F, 1.0F);
+            entityData.set(DATA_THROTTLE, inferredThr);
+            entityData.set(DATA_STEER, inferredSteer);
 
             // Custom diesel engine idle/drive rumble
             if (hasFuel && tickCount % 36 == 0) {
@@ -627,20 +652,14 @@ public class GeoDrillerEntity extends Mob {
                             wantsDrive ? 0.72F : 0.45F, 0.86F + driveSpool * 0.28F);
                 }
             }
-            // Custom bore-head spinning sound while drilling
-            if (wantsDrill && tickCount % 32 == 0) {
-                var boreSfx = TeyvatBossesSounds.drillBoreSpin();
-                if (boreSfx != null) {
-                    sl.playSound(null, getX() + fwd.x * 1.8D, getY() + 0.9D, getZ() + fwd.z * 1.8D,
-                            boreSfx, SoundSource.PLAYERS, 0.78F, surging ? 1.22F : 1.0F);
-                }
-            }
+            // Bore-head spinning & inertia coast-down audio is handled smoothly client-side via DrillerSpinSoundInstance
 
-            // Headlight (consumes extra fuel gently: -1 every 30 ticks)
-            if (isHeadlightOn() && hasFuel) {
+            // Automatic roof headlights: ON while piloting with fuel, OFF automatically on dismount/empty
+            if (hasFuel) {
+                if (!isHeadlightOn()) entityData.set(DATA_HEADLIGHT, true);
                 updateHeadlight(sl, fwd);
-                if (tickCount % 30 == 0) consumeFuel(1);
             } else {
+                if (isHeadlightOn()) entityData.set(DATA_HEADLIGHT, false);
                 clearHeadlight(sl);
             }
 
@@ -701,10 +720,14 @@ public class GeoDrillerEntity extends Mob {
                 this.setSpeed(0.56F * surgeFrac);
                 super.travel(new Vec3(0.0D, travelVector.y, 1.0D));
             } else {
-                // Heavy spool-up: engine rumbles briefly before rolling smoothly up to cruise speed
-                float torque = Mth.clamp((driveSpool - 0.30F) / 0.70F, 0.0F, 1.0F);
-                if (hasFuel && Math.abs(fwd) > 0.05F && torque > 0.02F) {
-                    float baseSpd = fwd > 0 ? 0.21F : 0.12F;
+                // Advance driveSpool directly from live pilot input on controlling client so driving never stalls!
+                boolean clientWantsDrive = hasFuel && Math.abs(fwd) > 0.05F;
+                if (clientWantsDrive) {
+                    driveSpool = Math.min(1.0F, Math.max(driveSpool + 0.12F, 0.42F));
+                }
+                float torque = Mth.clamp((driveSpool - 0.25F) / 0.75F, 0.0F, 1.0F);
+                if (clientWantsDrive && torque > 0.02F) {
+                    float baseSpd = fwd > 0 ? 0.22F : 0.13F;
                     this.setSpeed(baseSpd * torque);
                     super.travel(new Vec3(0.0D, travelVector.y, fwd));
                 } else {
@@ -735,23 +758,24 @@ public class GeoDrillerEntity extends Mob {
         Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
         ItemStack virtualPick = buildVirtualPickaxe(sl);
 
-        // Sweeping Edge expands bore dimensions: 0 -> 3x3, I -> 4x3, II+ -> 5x4
+        // Sweeping Edge expands bore dimensions: 0 -> 3x3 (diagonal-safe), I -> 4x3, II+ -> 5x4
         int sw = getSweepingLevel();
-        int minDx = sw >= 2 ? -2 : -1;
-        int maxDx = sw >= 1 ? 2 : 1;
+        double minDx = sw >= 2 ? -2.2D : -1.45D;
+        double maxDx = sw >= 2 ? 2.2D : (sw == 1 ? 2.0D : 1.45D);
         int height = sw >= 2 ? 4 : 3;
 
         int pitch = getPitchMode();
         int yShift = pitch == PITCH_DOWN ? -1 : (pitch == PITCH_UP ? 1 : 0);
+        int clearHeight = (pitch == PITCH_UP || pitch == PITCH_DOWN) ? height + 1 : height;
 
         boolean minedAny = false;
         int baseY = Mth.floor(getY()) + yShift;
-        double[] depths = {1.45D, 2.15D, 2.80D};
+        double[] depths = {0.95D, 1.55D, 2.20D, 2.85D};
         for (double depth : depths) {
             Vec3 slice = position().add(fwd.scale(depth));
 
-            // 1. Mine bore cross-section cleanly across full width
-            for (int dy = 0; dy < height; dy++) {
+            // 1. Mine bore cross-section cleanly across full width (including headroom on slopes!)
+            for (int dy = 0; dy < clearHeight; dy++) {
                 for (double dx = minDx; dx <= maxDx; dx += 0.5D) {
                     BlockPos bp = BlockPos.containing(slice.x + right.x * dx, baseY + dy + 0.1D, slice.z + right.z * dx);
                     if (!sl.mayInteract(pilot, bp) || !pilot.mayInteract(sl, bp)) continue;
@@ -827,14 +851,17 @@ public class GeoDrillerEntity extends Mob {
             if (e.hurt(sl.damageSources().mobAttack(this), damage)) {
                 e.setDeltaMovement(fwd.x * knockback, 0.36D, fwd.z * knockback);
                 e.hurtMarked = true;
-                sl.playSound(null, e.getX(), e.getY() + 0.8D, e.getZ(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.55F, 1.35F);
+                sl.playSound(null, e.getX(), e.getY() + 0.8D, e.getZ(), SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.PLAYERS, 0.70F, 0.68F);
                 sl.sendParticles(ParticleTypes.CRIT, e.getX(), e.getY() + 0.8D, e.getZ(), 10, 0.35D, 0.35D, 0.35D, 0.12D);
             }
         }
     }
 
     private void updateHeadlight(ServerLevel sl, Vec3 fwd) {
-        BlockPos desired = BlockPos.containing(getX() + fwd.x * 3.0D, getY() + 1.5D, getZ() + fwd.z * 3.0D);
+        BlockPos desired = BlockPos.containing(getX() + fwd.x * 3.2D, getY() + 2.2D, getZ() + fwd.z * 3.2D);
+        if (!sl.getBlockState(desired).isAir()) {
+            desired = BlockPos.containing(getX() + fwd.x * 2.6D, getY() + 1.4D, getZ() + fwd.z * 2.6D);
+        }
         if (desired.equals(activeLightPos)) return;
         clearHeadlight(sl);
         if (sl.getBlockState(desired).isAir()) {

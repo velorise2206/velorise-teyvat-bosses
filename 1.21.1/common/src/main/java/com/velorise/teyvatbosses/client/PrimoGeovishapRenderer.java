@@ -75,10 +75,14 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     @Override
     public void render(PrimoGeovishapEntity entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buf, int packedLight) {
         int bossState = entity.getBossState();
-        BossMusicManager.update(entity, BOSS_MUSIC_ID,
-                bossState == PrimoGeovishapEntity.STATE_AWAKEN
+        boolean primoMusic = entity.hasActiveCombatTarget()
+                && (bossState == PrimoGeovishapEntity.STATE_AWAKEN
                         || bossState == PrimoGeovishapEntity.STATE_COMBAT
                         || bossState == PrimoGeovishapEntity.STATE_STAGGER);
+        BossMusicManager.update(entity, BOSS_MUSIC_ID, primoMusic, () -> entity.hasActiveCombatTarget()
+                && (entity.getBossState() == PrimoGeovishapEntity.STATE_AWAKEN
+                        || entity.getBossState() == PrimoGeovishapEntity.STATE_COMBAT
+                        || entity.getBossState() == PrimoGeovishapEntity.STATE_STAGGER));
         int animId = entity.getAnimId();
         int animTick = entity.getAnimTick();
         float clipSec = (animTick + partialTicks) / 20.0F;

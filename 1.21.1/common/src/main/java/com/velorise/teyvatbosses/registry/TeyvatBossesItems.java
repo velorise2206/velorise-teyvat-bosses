@@ -31,6 +31,12 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> geoDrillerDrill;
     private static Supplier<Item> geoDrillerEngine;
     private static Supplier<Item> condensedRedstoneBlock;
+    private static Supplier<Item> primordialJade;
+    private static Supplier<Item> primordialGeoIngot;
+    private static Supplier<Item> geovishapHelmet;
+    private static Supplier<Item> geovishapChestplate;
+    private static Supplier<Item> geovishapLeggings;
+    private static Supplier<Item> geovishapBoots;
 
     private TeyvatBossesItems() {}
 
@@ -109,4 +115,27 @@ public final class TeyvatBossesItems {
     public static Item[] geoDrillerPartPool() { return new Item[]{geoDrillerChassis(), geoDrillerDrill(), geoDrillerEngine()}; }
     public static void bindCondensedRedstone(Supplier<Item> supplier) { condensedRedstoneBlock = supplier; }
     public static Item condensedRedstoneBlock() { return condensedRedstoneBlock != null ? condensedRedstoneBlock.get() : null; }
+
+    public static void bindGeovishapGear(
+            Supplier<Item> jadeSupplier,
+            Supplier<Item> ingotSupplier,
+            Supplier<Item> helmetSupplier,
+            Supplier<Item> chestSupplier,
+            Supplier<Item> legsSupplier,
+            Supplier<Item> bootsSupplier
+    ) {
+        primordialJade = jadeSupplier;
+        primordialGeoIngot = ingotSupplier;
+        geovishapHelmet = helmetSupplier;
+        geovishapChestplate = chestSupplier;
+        geovishapLeggings = legsSupplier;
+        geovishapBoots = bootsSupplier;
+    }
+
+    public static Item primordialJade() { return primordialJade != null ? primordialJade.get() : null; }
+    public static Item primordialGeoIngot() { return primordialGeoIngot != null ? primordialGeoIngot.get() : null; }
+    public static Item geovishapHelmet() { return geovishapHelmet != null ? geovishapHelmet.get() : null; }
+    public static Item geovishapChestplate() { return geovishapChestplate != null ? geovishapChestplate.get() : null; }
+    public static Item geovishapLeggings() { return geovishapLeggings != null ? geovishapLeggings.get() : null; }
+    public static Item geovishapBoots() { return geovishapBoots != null ? geovishapBoots.get() : null; }
 }

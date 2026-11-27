@@ -146,8 +146,8 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         String currClip = entity.getCurrentAnimName();
         int currEpoch = entity.getAnimEpoch();
 
-        boolean musicActive = entity.isAlive() && (entity.getBossState() == CryoRegisvineEntity.STATE_COMBAT || entity.getBossState() == CryoRegisvineEntity.STATE_STUNNED);
-        BossMusicManager.update(entity, MUSIC_ID, musicActive);
+        boolean musicActive = entity.isAlive() && entity.hasActiveCombatTarget() && (entity.getBossState() == CryoRegisvineEntity.STATE_COMBAT || entity.getBossState() == CryoRegisvineEntity.STATE_STUNNED);
+        BossMusicManager.update(entity, MUSIC_ID, musicActive, () -> entity.hasActiveCombatTarget() && (entity.getBossState() == CryoRegisvineEntity.STATE_COMBAT || entity.getBossState() == CryoRegisvineEntity.STATE_STUNNED));
         AnimStateMachine sm = stateMachines.computeIfAbsent(entity, k -> new AnimStateMachine());
         if (sm.lastClip != null && (!sm.lastClip.equals(currClip) || sm.lastEpoch != currEpoch)) {
             // Snapshot exact rendered pose of previous frame as blend origin!

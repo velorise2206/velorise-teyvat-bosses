@@ -1315,6 +1315,7 @@ public final class RuinGuardAnimations {
     public static void apply(RuinGuardModel<?> model, String clipName, float timeSeconds) {
         model.resetPose();
         applyWeighted(model, CLIPS.get(clipName), timeSeconds, 1.0F);
+        applyShoulderArmCoupling(model);
     }
 
     public static void applyBlended(RuinGuardModel<?> model, String prevClipName, float prevTimeSeconds, String currClipName, float currTimeSeconds, float blendAlpha) {
@@ -1325,5 +1326,62 @@ public final class RuinGuardAnimations {
             applyWeighted(model, CLIPS.get(prevClipName), prevTimeSeconds, 1.0F - smoothA);
         }
         applyWeighted(model, CLIPS.get(currClipName), currTimeSeconds, smoothA);
+        applyShoulderArmCoupling(model);
+    }
+
+    /**
+     * Promotes {@code shoulder_r}/{@code shoulder_l} (mounted directly to {@code torso}) as the primary
+     * arm swing joint AND smoothly distributes elbow bend across the 6 articulated ring segments
+     * ({@code upper_arm -> upper_arm_mid -> upper_arm_low -> forearm -> forearm_mid -> forearm_low})
+     * so every Ruin Guard / Ruin Mech attack curves smoothly like Genshin Impact's segmented arms.
+     */
+    private static void applyShoulderArmCoupling(RuinGuardModel<?> model) {
+        applyArticulatedArm(
+                model.getBone("shoulder_r"),
+                model.getBone("upper_arm_r"),
+                model.getBone("upper_arm_r_mid"),
+                model.getBone("upper_arm_r_low"),
+                model.getBone("forearm_r"),
+                model.getBone("forearm_r_mid"),
+                model.getBone("forearm_r_low")
+        );
+        applyArticulatedArm(
+                model.getBone("shoulder_l"),
+                model.getBone("upper_arm_l"),
+                model.getBone("upper_arm_l_mid"),
+                model.getBone("upper_arm_l_low"),
+                model.getBone("forearm_l"),
+                model.getBone("forearm_l_mid"),
+                model.getBone("forearm_l_low")
+        );
+    }
+
+    private static void applyArticulatedArm(
+            ModelPart shoulder,
+            ModelPart seg0, ModelPart seg1, ModelPart seg2,
+            ModelPart seg3, ModelPart seg4, ModelPart seg5
+    ) {
+        if (shoulder == null || seg0 == null || seg3 == null) return;
+
+        // 1. Move 100% of authored upper_arm swing onto the torso-mounted shoulder joint
+        shoulder.xRot += seg0.xRot;
+        shoulder.yRot += seg0.yRot;
+        shoulder.zRot += seg0.zRot;
+
+        // 2. Distribute authored elbow bend smoothly across all 6 ring segments (sum = 1.00)
+        float bx = seg3.xRot;
+        float by = seg3.yRot;
+        float bz = seg3.zRot;
+
+        float[] weights = {0.08F, 0.16F, 0.22F, 0.24F, 0.18F, 0.12F};
+        ModelPart[] chain = {seg0, seg1, seg2, seg3, seg4, seg5};
+        for (int i = 0; i < chain.length; i++) {
+            ModelPart seg = chain[i];
+            if (seg == null) continue;
+            float w = weights[i];
+            seg.xRot = bx * w;
+            seg.yRot = by * w;
+            seg.zRot = bz * w;
+        }
     }
 }

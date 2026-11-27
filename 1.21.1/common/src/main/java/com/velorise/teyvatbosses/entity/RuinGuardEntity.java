@@ -94,6 +94,8 @@ public class RuinGuardEntity extends Monster {
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_STATE =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET =
+            SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_ANIM_ID =
             SynchedEntityData.defineId(RuinGuardEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
@@ -165,6 +167,7 @@ public class RuinGuardEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_HAS_TARGET, false);
         builder.define(DATA_BOSS_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM_ID, ANIM_DORMANT);
         builder.define(DATA_ANIM_EPOCH, 0);
@@ -195,6 +198,7 @@ public class RuinGuardEntity extends Monster {
     }
 
     public int getBossState() { return entityData.get(DATA_BOSS_STATE); }
+    public boolean hasActiveCombatTarget() { return entityData.get(DATA_HAS_TARGET); }
     public int getAnimId() { return entityData.get(DATA_ANIM_ID); }
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : stateTick; }
@@ -535,6 +539,14 @@ public class RuinGuardEntity extends Monster {
         yHeadRot = savedSpawnYaw;
         setHealth(getMaxHealth());
         entityData.set(DATA_PHASE2, false);
+        clearTelegraph();
+        if (level() instanceof ServerLevel sl) {
+            for (RuinMissileProjectile m : sl.getEntitiesOfClass(RuinMissileProjectile.class, getBoundingBox().inflate(56.0D))) {
+                m.discard();
+            }
+        }
+        bossEvent.setVisible(false);
+        updateBossBar();
         transitionTo(STATE_DORMANT, ANIM_DORMANT);
     }
 
@@ -609,6 +621,11 @@ public class RuinGuardEntity extends Monster {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide()) {
+            LivingEntity curTarget = getTarget();
+            boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();
+            if (entityData.get(DATA_HAS_TARGET) != fighting) entityData.set(DATA_HAS_TARGET, fighting);
+        }
         if (!arenaInit) {
             arenaCenter = position();
             savedSpawnYaw = getYRot();
@@ -684,11 +701,19 @@ public class RuinGuardEntity extends Monster {
             }
         }
         if (combatTarget == null) {
-            if (st == STATE_COMBAT && !airborneLeap && onGround()) {
+            setTarget(null);
+            clearTelegraph();
+            // Break out of any mid-attack / leap / stun / awaken state cleanly so boss NEVER deadlocks!
+            if (st != STATE_COMBAT || getAnimId() != ANIM_IDLE) {
+                if (onGround() || getDeltaMovement().y <= 0.05D) {
+                    transitionTo(STATE_COMBAT, ANIM_IDLE);
+                }
+            }
+            if (onGround()) {
                 returnHelper.beginSearch();
                 tickReturnHome(sl);
             } else {
-                setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
+                setDeltaMovement(0.0D, Math.min(getDeltaMovement().y, -0.08D), 0.0D);
             }
             return;
         }

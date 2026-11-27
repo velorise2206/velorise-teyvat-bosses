@@ -127,6 +127,8 @@ public class RuinSubmersibleEntity extends Mob {
     private double prevServerZ = 0.0D;
     private Player lastPilot = null;
     private BlockPos dynamicLightPos = null;
+    private int pendingPartClankTicks = 0;
+    private boolean pendingPartComplete = false;
 
     public RuinSubmersibleEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -522,11 +524,10 @@ public class RuinSubmersibleEntity extends Mob {
                     int next = getPartsMask() | bit;
                     entityData.set(DATA_PARTS_MASK, next);
                     if (!player.getAbilities().instabuild) stack.shrink(1);
-                    playSfx(TeyvatBossesSounds.mechMetalClank(), SoundEvents.IRON_DOOR_CLOSE, 1.1F, 1.15F);
-                    sl.sendParticles(ParticleTypes.BUBBLE_POP, getX(), getY() + 1.0D, getZ(), 18, 0.8D, 0.5D, 0.8D, 0.05D);
+                    pendingPartClankTicks = 14;
+                    pendingPartComplete = (next & FULL_PARTS) == FULL_PARTS;
                     updateAssemblyLabel();
-                    if ((next & FULL_PARTS) == FULL_PARTS) {
-                        playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.BEACON_ACTIVATE, 1.3F, 1.15F);
+                    if (pendingPartComplete) {
                         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.assembled"), true);
                     } else {
                         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.progress", Integer.bitCount(next & FULL_PARTS), 4), true);
@@ -669,6 +670,14 @@ public class RuinSubmersibleEntity extends Mob {
 
     @Override
     public void tick() {
+        if (!level().isClientSide() && pendingPartClankTicks > 0 && --pendingPartClankTicks == 0 && level() instanceof ServerLevel sl) {
+            playSfx(TeyvatBossesSounds.mechMetalClank(), SoundEvents.IRON_DOOR_CLOSE, 1.15F, 1.12F);
+            sl.sendParticles(ParticleTypes.BUBBLE_POP, getX(), getY() + 1.0D, getZ(), 18, 0.8D, 0.5D, 0.8D, 0.05D);
+            if (pendingPartComplete) {
+                playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.BEACON_ACTIVATE, 1.3F, 1.15F);
+                pendingPartComplete = false;
+            }
+        }
         prevPropSpinAngle = propSpinAngle;
         syncedPitchPrev = entityData.get(DATA_HULL_PITCH);
         syncedRollPrev = entityData.get(DATA_HULL_ROLL);

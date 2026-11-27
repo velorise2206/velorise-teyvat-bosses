@@ -33,8 +33,7 @@ public final class RuinMechCameraController {
     private static float curSmoothYaw = 0.0F;
     private static float curSmoothPitch = 0.0F;
     private static float curSmoothRoll = 0.0F;
-    private static float lastMechYaw = 0.0F;
-    private static boolean wasPilotingMech = false;
+    // Camera yaw stays 100% player-controlled; mech smoothly follows pilot yaw without dragging camera.
 
     private RuinMechCameraController() {}
 
@@ -63,25 +62,9 @@ public final class RuinMechCameraController {
             prevSmoothYaw = curSmoothYaw = 0.0F;
             prevSmoothPitch = curSmoothPitch = 0.0F;
             prevSmoothRoll = curSmoothRoll = 0.0F;
-            wasPilotingMech = false;
             return;
         }
-
-        // 1st-person cockpit yaw clamp: 180-deg total arc (+-90 deg relative to mech facing), 3rd-person stays free 360-deg
-        float mechYaw = mech.getYRot();
-        if (!wasPilotingMech) {
-            lastMechYaw = mechYaw;
-            wasPilotingMech = true;
-        }
-        float mechYawDelta = Mth.wrapDegrees(mechYaw - lastMechYaw);
-        lastMechYaw = mechYaw;
-        if (mc.options.getCameraType().isFirstPerson()) {
-            float carriedYaw = mc.player.getYRot() + mechYawDelta;
-            float relYaw = Mth.clamp(Mth.wrapDegrees(carriedYaw - mechYaw), -90.0F, 90.0F);
-            float clampedYaw = mechYaw + relYaw;
-            mc.player.setYRot(clampedYaw);
-            mc.player.setYHeadRot(clampedYaw);
-        }
+        // Never drag or clamp player yaw from mech rotation — only the mech turns to follow the pilot.
 
         // Decay shake trauma smoothly
         shakeTrauma = Math.max(0.0F, shakeTrauma - 0.062F);
@@ -142,8 +125,8 @@ public final class RuinMechCameraController {
             } else if (anim == RuinMechEntity.ANIM_SUPER_LEAP) {
                 if (tick == 6) addTrauma(0.52F);
                 else if (tick == 31) addTrauma(0.82F);
-            } else if (anim == RuinMechEntity.ANIM_MISSILE_SALVO && tick >= 16 && tick < 34 && (tick - 16) % 3 == 0) {
-                addTrauma(0.38F);
+            } else if (anim == RuinMechEntity.ANIM_MISSILE_SALVO && tick == 16) {
+                addTrauma(0.22F);
             } else if (anim == RuinMechEntity.ANIM_ENTER_COCKPIT && tick == 13) {
                 addTrauma(0.45F);
             }

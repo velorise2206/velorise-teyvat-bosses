@@ -58,6 +58,9 @@ public class CryoTurretEntity extends Mob {
     public static final int ANIM_ICICLE     = 3;
     public static final int ANIM_FROST_NOVA = 4;
 
+    private int pendingPartClankTicks = 0;
+    private boolean pendingPartComplete = false;
+
     private static final EntityDataAccessor<Integer> DATA_PARTS_MASK =
             SynchedEntityData.defineId(CryoTurretEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_ID =
@@ -229,12 +232,11 @@ public class CryoTurretEntity extends Mob {
                     int nextMask = getPartsMask() | bit;
                     entityData.set(DATA_PARTS_MASK, nextMask);
                     if (!player.getAbilities().instabuild) stack.shrink(1);
-                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 1.3F, 1.15F);
-                    sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.4D, getZ(), 26, 0.8D, 1.2D, 0.8D, 0.05D);
+                    pendingPartClankTicks = 14;
+                    pendingPartComplete = (nextMask & FULL_PARTS) == FULL_PARTS;
                     updateAssemblyLabel();
-                    if ((nextMask & FULL_PARTS) == FULL_PARTS) {
+                    if (pendingPartComplete) {
                         playAnim(ANIM_AWAKEN);
-                        sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.3F, 1.25F);
                         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.cryo_turret.assembled"), true);
                     } else {
                         int count = Integer.bitCount(nextMask & FULL_PARTS);
@@ -262,6 +264,14 @@ public class CryoTurretEntity extends Mob {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide() && pendingPartClankTicks > 0 && --pendingPartClankTicks == 0 && level() instanceof ServerLevel sl) {
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 1.3F, 1.15F);
+            sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 2.4D, getZ(), 26, 0.8D, 1.2D, 0.8D, 0.05D);
+            if (pendingPartComplete) {
+                sl.playSound(null, getX(), getY() + 2.5D, getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.3F, 1.25F);
+                pendingPartComplete = false;
+            }
+        }
         setDeltaMovement(0.0D, Math.min(0.0D, getDeltaMovement().y), 0.0D);
 
         if (level().isClientSide()) {

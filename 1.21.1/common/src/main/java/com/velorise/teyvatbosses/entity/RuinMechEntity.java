@@ -20,6 +20,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -158,6 +159,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     private int walkGraceTicks = 0;
     private int salvoShotsRemaining = 0;
     private int missileRegenTimer = 0;
+    private int pendingPartClankTicks = 0;
+    private boolean pendingPartComplete = false;
     private int cycloneHitCounter = 0;
     private double smoothCoreSide = 0.0D;
     private double smoothCoreY = 0.0D;
@@ -291,10 +294,20 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             return false;
         }
         float armor = getArmorIntegrity();
-        if (armor > 0.0F) {
-            float absorbed = amount * 0.45F;
+        boolean bypassArmor = source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) || source.is(DamageTypeTags.BYPASSES_ARMOR);
+        if (armor > 0.0F && !bypassArmor) {
+            // Heavy ancient alloy plating deflects bare-hand / weak spam hits (< 4.5 raw dmg) with 0 armor & HP loss
+            if (amount < 4.5F) {
+                if (!level().isClientSide() && level() instanceof ServerLevel sl) {
+                    sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 0.45F, 1.65F);
+                    sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 2.0D, getZ(), 4, 0.55D, 0.55D, 0.55D, 0.08D);
+                }
+                return false;
+            }
+            float absorbed = amount * 0.55F;
             amount -= absorbed;
-            entityData.set(DATA_ARMOR, Math.max(0.0F, armor - Math.max(1.0F, absorbed * 0.42F)));
+            float armorWear = Math.max(0.25F, (absorbed - 1.5F) * 0.22F);
+            entityData.set(DATA_ARMOR, Math.max(0.0F, armor - armorWear));
         }
         return super.hurt(source, amount);
     }
@@ -537,15 +550,14 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                     int nextMask = getPartsMask() | bit;
                     entityData.set(DATA_PARTS_MASK, nextMask);
                     if (!player.getAbilities().instabuild) stack.shrink(1);
-                    sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.4F, 0.85F);
-                    sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.8D, getZ(), 22, 0.9D, 0.9D, 0.9D, 0.06D);
-                    sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.8D, getZ(), 16, 0.9D, 0.9D, 0.9D, 0.12D);
+                    // Wait 14 ticks for PartInstallAnimator slide-in before playing crisp mechanical seat clank
+                    pendingPartClankTicks = 14;
+                    pendingPartComplete = (nextMask & FULL_PARTS) == FULL_PARTS;
                     updateAssemblyLabel();
-                    if ((nextMask & FULL_PARTS) == FULL_PARTS) {
+                    if (pendingPartComplete) {
                         entityData.set(DATA_ENERGY, 0.0F);
                         entityData.set(DATA_MISSILE_AMMO, MAX_MISSILE_AMMO);
                         playAnim(ANIM_DORMANT);
-                        sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.4F, 0.75F);
                     }
                     return InteractionResult.CONSUME;
                 }
@@ -622,6 +634,13 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide() && pendingPartClankTicks > 0 && --pendingPartClankTicks == 0 && level() instanceof ServerLevel sl) {
+            SoundEvent clank = TeyvatBossesSounds.mechMetalClank();
+            sl.playSound(null, getX(), getY() + 1.8D, getZ(), clank != null ? clank : SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.35F, pendingPartComplete ? 0.78F : 0.92F);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.8D, getZ(), 18, 0.8D, 0.8D, 0.8D, 0.05D);
+            sl.sendParticles(ParticleTypes.CRIT, getX(), getY() + 1.8D, getZ(), 14, 0.8D, 0.8D, 0.8D, 0.10D);
+            pendingPartComplete = false;
+        }
         if (level().isClientSide()) {
             int curId = getAnimId();
             int curEp = getAnimEpoch();
@@ -937,37 +956,43 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), getY() + 2.8D, 0.95F, 1.05F);
                 playMechSfx(sl, TeyvatBossesSounds.mechHydraulicHiss(), getY() + 2.8D, 0.78F, 1.08F);
             }
-            if (t >= 16 && (t - 16) % 3 == 0) {
-                int idx = (t - 16) / 3;
-                if (idx < salvoShotsRemaining) {
-                    Entity lockedEnt = getLockedTargetId() != -1 ? sl.getEntity(getLockedTargetId()) : null;
-                    LivingEntity lock = (lockedEnt instanceof LivingEntity le && le.isAlive()) ? le : null;
-                    // Exact 6 shoulder-pod tube offsets matching missile_tip_0..5 in RuinGuardModel!
-                    double[][] tubeOffsets = {
-                        {-0.90D, 3.58D, -0.28D}, { 0.90D, 3.58D, -0.28D},
-                        {-0.64D, 3.58D, -0.28D}, { 0.64D, 3.58D, -0.28D},
-                        {-0.77D, 3.52D, -0.52D}, { 0.77D, 3.52D, -0.52D}
-                    };
-                    double[] off = tubeOffsets[idx % 6];
-                    float rad = getYRot() * Mth.DEG_TO_RAD;
-                    Vec3 right = new Vec3(Math.cos(rad), 0.0D, Math.sin(rad));
-                    Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot());
+            if (t == 16 && salvoShotsRemaining > 0) {
+                // Launch all loaded missiles (up to 6) in ONE simultaneous pop-out burst;
+                // each pair decelerates mid-air and ignites sequentially (Pair 1 -> Pair 2 -> Pair 3)
+                Entity lockedEnt = getLockedTargetId() != -1 ? sl.getEntity(getLockedTargetId()) : null;
+                LivingEntity lock = (lockedEnt instanceof LivingEntity le && le.isAlive()) ? le : null;
+                double[][] tubeOffsets = {
+                    {-0.90D, 3.58D, -0.28D}, { 0.90D, 3.58D, -0.28D},
+                    {-0.64D, 3.58D, -0.28D}, { 0.64D, 3.58D, -0.28D},
+                    {-0.77D, 3.52D, -0.52D}, { 0.77D, 3.52D, -0.52D}
+                };
+                float rad = getYRot() * Mth.DEG_TO_RAD;
+                Vec3 right = new Vec3(Math.cos(rad), 0.0D, Math.sin(rad));
+                Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot());
+                Vec3 aimDir = (getControllingPassenger() instanceof Player p) ? p.getLookAngle().normalize() : fwd;
+                Vec3 eyeStart = (getControllingPassenger() instanceof Player p) ? p.getEyePosition() : position().add(0.0D, 3.5D, 0.0D);
+                Vec3 aimPoint = eyeStart.add(aimDir.scale(42.0D));
+
+                int count = Math.min(salvoShotsRemaining, 6);
+                for (int idx = 0; idx < count; idx++) {
+                    double[] off = tubeOffsets[idx];
+                    int pairIdx = idx / 2; // 0, 1, 2 -> 3 staggered pairs
+                    int delayTicks = 2 + pairIdx * 7; // Pair 1: +2t, Pair 2: +9t, Pair 3: +16t
                     Vec3 origin = position().add(right.scale(off[0])).add(fwd.scale(off[2])).add(0.0D, off[1], 0.0D);
-                    Vec3 vel = right.scale(off[0] * 0.22D).add(fwd.scale(0.36D)).add(0.0D, 0.48D, 0.0D);
+                    Vec3 vel = right.scale(off[0] * (0.30D + pairIdx * 0.08D))
+                            .add(fwd.scale(0.18D))
+                            .add(0.0D, 0.42D + pairIdx * 0.10D, 0.0D);
                     if (lock != null) {
-                        RuinMissileProjectile.launch(sl, this, lock, origin, vel, 16.0F);
+                        RuinMissileProjectile.launch(sl, this, lock, origin, vel, 16.0F, delayTicks, false);
                     } else {
-                        Vec3 aimDir = (getControllingPassenger() instanceof Player p) ? p.getLookAngle().normalize() : fwd;
-                        Vec3 eyeStart = (getControllingPassenger() instanceof Player p) ? p.getEyePosition() : origin;
-                        Vec3 aimPoint = eyeStart.add(aimDir.scale(42.0D));
-                        RuinMissileProjectile.launchFreeAim(sl, this, aimPoint, origin, vel, 16.0F);
+                        RuinMissileProjectile.launchFreeAim(sl, this, aimPoint, origin, vel, 16.0F, delayTicks, false);
                     }
-                    sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.15F, 0.85F);
-                    sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 10, 0.12D, 0.12D, 0.12D, 0.05D);
+                    sl.sendParticles(ParticleTypes.FLAME, origin.x, origin.y, origin.z, 8, 0.12D, 0.12D, 0.12D, 0.05D);
                     sl.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, origin.x, origin.y, origin.z, 4, 0.08D, 0.10D, 0.08D, 0.02D);
                 }
+                sl.playSound(null, getX(), getY() + 3.5D, getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.25F, 0.85F);
             }
-            if (t >= 38 + salvoShotsRemaining * 3) playAnim(ANIM_IDLE);
+            if (t >= 38) playAnim(ANIM_IDLE);
         } else if (anim == ANIM_LEAP_SLAM) {
             // Exact sync with leap_slam clip (3.90s = 78 ticks): crouch 0..16, airborne 17..35, GORILLA SLAM @ tick 36 (1.80s), recover 53..78
             if (t == 8) {

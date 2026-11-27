@@ -459,8 +459,8 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
     private static void updateBossMusic(RuinGuardEntity entity) {
         int st = entity.getBossState();
-        boolean active = entity.isAlive() && (st == RuinGuardEntity.STATE_COMBAT || st == RuinGuardEntity.STATE_STUNNED);
-        BossMusicManager.update(entity, MUSIC_ID, active);
+        boolean active = entity.isAlive() && entity.hasActiveCombatTarget() && (st == RuinGuardEntity.STATE_COMBAT || st == RuinGuardEntity.STATE_STUNNED);
+        BossMusicManager.update(entity, MUSIC_ID, active, () -> entity.hasActiveCombatTarget() && (entity.getBossState() == RuinGuardEntity.STATE_COMBAT || entity.getBossState() == RuinGuardEntity.STATE_STUNNED));
     }
 
     private static void renderCombatVFX(

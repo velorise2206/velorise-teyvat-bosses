@@ -86,6 +86,8 @@ public class RuinNautilusEntity extends Mob {
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET =
+            SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_ANIM_ID =
             SynchedEntityData.defineId(RuinNautilusEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
@@ -156,6 +158,7 @@ public class RuinNautilusEntity extends Mob {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_HAS_TARGET, false);
         builder.define(DATA_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM_ID, ANIM_DORMANT);
         builder.define(DATA_ANIM_EPOCH, 0);
@@ -169,6 +172,7 @@ public class RuinNautilusEntity extends Mob {
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
+    public boolean hasActiveCombatTarget() { return entityData.get(DATA_HAS_TARGET); }
     public int getAnimId() { return entityData.get(DATA_ANIM_ID); }
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getTorpedoFiredMask() { return entityData.get(DATA_TORPEDO_FIRED_MASK); }
@@ -356,6 +360,11 @@ public class RuinNautilusEntity extends Mob {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide()) {
+            LivingEntity curTarget = getTarget();
+            boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();
+            if (entityData.get(DATA_HAS_TARGET) != fighting) entityData.set(DATA_HAS_TARGET, fighting);
+        }
         setAirSupply(getMaxAirSupply());
 
         if (level().isClientSide()) {
@@ -472,10 +481,13 @@ public class RuinNautilusEntity extends Mob {
             }
         }
         if (target == null) {
+            setTarget(null);
+            entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
             returnHelper.beginSearch();
             tickReturnHome(sl);
             return;
         }
+        setTarget(target);
         returnHelper.recordTargetPos(target.position());
 
         if (tickCount % 20 == 0) {
@@ -748,7 +760,13 @@ public class RuinNautilusEntity extends Mob {
                 returnHelper.reset();
                 setDeltaMovement(Vec3.ZERO);
                 setHealth(getMaxHealth());
+                setTarget(null);
                 entityData.set(DATA_PHASE2, false);
+                entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+                for (RuinTorpedoProjectile tp : sl.getEntitiesOfClass(RuinTorpedoProjectile.class, getBoundingBox().inflate(64.0D))) {
+                    tp.discard();
+                }
+                bossEvent.setVisible(false);
                 transitionTo(STATE_DORMANT, ANIM_DORMANT);
             }
         }

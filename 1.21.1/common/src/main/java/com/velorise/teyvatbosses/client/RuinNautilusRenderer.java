@@ -83,8 +83,8 @@ public class RuinNautilusRenderer extends EntityRenderer<RuinNautilusEntity> {
 
         int st = entity.getBossState();
         boolean musicActive = entity.isAlive()
-                && (st == RuinNautilusEntity.STATE_COMBAT || st == RuinNautilusEntity.STATE_STUNNED || st == RuinNautilusEntity.STATE_PHASE2_CIN);
-        BossMusicManager.update(entity, MUSIC_ID, musicActive);
+                && entity.hasActiveCombatTarget() && (st == RuinNautilusEntity.STATE_COMBAT || st == RuinNautilusEntity.STATE_STUNNED || st == RuinNautilusEntity.STATE_PHASE2_CIN);
+        BossMusicManager.update(entity, MUSIC_ID, musicActive, () -> entity.hasActiveCombatTarget() && (entity.getBossState() == RuinNautilusEntity.STATE_COMBAT || entity.getBossState() == RuinNautilusEntity.STATE_STUNNED || entity.getBossState() == RuinNautilusEntity.STATE_PHASE2_CIN));
 
         SmoothState sm = smoothMap.computeIfAbsent(entity.getId(), k -> new SmoothState());
         if (sm.lastClip != null && (!sm.lastClip.equals(clip) || sm.lastEpoch != epoch) && sm.hasLast) {

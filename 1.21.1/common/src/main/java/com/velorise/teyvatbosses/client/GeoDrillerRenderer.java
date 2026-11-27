@@ -103,13 +103,20 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             if (flapR != null) flapR.xRot += smoothFlapper;
         }
 
-        // 3. All 6 interlocking 8-tooth sprocket gears synced to true left/right tank-steer travel
+        // Trigger smooth pitch/volume coast-down drill sound on client whenever drill head is spinning
+        if (hasDrill && smoothDrillSpool > 0.03F) {
+            GeoDrillerClientController.ensureSpinSound(entity);
+        }
+
+        // 3. All 6 interlocking 8-tooth sprocket gears + 44 moving caterpillar tread cleats synced 1:1 to travel
         for (int i = 0; i < 3; i++) {
             ModelPart wl = model.getBone("wheel_l_" + i);
             ModelPart wr = model.getBone("wheel_r_" + i);
             if (wl != null) wl.xRot += smoothWheelL;
             if (wr != null) wr.xRot += smoothWheelR;
         }
+        animateTreadBelt("tread_pad_l_", smoothWheelL * 3.81F);
+        animateTreadBelt("tread_pad_r_", smoothWheelR * 3.81F);
 
         // 4. Independent control levers: Left = Drive Forward/Reverse, Right = Drill Engage & Pitch
         ModelPart levL = model.getBone("lever_l");
@@ -150,13 +157,14 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             poseStack.translate(0.0D, 0.82D + chestRem * 0.42D, 0.96D + chestRem * 0.22D);
             float scale = 0.62F;
             poseStack.scale(scale, scale, scale);
+            // Rotate whole chest assembly 180 deg so latch faces cleanly backward (+Z) out of rear deck
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
             if (chestCount == 1) {
                 renderChestHalf(singleChestModel, Sheets.CHEST_LOCATION, -0.5D, poseStack, buf, packedLight);
             } else {
-                // Facing SOUTH (+Z): DOUBLE_CHEST_RIGHT sits on -X and DOUBLE_CHEST_LEFT on +X so their
-                // inner seam & half-latches fuse seamlessly into one true Vanilla Double Chest!
-                renderChestHalf(doubleChestRightModel, Sheets.CHEST_LOCATION_RIGHT, -1.0D, poseStack, buf, packedLight);
-                renderChestHalf(doubleChestLeftModel, Sheets.CHEST_LOCATION_LEFT, 0.0D, poseStack, buf, packedLight);
+                // Before parent 180-deg flip: LEFT (-1.0) open seam at +X meets RIGHT (0.0) open seam at -X!
+                renderChestHalf(doubleChestLeftModel, Sheets.CHEST_LOCATION_LEFT, -1.0D, poseStack, buf, packedLight);
+                renderChestHalf(doubleChestRightModel, Sheets.CHEST_LOCATION_RIGHT, 0.0D, poseStack, buf, packedLight);
             }
             poseStack.popPose();
         }
@@ -166,8 +174,9 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
             VertexConsumer lvc = buf.getBuffer(RenderType.lightning());
             Matrix4f mat = poseStack.last().pose();
             if (entity.isHeadlightOn()) {
-                // Clean, short, subtle headlamp halo (1.6 blocks) that never slices awkwardly through terrain or water
-                drawDrillerCone(lvc, mat, 1.32F, 1.32F, 2.90F, 0.14F, 0.44F, 14, 255, 240, 195, 28);
+                // Twin roof-side floodlight beams (left & right canopy edges) angled gently forward
+                drawDrillerConeAt(lvc, mat, -0.80F, 2.44F, 0.96F, 2.85F, 0.11F, 0.46F, 12, 255, 242, 195, 30);
+                drawDrillerConeAt(lvc, mat,  0.80F, 2.44F, 0.96F, 2.85F, 0.11F, 0.46F, 12, 255, 242, 195, 30);
             }
             if (smoothDrillSpool > 0.15F && hasDrill) {
                 boolean surge = entity.isSurging();
@@ -187,6 +196,71 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
 
         poseStack.popPose();
         super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
+    }
+
+    private void animateTreadBelt(String prefix, float travelUnits) {
+        final float zHalf = 15.5F;
+        final float straightLen = zHalf * 2.0F;
+        final float yCenter = -0.25F;
+        final float radY = 6.40F;
+        final float radZ = 4.35F;
+        final float arcLen = (float) (Math.PI * Math.sqrt(0.5D * (radY * radY + radZ * radZ)));
+        final float perim = straightLen * 2.0F + arcLen * 2.0F;
+        final int count = GeoDrillerModel.TREAD_PAD_COUNT;
+
+        for (int i = 0; i < count; i++) {
+            ModelPart pad = model.getBone(prefix + i);
+            if (pad == null) continue;
+            float s = ((i * (perim / count)) + travelUnits) % perim;
+            if (s < 0.0F) s += perim;
+
+            float py, pz, rotX;
+            if (s < straightLen) {
+                float t = s / straightLen;
+                pz = zHalf - t * straightLen;
+                py = yCenter - radY;
+                rotX = 0.0F;
+            } else if (s < straightLen + arcLen) {
+                float u = (s - straightLen) / arcLen;
+                float theta = u * Mth.PI;
+                pz = -zHalf - Mth.sin(theta) * radZ;
+                py = yCenter - Mth.cos(theta) * radY;
+                rotX = theta;
+            } else if (s < straightLen * 2.0F + arcLen) {
+                float t = (s - straightLen - arcLen) / straightLen;
+                pz = -zHalf + t * straightLen;
+                py = yCenter + radY;
+                rotX = Mth.PI;
+            } else {
+                float u = (s - straightLen * 2.0F - arcLen) / arcLen;
+                float theta = u * Mth.PI;
+                pz = zHalf + Mth.sin(theta) * radZ;
+                py = yCenter + Mth.cos(theta) * radY;
+                rotX = Mth.PI + theta;
+            }
+            pad.x = 0.0F;
+            pad.y = py;
+            pad.z = pz;
+            pad.xRot = rotX;
+        }
+    }
+
+    private static void drawDrillerConeAt(VertexConsumer vc, Matrix4f mat, float xCenter, float yCenter, float zStart, float zEnd,
+                                          float rStart, float rEnd, int segs, int r, int g, int b, int a) {
+        if (a <= 4) return;
+        float z0 = -zStart;
+        float z1 = -zEnd;
+        float y1 = yCenter - 0.35F;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (Math.PI * 2.0D * i / segs);
+            float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            vc.addVertex(mat, xCenter + c0 * rStart, yCenter + s0 * rStart, z0).setColor(r, g, b, a);
+            vc.addVertex(mat, xCenter + c1 * rStart, yCenter + s1 * rStart, z0).setColor(r, g, b, a);
+            vc.addVertex(mat, xCenter + c1 * rEnd, y1 + s1 * rEnd, z1).setColor(r, g, b, 0);
+            vc.addVertex(mat, xCenter + c0 * rEnd, y1 + s0 * rEnd, z1).setColor(r, g, b, 0);
+        }
     }
 
     private static void drawDrillerCone(VertexConsumer vc, Matrix4f mat, float yCenter, float zStart, float zEnd,
@@ -226,9 +300,7 @@ public class GeoDrillerRenderer extends EntityRenderer<GeoDrillerEntity> {
 
     private static void renderChestHalf(ModelPart chestPart, Material material, double offsetX, PoseStack poseStack, MultiBufferSource buf, int packedLight) {
         poseStack.pushPose();
-        poseStack.translate(offsetX + 0.5D, 0.5D, 0.0D);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        poseStack.translate(-0.5D, -0.5D, -0.5D);
+        poseStack.translate(offsetX, 0.0D, -0.5D);
         VertexConsumer vc = material.buffer(buf, RenderType::entityCutout);
         chestPart.render(poseStack, vc, packedLight, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();

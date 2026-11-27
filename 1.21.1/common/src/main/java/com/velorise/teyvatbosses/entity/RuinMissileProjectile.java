@@ -36,6 +36,7 @@ public class RuinMissileProjectile extends Entity {
     private int maxLife = 90;
     private boolean terminalLocked = false;
     private Vec3 freeAimPoint = null;
+    private int launchDelayTicks = 0;
 
     public RuinMissileProjectile(EntityType<? extends RuinMissileProjectile> type, Level level) {
         super(type, level);
@@ -50,15 +51,32 @@ public class RuinMissileProjectile extends Entity {
             Vec3 initialVel,
             float damage
     ) {
+        return launch(level, owner, target, origin, initialVel, damage, 0, true);
+    }
+
+    public static RuinMissileProjectile launch(
+            ServerLevel level,
+            LivingEntity owner,
+            LivingEntity target,
+            Vec3 origin,
+            Vec3 initialVel,
+            float damage,
+            int launchDelayTicks,
+            boolean playLaunchSound
+    ) {
         RuinMissileProjectile m = new RuinMissileProjectile(TeyvatBossesEntities.ruinMissile(), level);
         m.setPos(origin.x, origin.y, origin.z);
         m.setDeltaMovement(initialVel);
         m.ownerUuid = owner != null ? owner.getUUID() : null;
         m.targetUuid = target != null ? target.getUUID() : null;
         m.damage = damage;
+        m.launchDelayTicks = Math.max(0, launchDelayTicks);
+        m.maxLife = 90 + m.launchDelayTicks;
         m.updateRotationFromVelocity(initialVel, true);
         level.addFreshEntity(m);
-        level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 0.9F, 0.85F);
+        if (playLaunchSound) {
+            level.playSound(null, origin.x, origin.y, origin.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 0.9F, 0.85F);
+        }
         return m;
     }
 
@@ -70,7 +88,20 @@ public class RuinMissileProjectile extends Entity {
             Vec3 initialVel,
             float damage
     ) {
-        RuinMissileProjectile m = launch(level, owner, null, origin, initialVel, damage);
+        return launchFreeAim(level, owner, aimPoint, origin, initialVel, damage, 0, true);
+    }
+
+    public static RuinMissileProjectile launchFreeAim(
+            ServerLevel level,
+            LivingEntity owner,
+            Vec3 aimPoint,
+            Vec3 origin,
+            Vec3 initialVel,
+            float damage,
+            int launchDelayTicks,
+            boolean playLaunchSound
+    ) {
+        RuinMissileProjectile m = launch(level, owner, null, origin, initialVel, damage, launchDelayTicks, playLaunchSound);
         m.freeAimPoint = aimPoint;
         return m;
     }
@@ -100,11 +131,21 @@ public class RuinMissileProjectile extends Entity {
         Vec3 vel = getDeltaMovement();
 
         if (!level().isClientSide() && level() instanceof ServerLevel sl) {
-            if (tickCount < 8) {
-                // Phase 1: Brief upward launch arc with gentle drag so apex stays compact
-                vel = vel.scale(0.95D).add(0.0D, -0.02D, 0.0D);
+            int homingStart = 8 + launchDelayTicks;
+            int homingEnd = 26 + launchDelayTicks;
+            if (tickCount < homingStart) {
+                // Phase 1: Pop out of pod then decelerate smoothly mid-air to synchronize staggered pairs
+                if (launchDelayTicks > 0 && tickCount >= 5) {
+                    vel = vel.scale(0.82D).add(0.0D, 0.004D, 0.0D);
+                } else {
+                    vel = vel.scale(launchDelayTicks > 0 ? 0.84D : 0.95D).add(0.0D, -0.016D, 0.0D);
+                }
                 setDeltaMovement(vel);
-            } else if (!terminalLocked && tickCount <= 26 && (targetUuid != null || freeAimPoint != null)) {
+            } else if (!terminalLocked && tickCount <= homingEnd && (targetUuid != null || freeAimPoint != null)) {
+                if (launchDelayTicks > 0 && tickCount == homingStart) {
+                    sl.playSound(null, getX(), getY(), getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 0.65F, 1.15F);
+                    sl.sendParticles(ParticleTypes.FLAME, getX(), getY(), getZ(), 8, 0.12D, 0.12D, 0.12D, 0.06D);
+                }
                 Vec3 aimPos = null;
                 if (targetUuid != null) {
                     Entity te = sl.getEntity(targetUuid);
@@ -121,7 +162,7 @@ public class RuinMissileProjectile extends Entity {
                         vel = toTarget.normalize().scale(0.95D);
                         terminalLocked = true;
                     } else {
-                        double speed = Math.min(0.96D, 0.62D + (tickCount - 8) * 0.025D);
+                        double speed = Math.min(0.96D, 0.62D + (tickCount - homingStart) * 0.025D);
                         Vec3 desired = toTarget.normalize().scale(speed);
                         vel = vel.lerp(desired, 0.34D);
                         if (vel.lengthSqr() > 1e-4D) {

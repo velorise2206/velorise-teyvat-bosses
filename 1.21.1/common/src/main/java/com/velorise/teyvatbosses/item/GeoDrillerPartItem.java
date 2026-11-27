@@ -21,7 +21,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
- * One of the 3 modular Geo Driller salvage parts dropped by Primo Geovishap (Chassis, Bore Head, Reactor Engine).
+ * One of the 3 modular Geo Driller parts crafted from Primordial Jade dropped by Primo Geovishap (Chassis, Bore Head, Reactor Engine).
  * Right-click the ground with the Chassis to deploy (1/3), then weld Bore Head & Reactor Engine onto it.
  */
 public class GeoDrillerPartItem extends Item {
@@ -54,7 +54,8 @@ public class GeoDrillerPartItem extends Item {
                 driller.initAssemblyChassis();
                 driller.setCoreEnchants(DeviceEnergyHelper.getCapacityLevel(sl, ctx.getItemInHand()), DeviceEnergyHelper.getConservationLevel(sl, ctx.getItemInHand()));
                 sl.addFreshEntity(driller);
-                sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 1.1F, 0.85F);
+                sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, SoundEvents.NETHERITE_BLOCK_PLACE, SoundSource.PLAYERS, 1.25F, 0.58F);
+                sl.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z, SoundEvents.PISTON_CONTRACT, SoundSource.PLAYERS, 0.85F, 0.52F);
                 sl.sendParticles(ParticleTypes.CRIT, spawnPos.x, spawnPos.y + 0.8D, spawnPos.z, 20, 0.7D, 0.4D, 0.7D, 0.05D);
                 if (ctx.getPlayer() != null) {
                     if (!ctx.getPlayer().getAbilities().instabuild) {

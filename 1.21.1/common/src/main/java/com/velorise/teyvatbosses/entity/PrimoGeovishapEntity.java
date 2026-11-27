@@ -100,6 +100,8 @@ public class PrimoGeovishapEntity extends Monster {
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET =
+            SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_ANIM =
             SynchedEntityData.defineId(PrimoGeovishapEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_TICK =
@@ -210,6 +212,7 @@ public class PrimoGeovishapEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_HAS_TARGET, false);
         builder.define(DATA_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM, ANIM_DORMANT);
         builder.define(DATA_ANIM_TICK, 0);
@@ -224,6 +227,7 @@ public class PrimoGeovishapEntity extends Monster {
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
+    public boolean hasActiveCombatTarget() { return entityData.get(DATA_HAS_TARGET); }
     public int getAnimId() { return entityData.get(DATA_ANIM); }
     public int getAnimTick() {
         if (level().isClientSide()) {
@@ -470,6 +474,11 @@ public class PrimoGeovishapEntity extends Monster {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide()) {
+            LivingEntity curTarget = getTarget();
+            boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();
+            if (entityData.get(DATA_HAS_TARGET) != fighting) entityData.set(DATA_HAS_TARGET, fighting);
+        }
         if (level().isClientSide()) {
             int curA = getAnimId();
             int curE = entityData.get(DATA_ANIM_EPOCH);
@@ -590,11 +599,16 @@ public class PrimoGeovishapEntity extends Monster {
             }
         }
         if (target == null) {
-            if (!burrowing && onGround()) {
+            setTarget(null);
+            entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+            if (burrowing || getAnimId() != ANIM_IDLE) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
+            }
+            if (onGround()) {
                 returnHelper.beginSearch();
                 tickReturnHome(sl);
             } else {
-                setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
+                setDeltaMovement(0.0D, Math.min(getDeltaMovement().y, -0.08D), 0.0D);
             }
             return;
         }
@@ -879,6 +893,12 @@ public class PrimoGeovishapEntity extends Monster {
                 setHealth(getMaxHealth());
                 activeStones.clear();
                 activeLavaPools.clear();
+                setTarget(null);
+                entityData.set(DATA_TELEGRAPH_RADIUS, 0.0F);
+                for (PrimoInfusedStoneEntity stone : sl.getEntitiesOfClass(PrimoInfusedStoneEntity.class, getBoundingBox().inflate(56.0D))) {
+                    stone.discard();
+                }
+                bossEvent.setVisible(false);
                 transitionTo(STATE_DORMANT, ANIM_DORMANT);
             }
         }
@@ -1424,6 +1444,7 @@ public class PrimoGeovishapEntity extends Monster {
      * or any active shield/jade MobEffect) so Zhongli's Jade Shield reliably counters Primordial Shower.
      */
     private static boolean hasElementalOrModShield(LivingEntity e) {
+        if (com.velorise.teyvatbosses.item.GeovishapArmorItem.countEquippedPieces(e) >= 2) return true;
         if (StavesElementBridge.hasElementalShield(e)) return true;
         if (e.getAbsorptionAmount() > 0.0F) return true;
         for (net.minecraft.world.effect.MobEffectInstance inst : e.getActiveEffects()) {

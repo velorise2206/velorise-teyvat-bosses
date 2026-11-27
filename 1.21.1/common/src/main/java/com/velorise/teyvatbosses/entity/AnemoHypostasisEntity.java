@@ -75,6 +75,8 @@ public class AnemoHypostasisEntity extends Monster {
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_STATE =
             SynchedEntityData.defineId(AnemoHypostasisEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET =
+            SynchedEntityData.defineId(AnemoHypostasisEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_ANIM_ID =
             SynchedEntityData.defineId(AnemoHypostasisEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
@@ -143,6 +145,7 @@ public class AnemoHypostasisEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_HAS_TARGET, false);
         builder.define(DATA_BOSS_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM_ID, ANIM_DORMANT);
         builder.define(DATA_ANIM_EPOCH, 0);
@@ -158,6 +161,7 @@ public class AnemoHypostasisEntity extends Monster {
     }
 
     public int getBossState() { return entityData.get(DATA_BOSS_STATE); }
+    public boolean hasActiveCombatTarget() { return entityData.get(DATA_HAS_TARGET); }
     public int getAnimId() { return entityData.get(DATA_ANIM_ID); }
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : stateTick; }
@@ -356,6 +360,11 @@ public class AnemoHypostasisEntity extends Monster {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide()) {
+            LivingEntity curTarget = getTarget();
+            boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();
+            if (entityData.get(DATA_HAS_TARGET) != fighting) entityData.set(DATA_HAS_TARGET, fighting);
+        }
         if (!arenaInit) {
             arenaCenter = position();
             savedSpawnYaw = getYRot();
@@ -434,10 +443,13 @@ public class AnemoHypostasisEntity extends Monster {
             }
         }
         if (nearest == null) {
-            if (st == STATE_COMBAT) {
-                returnHelper.beginSearch();
-                tickReturnHome(sl);
+            setTarget(null);
+            entityData.set(DATA_TELEGRAPH_ACTIVE, false);
+            if (st != STATE_COMBAT) {
+                transitionTo(STATE_COMBAT, ANIM_IDLE);
             }
+            returnHelper.beginSearch();
+            tickReturnHome(sl);
             return;
         }
         noTargetTicks = 0;
@@ -505,6 +517,12 @@ public class AnemoHypostasisEntity extends Monster {
                 setDeltaMovement(Vec3.ZERO);
                 setHealth(getMaxHealth());
                 revivalUsed = false;
+                entityData.set(DATA_TELEGRAPH_ACTIVE, false);
+                for (AnemoTornadoEntity t : sl.getEntitiesOfClass(AnemoTornadoEntity.class, getBoundingBox().inflate(56.0D))) t.discard();
+                for (AnemoWindOrbEntity o : sl.getEntitiesOfClass(AnemoWindOrbEntity.class, getBoundingBox().inflate(56.0D))) o.discard();
+                for (WindCurrentEntity w : sl.getEntitiesOfClass(WindCurrentEntity.class, getBoundingBox().inflate(56.0D))) w.discard();
+                for (AnemoMissileProjectile m : sl.getEntitiesOfClass(AnemoMissileProjectile.class, getBoundingBox().inflate(56.0D))) m.discard();
+                bossEvent.setVisible(false);
                 transitionTo(STATE_DORMANT, ANIM_DORMANT);
             }
         }

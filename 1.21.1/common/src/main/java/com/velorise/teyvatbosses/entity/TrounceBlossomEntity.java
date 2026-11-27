@@ -197,12 +197,10 @@ public class TrounceBlossomEntity extends Entity {
             }
             giveToPlayer(sl, player, new ItemStack(Items.BLUE_ICE, 16));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 2 + random.nextInt(3)));
-        } else { // Primo Geovishap: drops 1-2 smart Geo Driller salvage parts + trophy + disc
+        } else { // Primo Geovishap: drops 2-3 Primordial Jade (crafts both Dragon-Scale Armor & Geo Driller!)
             if (TeyvatBossesItems.primoGeovishapDisc() != null) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primoGeovishapDisc()));
-            int partDrops = 1 + random.nextInt(2); // 1-2 Geo Driller salvage parts
-            for (int i = 0; i < partDrops; i++) {
-                Item drillPart = pickSmartPart(player, TeyvatBossesItems.geoDrillerPartPool());
-                if (drillPart != null) giveToPlayer(sl, player, new ItemStack(drillPart));
+            if (TeyvatBossesItems.primordialJade() != null) {
+                giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.primordialJade(), 2 + random.nextInt(2)));
             }
             giveToPlayer(sl, player, new ItemStack(Items.RAW_GOLD, 8 + random.nextInt(6)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));

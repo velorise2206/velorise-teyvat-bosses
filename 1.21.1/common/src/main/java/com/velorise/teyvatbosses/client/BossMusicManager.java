@@ -18,20 +18,9 @@ import java.util.function.BooleanSupplier;
 /**
  * Unified, single-track client-side boss music controller for all Velorise: Teyvat Bosses.
  *
- * <p>Guarantees that at most ONE boss music track can ever play at once, even when multiple
- * bosses are active simultaneously or during asynchronous OGG stream startup:
- * <ul>
- *   <li><b>Self-Terminating Ownership Check:</b> Every {@link BossMusicInstance} checks
- *       {@code activeTrack == this} every tick and stops itself immediately if superseded.</li>
- *   <li><b>Unconditional Cleanup:</b> {@link #startTrack} always stops every previously tracked
- *       instance and clears the {@link SoundSource#RECORDS} channel for the previous sound ID
- *       before queuing a new stream.</li>
- *   <li><b>Same-Theme Continuity:</b> If another boss using the same theme becomes closer
- *       (e.g., two Ruin Guards), ownership transfers seamlessly without restarting the track.</li>
- *   <li><b>Takeover Hysteresis:</b> A competing boss with a different theme must be at least
- *       {@code TAKEOVER_MARGIN_BLOCKS} closer and respect a {@code SWITCH_COOLDOWN_MS} debounce
- *       before taking over, preventing rapid ping-ponging.</li>
- * </ul>
+ * <p>Features smooth fade-in and fade-out: the instant a boss is no longer actively fighting
+ * any target (even if frustum-culled behind the player), the track smoothly fades down to
+ * silence over ~1.7 seconds and stops cleanly with zero abrupt cuts or overlapping streams.
  */
 public final class BossMusicManager {
     private static final double START_DIST_SQ = 48.0D * 48.0D;
@@ -39,6 +28,9 @@ public final class BossMusicManager {
     private static final double TAKEOVER_MARGIN_BLOCKS = 6.0D;
     private static final long START_DEBOUNCE_MS  = 1500L;
     private static final long SWITCH_COOLDOWN_MS = 3000L;
+    private static final float TARGET_VOLUME = 0.85F;
+    private static final float FADE_IN_STEP  = 0.08F;
+    private static final float FADE_OUT_STEP = 0.025F; // ~1.7s smooth fade-out (34 ticks)
 
     private static BossMusicInstance activeTrack = null;
     private static LivingEntity activeBoss = null;
@@ -47,28 +39,29 @@ public final class BossMusicManager {
     private static long lastPlayRequestMs = 0L;
     private static long lastSwitchMs = 0L;
 
-    /** Tracks all started instances until fully stopped so async-loading streams can never leak or overlap. */
     private static final Set<BossMusicInstance> TRACKED_INSTANCES = new HashSet<>();
 
     private BossMusicManager() {}
 
     public static void update(LivingEntity boss, ResourceLocation soundId, boolean bossActive) {
+        update(boss, soundId, bossActive, () -> bossActive);
+    }
+
+    public static void update(LivingEntity boss, ResourceLocation soundId, boolean bossActive, BooleanSupplier liveActiveCheck) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) {
             stopAll(mc);
             return;
         }
-        // Ignore dummy/preview entities rendered inside GUIs (JEI, Better Stats, JER) that are not in the live world
+        // Ignore dummy/preview entities rendered inside GUIs (JEI, Better Stats, JER)
         if (boss == null || boss.level() != mc.level || boss.getId() <= 0 || mc.level.getEntity(boss.getId()) != boss) {
             return;
         }
 
-        // Clean up immediately if the player changed dimensions / worlds
         if (activeLevel != null && activeLevel != mc.level) {
             stopAll(mc);
         }
 
-        // Prune already-stopped instances from tracking set
         pruneStopped();
 
         double distSq = mc.player.distanceToSqr(boss);
@@ -77,11 +70,12 @@ public final class BossMusicManager {
         // Case 1: This boss already owns the music channel
         if (activeBoss == boss) {
             if (!shouldPlay || distSq > STOP_DIST_SQ) {
-                stopAll(mc);
+                fadeOutCurrent();
                 return;
             }
             if (activeTrack != null && !activeTrack.isStopped()) {
-                // Still playing or asynchronously starting up — never re-queue!
+                activeTrack.cancelFadeOut();
+                activeTrack.setKeepAlive(makeKeepAlive(mc, boss, liveActiveCheck));
                 if (mc.getSoundManager().isActive(activeTrack)
                         || System.currentTimeMillis() - lastPlayRequestMs < START_DEBOUNCE_MS) {
                     return;
@@ -90,30 +84,28 @@ public final class BossMusicManager {
             if (System.currentTimeMillis() - lastPlayRequestMs < START_DEBOUNCE_MS) {
                 return;
             }
-            startTrack(mc, boss, soundId);
+            startTrack(mc, boss, soundId, liveActiveCheck);
             return;
         }
 
         if (!shouldPlay) return;
 
         // Case 2: Another boss currently owns the music channel
-        if (activeBoss != null && activeTrack != null && !activeTrack.isStopped()) {
+        if (activeBoss != null && activeTrack != null && !activeTrack.isStopped() && !activeTrack.isFadingOut()) {
             boolean ownerValid = activeBoss.isAlive() && !activeBoss.isRemoved()
                     && activeBoss.level() == mc.level;
             double ownerDistSq = ownerValid ? mc.player.distanceToSqr(activeBoss) : Double.MAX_VALUE;
             boolean ownerInRange = ownerValid && ownerDistSq <= STOP_DIST_SQ;
 
             if (ownerInRange) {
-                // Same theme (e.g., two Ruin Guards): transfer ownership cleanly without restarting the song!
                 if (soundId.equals(activeSoundId)) {
                     if (distSq < ownerDistSq) {
                         activeBoss = boss;
-                        activeTrack.setKeepAlive(makeKeepAlive(mc, boss));
+                        activeTrack.setKeepAlive(makeKeepAlive(mc, boss, liveActiveCheck));
                     }
                     return;
                 }
 
-                // Different theme: require clear distance margin + switch cooldown to prevent ping-ponging
                 double ownerDist = Math.sqrt(ownerDistSq);
                 double challengerDist = Math.sqrt(distSq);
                 if (challengerDist + TAKEOVER_MARGIN_BLOCKS >= ownerDist) {
@@ -130,20 +122,20 @@ public final class BossMusicManager {
         }
 
         lastSwitchMs = System.currentTimeMillis();
-        startTrack(mc, boss, soundId);
+        startTrack(mc, boss, soundId, liveActiveCheck);
     }
 
-    private static BooleanSupplier makeKeepAlive(Minecraft mc, LivingEntity boss) {
+    private static BooleanSupplier makeKeepAlive(Minecraft mc, LivingEntity boss, BooleanSupplier liveActiveCheck) {
         return () -> {
             if (mc.player == null || mc.level == null) return false;
             if (boss.level() != mc.level) return false;
-            return boss.isAlive() && !boss.isRemoved()
-                    && mc.player.distanceToSqr(boss) <= STOP_DIST_SQ;
+            if (!boss.isAlive() || boss.isRemoved()) return false;
+            if (mc.player.distanceToSqr(boss) > STOP_DIST_SQ) return false;
+            return liveActiveCheck == null || liveActiveCheck.getAsBoolean();
         };
     }
 
-    private static void startTrack(Minecraft mc, LivingEntity boss, ResourceLocation soundId) {
-        // Always stop any existing or async-loading boss tracks first so zero overlap is possible
+    private static void startTrack(Minecraft mc, LivingEntity boss, ResourceLocation soundId, BooleanSupplier liveActiveCheck) {
         stopAll(mc);
 
         SoundEvent ev = BuiltInRegistries.SOUND_EVENT.get(soundId);
@@ -152,7 +144,7 @@ public final class BossMusicManager {
         }
         mc.getMusicManager().stopPlaying();
 
-        BossMusicInstance inst = new BossMusicInstance(ev, makeKeepAlive(mc, boss));
+        BossMusicInstance inst = new BossMusicInstance(ev, makeKeepAlive(mc, boss, liveActiveCheck));
         activeBoss = boss;
         activeTrack = inst;
         activeSoundId = soundId;
@@ -160,6 +152,16 @@ public final class BossMusicManager {
         lastPlayRequestMs = System.currentTimeMillis();
         TRACKED_INSTANCES.add(inst);
         mc.getSoundManager().play(inst);
+    }
+
+    /** Smoothly fades out the currently playing boss theme instead of abruptly cutting it off. */
+    public static void fadeOutCurrent() {
+        if (activeTrack != null) {
+            activeTrack.beginFadeOut();
+        }
+        activeBoss = null;
+        activeTrack = null;
+        activeSoundId = null;
     }
 
     public static void stopAll(Minecraft mc) {
@@ -189,13 +191,14 @@ public final class BossMusicManager {
 
     private static final class BossMusicInstance extends AbstractTickableSoundInstance {
         private volatile BooleanSupplier keepAlive;
+        private volatile boolean fadingOut = false;
 
         BossMusicInstance(SoundEvent event, BooleanSupplier keepAlive) {
             super(event, SoundSource.RECORDS, SoundInstance.createUnseededRandom());
             this.keepAlive = keepAlive;
             this.looping = true;
             this.delay = 0;
-            this.volume = 0.85F;
+            this.volume = 0.08F; // Smooth fade-in from near-silent
             this.pitch = 1.0F;
             this.relative = true;
             this.attenuation = Attenuation.NONE;
@@ -208,7 +211,21 @@ public final class BossMusicManager {
             this.keepAlive = keepAlive;
         }
 
+        void beginFadeOut() {
+            this.fadingOut = true;
+        }
+
+        void cancelFadeOut() {
+            this.fadingOut = false;
+        }
+
+        boolean isFadingOut() {
+            return this.fadingOut;
+        }
+
         void forceStop() {
+            this.fadingOut = true;
+            this.volume = 0.0F;
             this.stop();
         }
 
@@ -219,9 +236,21 @@ public final class BossMusicManager {
 
         @Override
         public void tick() {
-            // Hard single-track invariant: any superseded instance self-terminates on its very first tick
-            if (activeTrack != this || !keepAlive.getAsBoolean()) {
-                this.stop();
+            if (!fadingOut && (activeTrack != this || !keepAlive.getAsBoolean())) {
+                fadingOut = true;
+                if (activeTrack == this) {
+                    activeTrack = null;
+                    activeBoss = null;
+                    activeSoundId = null;
+                }
+            }
+            if (fadingOut) {
+                this.volume = Math.max(0.0F, this.volume - FADE_OUT_STEP);
+                if (this.volume <= 0.005F) {
+                    this.stop();
+                }
+            } else if (this.volume < TARGET_VOLUME) {
+                this.volume = Math.min(TARGET_VOLUME, this.volume + FADE_IN_STEP);
             }
         }
     }

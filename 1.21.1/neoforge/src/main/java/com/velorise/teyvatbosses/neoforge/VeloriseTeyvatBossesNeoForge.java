@@ -28,6 +28,9 @@ import com.velorise.teyvatbosses.entity.WindCurrentEntity;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
+import com.velorise.teyvatbosses.item.GeovishapArmorItem;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterial;
 import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
@@ -80,6 +83,8 @@ public class VeloriseTeyvatBossesNeoForge {
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(Registries.ITEM, TeyvatBossesConstants.MOD_ID);
+    public static final DeferredRegister<ArmorMaterial> ARMOR_MATERIALS =
+            DeferredRegister.create(Registries.ARMOR_MATERIAL, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<SoundEvent> SOUNDS =
             DeferredRegister.create(Registries.SOUND_EVENT, TeyvatBossesConstants.MOD_ID);
     public static final DeferredRegister<CreativeModeTab> TABS =
@@ -237,6 +242,22 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> GEO_DRILLER_ENGINE =
             ITEMS.register("geo_driller_engine", () -> new GeoDrillerPartItem(GeoDrillerEntity.PART_ENGINE, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
 
+    // Primo Geovishap Primordial Jade, Geo Scale Ingot & Dragon-Scale Armor
+    public static final DeferredHolder<ArmorMaterial, ArmorMaterial> GEOVISHAP_ARMOR_MATERIAL =
+            ARMOR_MATERIALS.register("geovishap", GeovishapArmorItem::createArmorMaterial);
+    public static final DeferredHolder<Item, Item> PRIMORDIAL_JADE =
+            ITEMS.register("primordial_jade", () -> new Item(new Item.Properties().fireResistant().rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, Item> PRIMORDIAL_GEO_INGOT =
+            ITEMS.register("primordial_geo_ingot", () -> new Item(new Item.Properties().fireResistant().rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, Item> GEOVISHAP_HELMET =
+            ITEMS.register("geovishap_helmet", () -> new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.HELMET, new Item.Properties()));
+    public static final DeferredHolder<Item, Item> GEOVISHAP_CHESTPLATE =
+            ITEMS.register("geovishap_chestplate", () -> new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.CHESTPLATE, new Item.Properties()));
+    public static final DeferredHolder<Item, Item> GEOVISHAP_LEGGINGS =
+            ITEMS.register("geovishap_leggings", () -> new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.LEGGINGS, new Item.Properties()));
+    public static final DeferredHolder<Item, Item> GEOVISHAP_BOOTS =
+            ITEMS.register("geovishap_boots", () -> new GeovishapArmorItem(GEOVISHAP_ARMOR_MATERIAL, ArmorItem.Type.BOOTS, new Item.Properties()));
+
     // Teyvat Boss Locator Compass
     public static final DeferredHolder<Item, Item> TEYVAT_BOSS_COMPASS =
             ITEMS.register("teyvat_boss_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
@@ -385,6 +406,12 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(GEO_DRILLER_CHASSIS.get());
                         output.accept(GEO_DRILLER_DRILL.get());
                         output.accept(GEO_DRILLER_ENGINE.get());
+                        output.accept(PRIMORDIAL_JADE.get());
+                        output.accept(PRIMORDIAL_GEO_INGOT.get());
+                        output.accept(GEOVISHAP_HELMET.get());
+                        output.accept(GEOVISHAP_CHESTPLATE.get());
+                        output.accept(GEOVISHAP_LEGGINGS.get());
+                        output.accept(GEOVISHAP_BOOTS.get());
                         output.accept(MUSIC_DISC_CRYO_REGISVINE.get());
                         output.accept(MUSIC_DISC_ANEMO_HYPOSTASIS.get());
                         output.accept(MUSIC_DISC_RUIN_GUARD.get());
@@ -399,6 +426,7 @@ public class VeloriseTeyvatBossesNeoForge {
         ENTITIES.register(modEventBus);
         BLOCKS.register(modEventBus);
         BLOCK_ENTITIES.register(modEventBus);
+        ARMOR_MATERIALS.register(modEventBus);
         ITEMS.register(modEventBus);
         SOUNDS.register(modEventBus);
         TABS.register(modEventBus);
@@ -426,6 +454,9 @@ public class VeloriseTeyvatBossesNeoForge {
         );
         TeyvatBossesBlocks.bindCondensedRedstone(CONDENSED_REDSTONE_BLOCK);
         TeyvatBossesItems.bindCondensedRedstone(CONDENSED_REDSTONE_BLOCK_ITEM);
+        TeyvatBossesItems.bindGeovishapGear(
+                PRIMORDIAL_JADE, PRIMORDIAL_GEO_INGOT,
+                GEOVISHAP_HELMET, GEOVISHAP_CHESTPLATE, GEOVISHAP_LEGGINGS, GEOVISHAP_BOOTS);
         TeyvatBossesItems.bind(
                 MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
                 MUSIC_DISC_RUIN_NAUTILUS, MUSIC_DISC_PRIMO_GEOVISHAP,

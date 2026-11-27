@@ -99,6 +99,8 @@ public class CryoRegisvineEntity extends Monster {
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_HAS_TARGET =
+            SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_ANIM_ID =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ANIM_EPOCH =
@@ -177,6 +179,7 @@ public class CryoRegisvineEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(DATA_HAS_TARGET, false);
         builder.define(DATA_STATE, STATE_DORMANT);
         builder.define(DATA_ANIM_ID, ANIM_DORMANT);
         builder.define(DATA_ANIM_EPOCH, 0);
@@ -190,6 +193,7 @@ public class CryoRegisvineEntity extends Monster {
     }
 
     public int getBossState() { return entityData.get(DATA_STATE); }
+    public boolean hasActiveCombatTarget() { return entityData.get(DATA_HAS_TARGET); }
     public int getAnimId() { return entityData.get(DATA_ANIM_ID); }
     public int getAnimTick() { return level().isClientSide() ? clientAnimTick : serverAnimTick; }
     public int getAnimEpoch() { return entityData.get(DATA_ANIM_EPOCH); }
@@ -390,6 +394,11 @@ public class CryoRegisvineEntity extends Monster {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide()) {
+            LivingEntity curTarget = getTarget();
+            boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();
+            if (entityData.get(DATA_HAS_TARGET) != fighting) entityData.set(DATA_HAS_TARGET, fighting);
+        }
         if (!anchorInitialized) {
             anchorPos = position();
             if (!level().isClientSide()) {
@@ -443,20 +452,30 @@ public class CryoRegisvineEntity extends Monster {
         bossEvent.setVisible(true);
 
         if (nearest == null) {
+            setTarget(null);
+            clearTelegraph();
+            if (noPlayerTicks == 0 && st != STATE_DORMANT) {
+                for (CryoIceSpikeEntity sp : sl.getEntitiesOfClass(CryoIceSpikeEntity.class, getBoundingBox().inflate(56.0D))) sp.discard();
+                for (CryoIcicleProjectile ic : sl.getEntitiesOfClass(CryoIcicleProjectile.class, getBoundingBox().inflate(56.0D))) ic.discard();
+            }
             noPlayerTicks++;
-            if (noPlayerTicks >= 60 && noPlayerTicks < 220) {
-                BossReturnHomeHelper.tickGradualRegen(this, 0.06F);
+            if (noPlayerTicks >= 40 && noPlayerTicks < 160) {
+                BossReturnHomeHelper.tickGradualRegen(this, 0.08F);
                 bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
                 if (noPlayerTicks % 8 == 0) {
                     sl.sendParticles(ParticleTypes.SNOWFLAKE, getX(), getY() + 1.2D, getZ(), 6, 1.2D, 0.6D, 1.2D, 0.02D);
                 }
             }
-            if (noPlayerTicks >= 220) {
+            if (noPlayerTicks >= 160) {
                 noPlayerTicks = 0;
                 setHealth(getMaxHealth());
                 StavesElementBridge.clearElementalShield(this);
                 fallbackShield = 0.0F;
                 entityData.set(DATA_SHIELD_PROGRESS, 0.0F);
+                clearTelegraph();
+                for (CryoIceSpikeEntity sp : sl.getEntitiesOfClass(CryoIceSpikeEntity.class, getBoundingBox().inflate(56.0D))) sp.discard();
+                for (CryoIcicleProjectile ic : sl.getEntitiesOfClass(CryoIcicleProjectile.class, getBoundingBox().inflate(56.0D))) ic.discard();
+                bossEvent.setVisible(false);
                 transitionTo(STATE_DORMANT, ANIM_DORMANT);
             }
             return;

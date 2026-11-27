@@ -46,10 +46,18 @@ public final class TeyvatBossesJeiPlugin implements IModPlugin {
         // 4. Anemo Cube Companion (8 cubes assembled on 1 block)
         addInfo(registration, TeyvatBossesItems.anemoPrismCube(), "jei.velorise_teyvat_bosses.anemo_cube");
 
-        // 5. Geo Tunnel Driller (3 modular parts + 1-2 vanilla Chests)
+        // 5. Geo Tunnel Driller (crafted from Primordial Jade + 1-2 vanilla Chests)
         addInfo(registration, TeyvatBossesItems.geoDrillerChassis(), "jei.velorise_teyvat_bosses.geo_driller");
         addInfo(registration, TeyvatBossesItems.geoDrillerDrill(), "jei.velorise_teyvat_bosses.geo_driller");
         addInfo(registration, TeyvatBossesItems.geoDrillerEngine(), "jei.velorise_teyvat_bosses.geo_driller");
+
+        // 6. Primordial Jade, Geo Scale Ingot & Primo Geovishap Dragon-Scale Armor
+        addInfo(registration, TeyvatBossesItems.primordialJade(), "jei.velorise_teyvat_bosses.primordial_jade");
+        addInfo(registration, TeyvatBossesItems.primordialGeoIngot(), "jei.velorise_teyvat_bosses.geovishap_armor");
+        addInfo(registration, TeyvatBossesItems.geovishapHelmet(), "jei.velorise_teyvat_bosses.geovishap_armor");
+        addInfo(registration, TeyvatBossesItems.geovishapChestplate(), "jei.velorise_teyvat_bosses.geovishap_armor");
+        addInfo(registration, TeyvatBossesItems.geovishapLeggings(), "jei.velorise_teyvat_bosses.geovishap_armor");
+        addInfo(registration, TeyvatBossesItems.geovishapBoots(), "jei.velorise_teyvat_bosses.geovishap_armor");
     }
 
     private static void addInfo(IRecipeRegistration reg, Item item, String key) {

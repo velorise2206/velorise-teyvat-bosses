@@ -20,6 +20,8 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
     public static final ModelLayerLocation LAYER_LOCATION =
             new ModelLayerLocation(TeyvatBossesConstants.id("geo_driller"), "main");
 
+    public static final int TREAD_PAD_COUNT = 22;
+
     public static final String[] ALL_BONES = {
             "root", "chassis_main",
             "tread_l", "wheel_l_0", "wheel_l_1", "wheel_l_2",
@@ -45,6 +47,15 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
         for (String childName : ALL_BONES) {
             if (part.hasChild(childName)) {
                 collectBones(childName, part.getChild(childName));
+            }
+        }
+        if ("tread_l".equals(name) || "tread_r".equals(name)) {
+            String prefix = "tread_l".equals(name) ? "tread_pad_l_" : "tread_pad_r_";
+            for (int i = 0; i < TREAD_PAD_COUNT; i++) {
+                String padName = prefix + i;
+                if (part.hasChild(padName)) {
+                    collectBones(padName, part.getChild(padName));
+                }
             }
         }
     }
@@ -80,6 +91,14 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
                 PartPose.rotation(0.785398F, 0.000F, 0.000F));
     }
 
+    private static void addTreadPads(PartDefinition parent, String prefix, int texU, int texV) {
+        for (int i = 0; i < TREAD_PAD_COUNT; i++) {
+            parent.addOrReplaceChild(prefix + i, CubeListBuilder.create()
+                    .texOffs(texU, texV).addBox(-3.850F, -0.550F, -0.950F, 7.700F, 1.100F, 1.900F),
+                    PartPose.offset(0.000F, -6.500F, 0.000F));
+        }
+    }
+
     public static LayerDefinition createBodyLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition rootDef = mesh.getRoot();
@@ -91,9 +110,7 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(1, 1).addBox(-11.000F, -3.000F, -18.000F, 22.000F, 6.000F, 38.000F)
                 .texOffs(122, 1).addBox(-12.000F, -6.000F, -16.000F, 2.000F, 4.000F, 34.000F)
                 .texOffs(195, 1).addBox(10.000F, -6.000F, -16.000F, 2.000F, 4.000F, 34.000F)
-                .texOffs(268, 1).addBox(-11.000F, -6.500F, -20.000F, 22.000F, 8.500F, 4.000F)
-                .texOffs(321, 1).addBox(-9.000F, -7.200F, -21.000F, 3.000F, 2.600F, 2.000F)
-                .texOffs(332, 1).addBox(6.000F, -7.200F, -21.000F, 3.000F, 2.600F, 2.000F),
+                .texOffs(268, 1).addBox(-11.000F, -6.500F, -20.000F, 22.000F, 8.500F, 4.000F),
                 PartPose.offset(0.000F, -10.000F, 0.000F));
 
         // Left track frame + 3 interlocking 8-tooth sprocket gears
@@ -107,6 +124,7 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
         addSprocketWheel(b_tread_l, "wheel_l_0", -12.000F, 209, 46, 238, 46);
         addSprocketWheel(b_tread_l, "wheel_l_1",   0.000F, 261, 46, 290, 46);
         addSprocketWheel(b_tread_l, "wheel_l_2",  12.000F, 313, 46, 342, 46);
+        addTreadPads(b_tread_l, "tread_pad_l_", 343, 1);
 
         // Right track frame + 3 interlocking 8-tooth sprocket gears
         PartDefinition b_tread_r = b_chassis_main.addOrReplaceChild("tread_r", CubeListBuilder.create()
@@ -119,6 +137,7 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
         addSprocketWheel(b_tread_r, "wheel_r_0", -12.000F, 209, 85, 238, 85);
         addSprocketWheel(b_tread_r, "wheel_r_1",   0.000F, 261, 85, 290, 85);
         addSprocketWheel(b_tread_r, "wheel_r_2",  12.000F, 313, 85, 342, 85);
+        addTreadPads(b_tread_r, "tread_pad_r_", 365, 46);
 
         // Solidly anchored industrial roll-cage cockpit: zero UV gaps, armored roof canopy, work-lights & instrument dials
         PartDefinition b_cockpit_cage = b_chassis_main.addOrReplaceChild("cockpit_cage", CubeListBuilder.create()
@@ -148,11 +167,14 @@ public class GeoDrillerModel<T extends Entity> extends EntityModel<T> {
                 .texOffs(84, 180).addBox(9.600F, -25.800F, -11.000F, 1.800F, 1.800F, 16.800F)
                 .texOffs(136, 180).addBox(-11.400F, -25.800F, -11.000F, 22.800F, 1.800F, 1.800F)
                 .texOffs(136, 180).addBox(-11.400F, -25.800F, 4.000F, 22.800F, 1.800F, 1.800F)
-                // Solid armored louvered canopy roof plate + front brow sun-visor + twin overhead amber work-lights
+                // Solid armored louvered canopy roof plate + front brow sun-visor
                 .texOffs(200, 180).addBox(-10.400F, -26.300F, -10.400F, 20.800F, 1.200F, 15.600F)
                 .texOffs(286, 180).addBox(-10.600F, -25.900F, -13.200F, 21.200F, 1.400F, 3.000F)
-                .texOffs(348, 180).addBox(-8.600F, -25.700F, -13.800F, 3.200F, 1.300F, 1.200F)
-                .texOffs(348, 180).addBox(5.400F, -25.700F, -13.800F, 3.200F, 1.300F, 1.200F),
+                // Twin heavy roof-side floodlight pods mounted on left & right roof edges (brackets + glowing lenses)
+                .texOffs(250, 220).addBox(-12.200F, -26.400F, -10.800F, 1.400F, 1.600F, 2.200F)
+                .texOffs(250, 220).addBox(10.800F, -26.400F, -10.800F, 1.400F, 1.600F, 2.200F)
+                .texOffs(321, 1).addBox(-14.200F, -27.400F, -12.000F, 2.800F, 2.600F, 2.600F)
+                .texOffs(332, 1).addBox(11.400F, -27.400F, -12.000F, 2.800F, 2.600F, 2.600F),
                 PartPose.offset(0.000F, -3.000F, -4.000F));
 
         // Dual control levers aligned precisely with the seated driver's outstretched hands
