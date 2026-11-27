@@ -60,10 +60,9 @@ import net.minecraft.world.phys.Vec3;
 public class RuinSubmersibleEntity extends Mob {
 
     public static final int PART_HULL        = 1;
-    public static final int PART_COCKPIT     = 1 << 1;
-    public static final int PART_PROPELLER   = 1 << 2;
-    public static final int PART_TORPEDO_POD = 1 << 3;
-    public static final int FULL_PARTS       = PART_HULL | PART_COCKPIT | PART_PROPELLER | PART_TORPEDO_POD;
+    public static final int PART_PROPELLER   = 1 << 1;
+    public static final int PART_TORPEDO_POD = 1 << 2;
+    public static final int FULL_PARTS       = PART_HULL | PART_PROPELLER | PART_TORPEDO_POD;
 
     public static final float MAX_ENERGY = 900.0F;
     public static final int MAX_TORPEDOES = 6;
@@ -99,6 +98,8 @@ public class RuinSubmersibleEntity extends Mob {
     private float clientFwd = 0.0F;
     private float clientStrafe = 0.0F;
     private int clientVert = 0;
+    private boolean clientBoostHeld = false;
+    private int serverBoostTicks = 0;
     private int clientDashCooldown = 0;
     private int clientSonarCooldown = 0;
     private int clientTorpedoCooldown = 0;
@@ -166,10 +167,15 @@ public class RuinSubmersibleEntity extends Mob {
         updateAssemblyLabel();
     }
 
-    public void setClientPilotInputs(float fwd, float strafe, int vert) {
+    public void setClientPilotInputs(float fwd, float strafe, int vert, boolean boostHeld) {
         this.clientFwd = Mth.clamp(fwd, -1.0F, 1.0F);
         this.clientStrafe = Mth.clamp(strafe, -1.0F, 1.0F);
         this.clientVert = Mth.clamp(vert, -1, 1);
+        this.clientBoostHeld = boostHeld;
+    }
+
+    public boolean isClientBoosting() {
+        return clientBoostHeld && getEnergy() > 1.0F && isInOrOnWater();
     }
 
     public boolean triggerClientDash(Vec3 aimDir) {
@@ -263,8 +269,8 @@ public class RuinSubmersibleEntity extends Mob {
 
     private void updateAssemblyLabel() {
         int c = Integer.bitCount(getPartsMask() & FULL_PARTS);
-        if (c < 4) {
-            setCustomName(Component.literal(c + " / 4"));
+        if (c < 3) {
+            setCustomName(Component.literal(c + " / 3"));
             setCustomNameVisible(true);
         } else {
             setCustomName(null);
@@ -347,9 +353,11 @@ public class RuinSubmersibleEntity extends Mob {
             prevLocalFinPitchDeg = localFinPitchDeg;
 
             if (getEnergy() > 0.5F && inWaterNow) {
+                boolean boosting = clientBoostHeld && getEnergy() > 1.0F;
                 float fwdIn = Math.abs(clientFwd) > 0.01F ? clientFwd : p.zza;
+                if (boosting && fwdIn <= 0.01F) fwdIn = 1.0F;
                 float strafeIn = Math.abs(clientStrafe) > 0.01F ? clientStrafe : p.xxa;
-                boolean thrusting = Math.abs(fwdIn) > 0.01F || Math.abs(strafeIn) > 0.01F;
+                boolean thrusting = Math.abs(fwdIn) > 0.01F || Math.abs(strafeIn) > 0.01F || boosting;
 
                 // 1. Smooth hydrodynamic yaw steering with comfortable free-look deadzone when idling
                 float deltaYaw = Mth.wrapDegrees(p.getYRot() - getYRot());
@@ -390,7 +398,7 @@ public class RuinSubmersibleEntity extends Mob {
                 Vec3 fwd3D = new Vec3(-Mth.sin(yawRad) * cosP, -Mth.sin(pitchRad), Mth.cos(yawRad) * cosP);
                 Vec3 left = new Vec3(Mth.cos(yawRad), 0.0D, Mth.sin(yawRad));
 
-                double forwardSpeed = fwdIn >= 0.0F ? 0.78D : 0.44D;
+                double forwardSpeed = fwdIn >= 0.0F ? (boosting ? 1.38D : 0.78D) : 0.44D;
                 double strafeSpeed = 0.36D;
                 double ballastSpeed = 0.40D;
 
@@ -422,7 +430,7 @@ public class RuinSubmersibleEntity extends Mob {
                 Vec3 curVel = getDeltaMovement();
                 Vec3 nextVel;
                 if (thrusting || clientVert != 0) {
-                    nextVel = curVel.lerp(wish, 0.15D);
+                    nextVel = curVel.lerp(wish, boosting ? 0.24D : 0.15D);
                 } else {
                     // Realistic underwater coasting + subtle neutral-buoyancy micro-bob
                     double bob = Mth.sin(tickCount * 0.07F) * 0.004D;
@@ -491,7 +499,6 @@ public class RuinSubmersibleEntity extends Mob {
 
     private void dropWeldedParts() {
         if (hasPart(PART_HULL) && TeyvatBossesItems.ruinSubHull() != null) spawnAtLocation(TeyvatBossesItems.ruinSubHull());
-        if (hasPart(PART_COCKPIT) && TeyvatBossesItems.ruinSubCockpit() != null) spawnAtLocation(TeyvatBossesItems.ruinSubCockpit());
         if (hasPart(PART_PROPELLER) && TeyvatBossesItems.ruinSubPropeller() != null) spawnAtLocation(TeyvatBossesItems.ruinSubPropeller());
         if (hasPart(PART_TORPEDO_POD) && TeyvatBossesItems.ruinSubTorpedoPod() != null) spawnAtLocation(TeyvatBossesItems.ruinSubTorpedoPod());
     }
@@ -530,7 +537,7 @@ public class RuinSubmersibleEntity extends Mob {
                     if (pendingPartComplete) {
                         player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.assembled"), true);
                     } else {
-                        player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.progress", Integer.bitCount(next & FULL_PARTS), 4), true);
+                        player.displayClientMessage(Component.translatable("message.velorise_teyvat_bosses.ruin_sub.progress", Integer.bitCount(next & FULL_PARTS), 3), true);
                     }
                     return InteractionResult.CONSUME;
                 }
@@ -566,26 +573,8 @@ public class RuinSubmersibleEntity extends Mob {
                                    int vertInput, int action, Vec3 aimDir) {
         if (getControllingPassenger() != pilot) return;
 
-        if (action == ACTION_HEADLIGHT) {
-            boolean nextState = !isHeadlightOn();
-            entityData.set(DATA_HEADLIGHT, nextState);
-            if (!nextState) {
-                pilot.removeEffect(MobEffects.NIGHT_VISION);
-                clearDynamicLight(sl);
-            } else if (isInOrOnWater()) {
-                pilot.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 240, 0, true, false));
-            }
-            playSfx(TeyvatBossesSounds.subSonarPing(), SoundEvents.LEVER_CLICK, 0.65F, nextState ? 1.55F : 1.15F);
-            return;
-        }
-        if (action == ACTION_DASH && dashCooldown <= 0 && getEnergy() >= 14.0F && isInOrOnWater()) {
-            addEnergy(-14.0F);
-            dashCooldown = DASH_COOLDOWN_TICKS;
-            playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DOLPHIN_SPLASH, 1.2F, 0.95F);
-            float rad = yBodyRot * Mth.DEG_TO_RAD;
-            Vec3 fwd = new Vec3(-Mth.sin(rad), 0.0D, Mth.cos(rad));
-            Vec3 tail = position().subtract(fwd.scale(3.1D)).add(0.0D, 1.25D, 0.0D);
-            sl.sendParticles(ParticleTypes.BUBBLE_POP, tail.x, tail.y, tail.z, 22, 0.65D, 0.55D, 0.65D, 0.10D);
+        if (action == ACTION_DASH && getEnergy() > 1.0F && isInOrOnWater()) {
+            serverBoostTicks = 6;
             return;
         }
         if (action == ACTION_SONAR && sonarCooldown <= 0 && getEnergy() >= 8.0F) {
@@ -721,17 +710,38 @@ public class RuinSubmersibleEntity extends Mob {
 
         if (currentPilot != null && isFullyAssembled()) {
             currentPilot.setAirSupply(currentPilot.getMaxAirSupply());
+            boolean autoLight = inWaterNow && getEnergy() > 0.5F;
+            if (isHeadlightOn() != autoLight) entityData.set(DATA_HEADLIGHT, autoLight);
             if (inWaterNow) {
-                // WATER_BREATHING instead of CONDUIT_POWER so Light[F] genuinely controls underwater visibility!
                 currentPilot.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 60, 0, true, false));
-                if (isHeadlightOn() && getEnergy() > 0.5F) {
+                if (autoLight) {
                     currentPilot.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 240, 0, true, false));
                     updateDynamicLight(sl);
                 } else {
+                    currentPilot.removeEffect(MobEffects.NIGHT_VISION);
                     clearDynamicLight(sl);
                 }
             } else {
+                currentPilot.removeEffect(MobEffects.NIGHT_VISION);
                 clearDynamicLight(sl);
+            }
+
+            if (serverBoostTicks > 0) {
+                serverBoostTicks--;
+                if (inWaterNow && getEnergy() > 1.0F) {
+                    addEnergy(-0.65F);
+                    float rad = yBodyRot * Mth.DEG_TO_RAD;
+                    Vec3 fwd = new Vec3(-Mth.sin(rad), 0.0D, Mth.cos(rad));
+                    Vec3 tail = position().subtract(fwd.scale(3.2D)).add(0.0D, 1.25D, 0.0D);
+                    if (tickCount % 2 == 0) {
+                        sl.sendParticles(ParticleTypes.BUBBLE_POP, tail.x, tail.y, tail.z, 8, 0.45D, 0.40D, 0.45D, 0.08D);
+                    }
+                    if (tickCount % 12 == 0) {
+                        playSfx(TeyvatBossesSounds.subBallastHiss(), SoundEvents.DOLPHIN_SPLASH, 0.75F, 1.12F);
+                    }
+                } else {
+                    serverBoostTicks = 0;
+                }
             }
 
             double dx = getX() - prevServerX;
@@ -753,6 +763,8 @@ public class RuinSubmersibleEntity extends Mob {
             float syncedPitch = Mth.clamp((float) (-dy * 68.0D), -42.0F, 42.0F);
             entityData.set(DATA_HULL_PITCH, Mth.lerp(0.22F, entityData.get(DATA_HULL_PITCH), syncedPitch));
         } else {
+            serverBoostTicks = 0;
+            if (isHeadlightOn()) entityData.set(DATA_HEADLIGHT, false);
             clearDynamicLight(sl);
             entityData.set(DATA_HULL_PITCH, Mth.lerp(0.12F, entityData.get(DATA_HULL_PITCH), 0.0F));
             entityData.set(DATA_HULL_ROLL, Mth.lerp(0.12F, entityData.get(DATA_HULL_ROLL), 0.0F));

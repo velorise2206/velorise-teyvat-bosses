@@ -27,7 +27,6 @@ public final class TeyvatBossesJeiPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
         // 1. Ruin Submersible (4 modular parts)
         addInfo(registration, TeyvatBossesItems.ruinSubHull(), "jei.velorise_teyvat_bosses.ruin_sub");
-        addInfo(registration, TeyvatBossesItems.ruinSubCockpit(), "jei.velorise_teyvat_bosses.ruin_sub");
         addInfo(registration, TeyvatBossesItems.ruinSubPropeller(), "jei.velorise_teyvat_bosses.ruin_sub");
         addInfo(registration, TeyvatBossesItems.ruinSubTorpedoPod(), "jei.velorise_teyvat_bosses.ruin_sub");
 
@@ -43,8 +42,9 @@ public final class TeyvatBossesJeiPlugin implements IModPlugin {
         addInfo(registration, TeyvatBossesItems.cryoTurretStem(), "jei.velorise_teyvat_bosses.cryo_turret");
         addInfo(registration, TeyvatBossesItems.cryoTurretCorolla(), "jei.velorise_teyvat_bosses.cryo_turret");
 
-        // 4. Anemo Cube Companion (8 cubes assembled on 1 block)
+        // 4. Anemo Cube Companion (8 cubes assembled on 1 block) & Anemo Gale Boots
         addInfo(registration, TeyvatBossesItems.anemoPrismCube(), "jei.velorise_teyvat_bosses.anemo_cube");
+        addInfo(registration, TeyvatBossesItems.anemoBoots(), "jei.velorise_teyvat_bosses.anemo_boots");
 
         // 5. Geo Tunnel Driller (crafted from Primordial Jade + 1-2 vanilla Chests)
         addInfo(registration, TeyvatBossesItems.geoDrillerChassis(), "jei.velorise_teyvat_bosses.geo_driller");

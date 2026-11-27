@@ -23,8 +23,8 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> cryoTurretStem;
     private static Supplier<Item> cryoTurretCorolla;
     private static Supplier<Item> anemoPrismCube;
+    private static Supplier<Item> anemoBoots;
     private static Supplier<Item> ruinSubHull;
-    private static Supplier<Item> ruinSubCockpit;
     private static Supplier<Item> ruinSubPropeller;
     private static Supplier<Item> ruinSubTorpedoPod;
     private static Supplier<Item> geoDrillerChassis;
@@ -56,7 +56,6 @@ public final class TeyvatBossesItems {
             Supplier<Item> cryoTurretCorollaSupplier,
             Supplier<Item> anemoPrismCubeSupplier,
             Supplier<Item> ruinSubHullSupplier,
-            Supplier<Item> ruinSubCockpitSupplier,
             Supplier<Item> ruinSubPropellerSupplier,
             Supplier<Item> ruinSubTorpedoPodSupplier,
             Supplier<Item> geoDrillerChassisSupplier,
@@ -78,7 +77,6 @@ public final class TeyvatBossesItems {
         cryoTurretCorolla = cryoTurretCorollaSupplier;
         anemoPrismCube = anemoPrismCubeSupplier;
         ruinSubHull = ruinSubHullSupplier;
-        ruinSubCockpit = ruinSubCockpitSupplier;
         ruinSubPropeller = ruinSubPropellerSupplier;
         ruinSubTorpedoPod = ruinSubTorpedoPodSupplier;
         geoDrillerChassis = geoDrillerChassisSupplier;
@@ -102,7 +100,6 @@ public final class TeyvatBossesItems {
     public static Item cryoTurretCorolla() { return cryoTurretCorolla != null ? cryoTurretCorolla.get() : null; }
     public static Item anemoPrismCube() { return anemoPrismCube != null ? anemoPrismCube.get() : null; }
     public static Item ruinSubHull() { return ruinSubHull != null ? ruinSubHull.get() : null; }
-    public static Item ruinSubCockpit() { return ruinSubCockpit != null ? ruinSubCockpit.get() : null; }
     public static Item ruinSubPropeller() { return ruinSubPropeller != null ? ruinSubPropeller.get() : null; }
     public static Item ruinSubTorpedoPod() { return ruinSubTorpedoPod != null ? ruinSubTorpedoPod.get() : null; }
     public static Item geoDrillerChassis() { return geoDrillerChassis != null ? geoDrillerChassis.get() : null; }
@@ -110,7 +107,7 @@ public final class TeyvatBossesItems {
     public static Item geoDrillerEngine() { return geoDrillerEngine != null ? geoDrillerEngine.get() : null; }
 
     public static Item[] mechPartPool() { return new Item[]{mechCore(), mechLeftArm(), mechRightArm(), mechLeftLeg(), mechRightLeg()}; }
-    public static Item[] subPartPool() { return new Item[]{ruinSubHull(), ruinSubCockpit(), ruinSubPropeller(), ruinSubTorpedoPod()}; }
+    public static Item[] subPartPool() { return new Item[]{ruinSubHull(), ruinSubPropeller(), ruinSubTorpedoPod()}; }
     public static Item[] cryoTurretPartPool() { return new Item[]{cryoTurretRoot(), cryoTurretStem(), cryoTurretCorolla()}; }
     public static Item[] geoDrillerPartPool() { return new Item[]{geoDrillerChassis(), geoDrillerDrill(), geoDrillerEngine()}; }
     public static void bindCondensedRedstone(Supplier<Item> supplier) { condensedRedstoneBlock = supplier; }
@@ -138,4 +135,6 @@ public final class TeyvatBossesItems {
     public static Item geovishapChestplate() { return geovishapChestplate != null ? geovishapChestplate.get() : null; }
     public static Item geovishapLeggings() { return geovishapLeggings != null ? geovishapLeggings.get() : null; }
     public static Item geovishapBoots() { return geovishapBoots != null ? geovishapBoots.get() : null; }
+    public static void bindAnemoBoots(Supplier<Item> supplier) { anemoBoots = supplier; }
+    public static Item anemoBoots() { return anemoBoots != null ? anemoBoots.get() : null; }
 }

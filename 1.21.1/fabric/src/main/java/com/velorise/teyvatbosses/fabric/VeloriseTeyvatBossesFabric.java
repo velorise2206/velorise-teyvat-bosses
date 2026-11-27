@@ -25,7 +25,9 @@ import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.item.AnemoBootsItem;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
+import com.velorise.teyvatbosses.network.AnemoDoubleJumpPayload;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.GeovishapArmorItem;
@@ -227,12 +229,15 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
     public static final Item ANEMO_PRISM_CUBE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_prism_cube"),
             new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+    public static final Holder<ArmorMaterial> ANEMO_ARMOR_MATERIAL = Registry.registerForHolder(
+            BuiltInRegistries.ARMOR_MATERIAL, TeyvatBossesConstants.id("anemo"),
+            AnemoBootsItem.createArmorMaterial());
+    public static final Item ANEMO_BOOTS = Registry.register(
+            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("anemo_boots"),
+            new AnemoBootsItem(ANEMO_ARMOR_MATERIAL, new Item.Properties()));
     public static final Item RUIN_SUB_HULL = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_hull"),
             new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
-    public static final Item RUIN_SUB_COCKPIT = Registry.register(
-            BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_cockpit"),
-            new RuinSubPartItem(RuinSubmersibleEntity.PART_COCKPIT, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final Item RUIN_SUB_PROPELLER = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("ruin_sub_propeller"),
             new RuinSubPartItem(RuinSubmersibleEntity.PART_PROPELLER, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
@@ -456,8 +461,8 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                         output.accept(CRYO_TURRET_STEM);
                         output.accept(CRYO_TURRET_COROLLA);
                         output.accept(ANEMO_PRISM_CUBE);
+                        output.accept(ANEMO_BOOTS);
                         output.accept(RUIN_SUB_HULL);
-                        output.accept(RUIN_SUB_COCKPIT);
                         output.accept(RUIN_SUB_PROPELLER);
                         output.accept(RUIN_SUB_TORPEDO_POD);
                         output.accept(GEO_DRILLER_CHASSIS);
@@ -499,6 +504,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         TeyvatBossesItems.bindGeovishapGear(
                 () -> PRIMORDIAL_JADE, () -> PRIMORDIAL_GEO_INGOT,
                 () -> GEOVISHAP_HELMET, () -> GEOVISHAP_CHESTPLATE, () -> GEOVISHAP_LEGGINGS, () -> GEOVISHAP_BOOTS);
+        TeyvatBossesItems.bindAnemoBoots(() -> ANEMO_BOOTS);
         TeyvatBossesStructures.bind(() -> FLAT_ARENA);
         TeyvatBossesSounds.bind(
                 () -> SOUND_MECH_ENGINE_HUM, () -> SOUND_MECH_LOCKON_BEEP, () -> SOUND_MECH_VISOR_SEAL,
@@ -513,7 +519,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
                 () -> MUSIC_DISC_RUIN_NAUTILUS, () -> MUSIC_DISC_PRIMO_GEOVISHAP,
                 () -> RUIN_MECH_CORE, () -> RUIN_MECH_LEFT_ARM, () -> RUIN_MECH_RIGHT_ARM, () -> RUIN_MECH_LEFT_LEG, () -> RUIN_MECH_RIGHT_LEG,
                 () -> CRYO_TURRET_ROOT, () -> CRYO_TURRET_STEM, () -> CRYO_TURRET_COROLLA, () -> ANEMO_PRISM_CUBE,
-                () -> RUIN_SUB_HULL, () -> RUIN_SUB_COCKPIT, () -> RUIN_SUB_PROPELLER, () -> RUIN_SUB_TORPEDO_POD,
+                () -> RUIN_SUB_HULL, () -> RUIN_SUB_PROPELLER, () -> RUIN_SUB_TORPEDO_POD,
                 () -> GEO_DRILLER_CHASSIS, () -> GEO_DRILLER_DRILL, () -> GEO_DRILLER_ENGINE
         );
         FabricDefaultAttributeRegistry.register(CRYO_REGISVINE, CryoRegisvineEntity.createAttributes());
@@ -530,6 +536,9 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(RuinMechSkillPayload.TYPE, RuinMechSkillPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(RuinSubControlPayload.TYPE, RuinSubControlPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(GeoDrillerControlPayload.TYPE, GeoDrillerControlPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(AnemoDoubleJumpPayload.TYPE, AnemoDoubleJumpPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(AnemoDoubleJumpPayload.TYPE, (payload, ctx) ->
+                ctx.server().execute(() -> AnemoDoubleJumpPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(RuinSubControlPayload.TYPE, (payload, ctx) ->
                 ctx.server().execute(() -> RuinSubControlPayload.handleOnServer(payload, ctx.player())));
         ServerPlayNetworking.registerGlobalReceiver(GeoDrillerControlPayload.TYPE, (payload, ctx) ->

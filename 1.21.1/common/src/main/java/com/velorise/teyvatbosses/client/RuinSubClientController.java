@@ -27,8 +27,7 @@ public final class RuinSubClientController {
 
     private static Consumer<RuinSubControlPayload> packetSender = p -> {};
     private static boolean prevRmb = false;
-    private static boolean prevF = false;
-    private static boolean prevR = false;
+    private static int boostPulseTick = 0;
     private static float lastFwd = 0.0F;
     private static float lastStrafe = 0.0F;
     private static int lastVert = 0;
@@ -78,7 +77,8 @@ public final class RuinSubClientController {
         if (Math.abs(recoilPitch) < 0.02F) recoilPitch = 0.0F;
 
         if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity sub)) {
-            prevRmb = prevF = prevR = false;
+            prevRmb = false;
+            boostPulseTick = 0;
             lastFwd = 0.0F;
             lastStrafe = 0.0F;
             lastVert = 0;
@@ -93,12 +93,12 @@ public final class RuinSubClientController {
         boolean ctrl = mc.options.keySprint.isDown();
         int vert = (space ? 1 : 0) - (ctrl ? 1 : 0);
 
-        sub.setClientPilotInputs(fwd, strafe, vert);
-
         boolean lmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
         boolean rmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
-        boolean keyF = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_F) == GLFW.GLFW_PRESS;
         boolean keyR = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
+
+        boolean boostHeld = keyR && sub.getEnergy() > 1.0F && sub.isInOrOnWater();
+        sub.setClientPilotInputs(fwd, strafe, vert, boostHeld);
 
         int action = RuinSubmersibleEntity.ACTION_NONE;
         if (lmb && sub.canClientFireTorpedo()) {
@@ -109,22 +109,19 @@ public final class RuinSubClientController {
             action = RuinSubmersibleEntity.ACTION_SONAR;
             sub.markClientSonarTriggered();
             recoilPitch = -1.1F;
-        } else if (keyR && !prevR) {
-            action = RuinSubmersibleEntity.ACTION_DASH;
-        } else if (keyF && !prevF) {
-            action = RuinSubmersibleEntity.ACTION_HEADLIGHT;
+        } else if (boostHeld) {
+            if (boostPulseTick <= 0) {
+                action = RuinSubmersibleEntity.ACTION_DASH;
+                boostPulseTick = 3;
+            } else {
+                boostPulseTick--;
+            }
+        } else {
+            boostPulseTick = 0;
         }
 
         prevRmb = rmb;
-        prevF = keyF;
-        prevR = keyR;
-
         Vec3 aim = mc.player.getLookAngle();
-        if (action == RuinSubmersibleEntity.ACTION_DASH) {
-            if (!sub.triggerClientDash(aim)) {
-                action = RuinSubmersibleEntity.ACTION_NONE;
-            }
-        }
 
         if (mc.level != null && (sub.tickCount & 1) == 0) {
             Vec3 eyePos = mc.player.getEyePosition();
@@ -234,15 +231,12 @@ public final class RuinSubClientController {
         }
 
         boolean sonarReady = sub.getClientSonarCooldown() <= 0;
-        boolean dashReady = sub.getClientDashCooldown() <= 0;
+        boolean boostingNow = sub.isClientBoosting();
         int sonarCol = sonarReady ? 0xFF67E8F9 : 0xFF64748B;
-        int dashCol = dashReady ? 0xFFFCD34D : 0xFF64748B;
+        int dashCol = boostingNow ? 0xFF22D3EE : (sub.getEnergy() > 1.0F ? 0xFFFCD34D : 0xFF64748B);
         Component sonarTxt = Component.translatable("hud.velorise_teyvat_bosses.sub.sonar_rmb");
         Component dashTxt = Component.translatable("hud.velorise_teyvat_bosses.sub.dash_r");
-        g.drawString(mc.font, sonarTxt, rx + 5, yBase + 23, sonarCol, false);
-        g.drawString(mc.font, dashTxt, rx + rw - 5 - mc.font.width(dashTxt), yBase + 23, dashCol, false);
-
-        Component lightTxt = Component.translatable(sub.isHeadlightOn() ? "hud.velorise_teyvat_bosses.sub.light_on" : "hud.velorise_teyvat_bosses.sub.light_off");
-        g.drawString(mc.font, lightTxt, rx + 5, yBase + 35, sub.isHeadlightOn() ? 0xFF67E8F9 : 0xFF92ABC2, false);
+        g.drawString(mc.font, sonarTxt, rx + 5, yBase + 26, sonarCol, false);
+        g.drawString(mc.font, dashTxt, rx + rw - 5 - mc.font.width(dashTxt), yBase + 26, dashCol, false);
     }
 }

@@ -96,7 +96,7 @@ public class CryoRegisvineEntity extends Monster {
 
     public static final float ROOTS_SHIELD_UNITS = 12.0F;
     public static final float COROLLA_SHIELD_UNITS = 6.0F;
-    private static final int STUN_DURATION_TICKS = 260; // 13.0 seconds
+    private static final int STUN_DURATION_TICKS = 120; // 6.0 seconds
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(CryoRegisvineEntity.class, EntityDataSerializers.INT);
@@ -145,6 +145,8 @@ public class CryoRegisvineEntity extends Monster {
     private boolean customDeathHandled = false;
     private final BossDamageCap damageCap = new BossDamageCap();
     private float fallbackShield = 0.0F;
+    private boolean forwardingVanillaPyro = false;
+    private int lastVanillaPyroTick = -100;
 
     public CryoRegisvineEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -324,6 +326,21 @@ public class CryoRegisvineEntity extends Monster {
         this.bossEvent.removePlayer(player);
     }
 
+    private boolean isVanillaFireHit(DamageSource source) {
+        if (source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) return true;
+        if (source.getDirectEntity() != null && source.getDirectEntity().isOnFire()) return true;
+        if (source.getEntity() instanceof LivingEntity le) {
+            var reg = level().registryAccess().registry(net.minecraft.core.registries.Registries.ENCHANTMENT).orElse(null);
+            if (reg != null) {
+                var fireAspect = reg.getHolder(net.minecraft.world.item.enchantment.Enchantments.FIRE_ASPECT).orElse(null);
+                if (fireAspect != null && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(fireAspect, le.getMainHandItem()) > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
         return false;
@@ -331,7 +348,10 @@ public class CryoRegisvineEntity extends Monster {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (source.is(DamageTypes.FALL)) return false;
+        if (source.is(DamageTypes.FALL) || source.is(DamageTypes.ON_FIRE)) {
+            if (isOnFire()) clearFire();
+            return false;
+        }
         int st = getBossState();
         if (st == STATE_DEATH || st == STATE_AWAKEN) return false;
         if (!level().isClientSide() && source.getEntity() instanceof LivingEntity attacker
@@ -352,12 +372,41 @@ public class CryoRegisvineEntity extends Monster {
             amount *= 1.55F;
         } else if (StavesElementBridge.isAvailable()) {
             if (StavesElementBridge.hasElementalShield(this)) {
+                if (!level().isClientSide() && !forwardingVanillaPyro && isVanillaFireHit(source)) {
+                    clearFire();
+                    if ((tickCount - lastVanillaPyroTick) >= 20) {
+                        lastVanillaPyroTick = tickCount;
+                        if (level() instanceof ServerLevel sl) {
+                            sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.HOSTILE, 0.75F, 1.35F);
+                            sl.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 1.5D, getZ(), 8, 0.8D, 0.6D, 0.8D, 0.04D);
+                        }
+                        LivingEntity atk = source.getEntity() instanceof LivingEntity le ? le : null;
+                        float gauge = isCorollaVulnerableWindow() ? 0.75F : 0.45F;
+                        forwardingVanillaPyro = true;
+                        try {
+                            StavesElementBridge.dealElementalDamage(this, atk, "PYRO", 1.5F, gauge, true, 0.0F);
+                        } finally {
+                            forwardingVanillaPyro = false;
+                        }
+                    }
+                }
                 amount *= 0.20F;
             }
         } else if (fallbackShield > 0.0F) {
-            float shieldMult = source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) ? 2.8F : 0.65F;
+            boolean fireHit = isVanillaFireHit(source);
+            if (fireHit && !level().isClientSide()) {
+                clearFire();
+                if ((tickCount - lastVanillaPyroTick) >= 20) {
+                    lastVanillaPyroTick = tickCount;
+                    if (level() instanceof ServerLevel sl) {
+                        sl.playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.HOSTILE, 0.75F, 1.35F);
+                        sl.sendParticles(ParticleTypes.CLOUD, getX(), getY() + 1.5D, getZ(), 8, 0.8D, 0.6D, 0.8D, 0.04D);
+                    }
+                }
+            }
+            float shieldMult = fireHit ? 1.35F : 0.65F;
             if (isCorollaVulnerableWindow()) {
-                shieldMult *= 2.2F;
+                shieldMult *= 1.8F;
             }
             fallbackShield = Math.max(0.0F, fallbackShield - amount * shieldMult);
             float maxShield = ((getCorollaPhase() == 0) ? ROOTS_SHIELD_UNITS : COROLLA_SHIELD_UNITS) * 6.5F;
@@ -366,6 +415,9 @@ public class CryoRegisvineEntity extends Monster {
                 onCorollaShieldBroken(sl);
             }
             amount *= 0.20F;
+        }
+        if (!level().isClientSide() && isOnFire()) {
+            clearFire();
         }
         amount = damageCap.apply(this, source, amount, st == STATE_STUNNED);
         if (amount <= 0.0F) return false;
@@ -401,6 +453,7 @@ public class CryoRegisvineEntity extends Monster {
     @Override
     public void tick() {
         super.tick();
+        if (!level().isClientSide() && isOnFire()) clearFire();
         if (!level().isClientSide()) {
             LivingEntity curTarget = getTarget();
             boolean fighting = curTarget != null && curTarget.isAlive() && !curTarget.isRemoved();

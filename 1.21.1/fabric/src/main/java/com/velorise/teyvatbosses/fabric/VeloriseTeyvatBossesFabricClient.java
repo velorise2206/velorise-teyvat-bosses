@@ -1,5 +1,6 @@
 package com.velorise.teyvatbosses.fabric;
 
+import com.velorise.teyvatbosses.client.AnemoBootsClientController;
 import com.velorise.teyvatbosses.client.AnemoCompanionRenderer;
 import com.velorise.teyvatbosses.client.AnemoHypostasisRenderer;
 import com.velorise.teyvatbosses.client.AnemoMissileRenderer;
@@ -132,6 +133,8 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             RuinSubClientController.tick(client);
             GeoDrillerClientController.setPacketSender(ClientPlayNetworking::send);
             GeoDrillerClientController.tick(client);
+            AnemoBootsClientController.setPacketSender(ClientPlayNetworking::send);
+            AnemoBootsClientController.tick(client);
             BossCameraShake.clientTick();
         });
         HudRenderCallback.EVENT.register((gui, deltaTracker) -> {

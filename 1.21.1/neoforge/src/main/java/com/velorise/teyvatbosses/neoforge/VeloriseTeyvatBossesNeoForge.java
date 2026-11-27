@@ -25,7 +25,9 @@ import com.velorise.teyvatbosses.entity.RuinSubmersibleEntity;
 import com.velorise.teyvatbosses.entity.RuinTorpedoProjectile;
 import com.velorise.teyvatbosses.entity.TrounceBlossomEntity;
 import com.velorise.teyvatbosses.entity.WindCurrentEntity;
+import com.velorise.teyvatbosses.item.AnemoBootsItem;
 import com.velorise.teyvatbosses.item.AnemoPrismCubeItem;
+import com.velorise.teyvatbosses.network.AnemoDoubleJumpPayload;
 import com.velorise.teyvatbosses.item.CryoTurretPartItem;
 import com.velorise.teyvatbosses.item.GeoDrillerPartItem;
 import com.velorise.teyvatbosses.item.GeovishapArmorItem;
@@ -227,10 +229,12 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("cryo_turret_corolla", () -> new CryoTurretPartItem(CryoTurretEntity.PART_COROLLA, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> ANEMO_PRISM_CUBE =
             ITEMS.register("anemo_prism_cube", () -> new AnemoPrismCubeItem(new Item.Properties().stacksTo(16).rarity(Rarity.RARE)));
+    public static final DeferredHolder<ArmorMaterial, ArmorMaterial> ANEMO_ARMOR_MATERIAL =
+            ARMOR_MATERIALS.register("anemo", AnemoBootsItem::createArmorMaterial);
+    public static final DeferredHolder<Item, Item> ANEMO_BOOTS =
+            ITEMS.register("anemo_boots", () -> new AnemoBootsItem(ANEMO_ARMOR_MATERIAL, new Item.Properties()));
     public static final DeferredHolder<Item, Item> RUIN_SUB_HULL =
             ITEMS.register("ruin_sub_hull", () -> new RuinSubPartItem(RuinSubmersibleEntity.PART_HULL, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
-    public static final DeferredHolder<Item, Item> RUIN_SUB_COCKPIT =
-            ITEMS.register("ruin_sub_cockpit", () -> new RuinSubPartItem(RuinSubmersibleEntity.PART_COCKPIT, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> RUIN_SUB_PROPELLER =
             ITEMS.register("ruin_sub_propeller", () -> new RuinSubPartItem(RuinSubmersibleEntity.PART_PROPELLER, new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredHolder<Item, Item> RUIN_SUB_TORPEDO_POD =
@@ -396,8 +400,8 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(CRYO_TURRET_STEM.get());
                         output.accept(CRYO_TURRET_COROLLA.get());
                         output.accept(ANEMO_PRISM_CUBE.get());
+                        output.accept(ANEMO_BOOTS.get());
                         output.accept(RUIN_SUB_HULL.get());
-                        output.accept(RUIN_SUB_COCKPIT.get());
                         output.accept(RUIN_SUB_PROPELLER.get());
                         output.accept(RUIN_SUB_TORPEDO_POD.get());
                         output.accept(GEO_DRILLER_CHASSIS.get());
@@ -454,12 +458,13 @@ public class VeloriseTeyvatBossesNeoForge {
         TeyvatBossesItems.bindGeovishapGear(
                 PRIMORDIAL_JADE, PRIMORDIAL_GEO_INGOT,
                 GEOVISHAP_HELMET, GEOVISHAP_CHESTPLATE, GEOVISHAP_LEGGINGS, GEOVISHAP_BOOTS);
+        TeyvatBossesItems.bindAnemoBoots(ANEMO_BOOTS);
         TeyvatBossesItems.bind(
                 MUSIC_DISC_CRYO_REGISVINE, MUSIC_DISC_ANEMO_HYPOSTASIS, MUSIC_DISC_RUIN_GUARD,
                 MUSIC_DISC_RUIN_NAUTILUS, MUSIC_DISC_PRIMO_GEOVISHAP,
                 RUIN_MECH_CORE, RUIN_MECH_LEFT_ARM, RUIN_MECH_RIGHT_ARM, RUIN_MECH_LEFT_LEG, RUIN_MECH_RIGHT_LEG,
                 CRYO_TURRET_ROOT, CRYO_TURRET_STEM, CRYO_TURRET_COROLLA, ANEMO_PRISM_CUBE,
-                RUIN_SUB_HULL, RUIN_SUB_COCKPIT, RUIN_SUB_PROPELLER, RUIN_SUB_TORPEDO_POD,
+                RUIN_SUB_HULL, RUIN_SUB_PROPELLER, RUIN_SUB_TORPEDO_POD,
                 GEO_DRILLER_CHASSIS, GEO_DRILLER_DRILL, GEO_DRILLER_ENGINE
         );
         modEventBus.addListener(this::registerAttributes);
@@ -472,6 +477,13 @@ public class VeloriseTeyvatBossesNeoForge {
                 GeoDrillerControlPayload.STREAM_CODEC,
                 (payload, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer sp) GeoDrillerControlPayload.handleOnServer(payload, sp);
+                })
+        );
+        event.registrar("1").playToServer(
+                AnemoDoubleJumpPayload.TYPE,
+                AnemoDoubleJumpPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player() instanceof ServerPlayer sp) AnemoDoubleJumpPayload.handleOnServer(payload, sp);
                 })
         );
         event.registrar("1").playToServer(

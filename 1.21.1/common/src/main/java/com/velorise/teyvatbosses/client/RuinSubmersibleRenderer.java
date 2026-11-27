@@ -100,17 +100,14 @@ public class RuinSubmersibleRenderer extends EntityRenderer<RuinSubmersibleEntit
         setVis("harpoon_arm_l", false);
         setVis("harpoon_arm_r", false);
 
-        boolean hasCockpit = entity.hasPart(RuinSubmersibleEntity.PART_COCKPIT);
+        boolean hasCockpit = true;
         boolean hasProp = entity.hasPart(RuinSubmersibleEntity.PART_PROPELLER);
         boolean hasPods = entity.hasPart(RuinSubmersibleEntity.PART_TORPEDO_POD);
 
         installAnimator.update(entity, entity.getPartsMask(), partialTicks);
-        float cockpitRem = hasCockpit ? installAnimator.getRemaining(entity, RuinSubmersibleEntity.PART_COCKPIT, partialTicks) : 0.0F;
         float propRem = hasProp ? installAnimator.getRemaining(entity, RuinSubmersibleEntity.PART_PROPELLER, partialTicks) : 0.0F;
         float podRem = hasPods ? installAnimator.getRemaining(entity, RuinSubmersibleEntity.PART_TORPEDO_POD, partialTicks) : 0.0F;
 
-        PartInstallAnimator.applyPush(model.getBone("sub_cockpit_frame"), cockpitRem, 0.0F, 0.0F, -8.5F);
-        PartInstallAnimator.applyPush(model.getBone("sub_cockpit_glass"), cockpitRem, 0.0F, 0.0F, -8.5F);
         PartInstallAnimator.applyPush(model.getBone("tail_cone"), propRem, 0.0F, 0.0F, 9.5F);
         if (prop != null && propRem > 0.0001F) prop.zRot += propRem * 0.80F;
         PartInstallAnimator.applyPush(model.getBone("pod_left"), podRem, -7.5F, 0.0F, 0.0F);

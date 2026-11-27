@@ -353,7 +353,7 @@ public class CryoTurretEntity extends Mob {
                 AABB box = getBoundingBox().inflate(6.0D, 2.5D, 6.0D);
                 for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
                         le -> le.isAlive() && le instanceof Enemy && le != this)) {
-                    if (e.distanceToSqr(this) <= 6.2D * 6.2D) {
+                    if (e.distanceToSqr(this) <= 6.2D * 6.2D && hasClearSightTo(sl, e)) {
                         StavesElementBridge.dealElementalDamage(e, this, "CRYO", 16.0F, 1.0F, false, 0.20F);
                         e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 80, 2));
                         Vec3 push = e.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D);
@@ -374,6 +374,28 @@ public class CryoTurretEntity extends Mob {
         }
     }
 
+    private boolean hasClearSightTo(ServerLevel sl, LivingEntity target) {
+        Vec3 from = position().add(0.0D, 3.8D, 0.0D);
+        Vec3 toBody = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
+        var hit = sl.clip(new net.minecraft.world.level.ClipContext(
+                from, toBody,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE,
+                this
+        ));
+        if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+            return true;
+        }
+        Vec3 toEye = target.getEyePosition();
+        var hitEye = sl.clip(new net.minecraft.world.level.ClipContext(
+                from, toEye,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE,
+                this
+        ));
+        return hitEye.getType() == net.minecraft.world.phys.HitResult.Type.MISS;
+    }
+
     private LivingEntity findNearestHostile(ServerLevel sl, double range) {
         AABB box = getBoundingBox().inflate(range, 10.0D, range);
         LivingEntity best = null;
@@ -381,7 +403,7 @@ public class CryoTurretEntity extends Mob {
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
                 le -> le.isAlive() && le instanceof Enemy && le != this && !(le instanceof RuinMechEntity))) {
             double d = e.distanceToSqr(this);
-            if (d < bestSq) {
+            if (d < bestSq && hasClearSightTo(sl, e)) {
                 bestSq = d;
                 best = e;
             }

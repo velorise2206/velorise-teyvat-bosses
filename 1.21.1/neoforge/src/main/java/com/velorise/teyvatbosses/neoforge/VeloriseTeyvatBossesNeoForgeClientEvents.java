@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.neoforge;
 
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
+import com.velorise.teyvatbosses.client.AnemoBootsClientController;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.BossCameraShake;
@@ -32,6 +33,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
         RuinSubClientController.tick(Minecraft.getInstance());
         GeoDrillerClientController.setPacketSender(PacketDistributor::sendToServer);
         GeoDrillerClientController.tick(Minecraft.getInstance());
+        AnemoBootsClientController.setPacketSender(PacketDistributor::sendToServer);
+        AnemoBootsClientController.tick(Minecraft.getInstance());
         BossCameraShake.clientTick();
     }
 
