@@ -192,7 +192,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
             float prog = switch (animId) {
                 case PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER -> Mth.clamp(tF / 47.0F, 0.0F, 1.0F);
                 case PrimoGeovishapEntity.ANIM_BURROW -> Mth.clamp((tF - 46.0F) / 18.0F, 0.0F, 1.0F);
-                default -> (clientSec * 1.25F) % 1.0F;
+                default -> Mth.clamp(tF / 24.0F, 0.0F, 1.0F);
             };
             float fillR = Math.max(0.25F, teleRadius * prog);
             drawRing(lvc, mat, teleRadius - 0.36F, teleRadius, 52, 0.11F, 235, 28, 36, 225);
@@ -363,26 +363,38 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
     }
 
     private static void renderGoldenSlashVfx(PoseStack poseStack, VertexConsumer lvc, int animId, int animTick, float partialTicks, float bodyYaw) {
-        if (animId == PrimoGeovishapEntity.ANIM_RIGHT_CLAW && animTick >= 10 && animTick <= 21) {
-            float p = Mth.clamp((animTick - 10 + partialTicks) / 11.0F, 0.0F, 1.0F);
+        if (animId == PrimoGeovishapEntity.ANIM_RIGHT_CLAW && animTick >= 10 && animTick <= 17) {
+            float raw = Mth.clamp((animTick - 10 + partialTicks) / 7.0F, 0.0F, 1.0F);
+            float p = 1.0F - (1.0F - raw) * (1.0F - raw);
             drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.6F, -92.0F, 72.0F, p, 24.0F);
-        } else if (animId == PrimoGeovishapEntity.ANIM_LEFT_CLAW && animTick >= 10 && animTick <= 21) {
-            float p = Mth.clamp((animTick - 10 + partialTicks) / 11.0F, 0.0F, 1.0F);
-            drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.6F, 92.0F, -72.0F, p, -24.0F);
+        } else if (animId == PrimoGeovishapEntity.ANIM_LEFT_CLAW) {
+            if (animTick >= 10 && animTick <= 17) {
+                float raw = Mth.clamp((animTick - 10 + partialTicks) / 7.0F, 0.0F, 1.0F);
+                float p = 1.0F - (1.0F - raw) * (1.0F - raw);
+                drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.6F, 92.0F, -72.0F, p, -24.0F);
+            } else if (animTick >= 24 && animTick <= 31) {
+                // Hit 2: upward-diagonal rip-up slash synced to 1.42s (tick 28) ground rupture!
+                float raw = Mth.clamp((animTick - 24 + partialTicks) / 7.0F, 0.0F, 1.0F);
+                float p = 1.0F - (1.0F - raw) * (1.0F - raw);
+                drawSlashArc(poseStack, lvc, bodyYaw, 1.55F, 6.2F, -64.0F, 82.0F, p, -42.0F);
+            }
         } else if (animId == PrimoGeovishapEntity.ANIM_COMBO_SLASH) {
-            if (animTick >= 10 && animTick <= 20) {
-                float p = Mth.clamp((animTick - 10 + partialTicks) / 10.0F, 0.0F, 1.0F);
+            if (animTick >= 10 && animTick <= 17) {
+                float raw = Mth.clamp((animTick - 10 + partialTicks) / 7.0F, 0.0F, 1.0F);
+                float p = 1.0F - (1.0F - raw) * (1.0F - raw);
                 drawSlashArc(poseStack, lvc, bodyYaw, 1.95F, 6.9F, -96.0F, 76.0F, p, 22.0F);
-            } else if (animTick >= 25 && animTick <= 35) {
-                float p = Mth.clamp((animTick - 25 + partialTicks) / 10.0F, 0.0F, 1.0F);
+            } else if (animTick >= 24 && animTick <= 31) {
+                float raw = Mth.clamp((animTick - 24 + partialTicks) / 7.0F, 0.0F, 1.0F);
+                float p = 1.0F - (1.0F - raw) * (1.0F - raw);
                 drawSlashArc(poseStack, lvc, bodyYaw, 2.05F, 7.1F, 96.0F, -76.0F, p, -22.0F);
             }
-        } else if (animId == PrimoGeovishapEntity.ANIM_WHIRLWIND && animTick >= 11 && animTick <= 27) {
-            float p = Mth.clamp((animTick - 11 + partialTicks) / 16.0F, 0.0F, 1.0F);
-            float fade = 1.0F - p * 0.72F;
+        } else if (animId == PrimoGeovishapEntity.ANIM_WHIRLWIND && animTick >= 11 && animTick <= 23) {
+            // Synced 1:1 with body.yRot (+422 deg world-Y spin from 0.55s..1.15s = tick 11..23)
+            float p = Mth.clamp((animTick - 11 + partialTicks) / 12.0F, 0.0F, 1.0F);
+            float fade = (p < 0.15F) ? (p / 0.15F) : (1.0F - (p - 0.15F) / 0.85F * 0.78F);
             poseStack.pushPose();
             poseStack.translate(0.0D, 1.35D, 0.0D);
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw - p * 380.0F));
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw + p * 410.0F));
             poseStack.mulPose(Axis.XP.rotationDegrees(10.0F));
             Matrix4f mat = poseStack.last().pose();
             drawArcRibbon(lvc, mat, 3.4F, 7.8F, 0.0F, 265.0F, 34, 255, 175, 45, (int) (195 * fade));
@@ -494,23 +506,7 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
         int lb = Math.min(255, rgb[2] + 65);
         poseStack.pushPose();
         Matrix4f mat = poseStack.last().pose();
-        if (animTick >= 6 && animTick < 47) {
-            float p = Mth.clamp((animTick - 6 + partialTicks) / 41.0F, 0.0F, 1.0F);
-            // 3 contracting suction rings pulling elemental energy INWARD toward the crouched boss
-            for (int k = 0; k < 3; k++) {
-                float inward = 1.0F - (((clientSec * 1.45F) + k * 0.333F) % 1.0F);
-                float rOuter = 2.2F + inward * 14.0F;
-                float rInner = Math.max(0.6F, rOuter - (1.2F + inward * 1.4F));
-                int a = (int) (135 * p * Mth.sin(inward * Mth.PI));
-                if (a > 8) {
-                    drawRing(lvc, mat, rInner, rOuter, 48, 0.11F + k * 0.02F, rgb[0], rgb[1], rgb[2], a);
-                }
-            }
-            // Soft elemental floor glow pool underneath the trembling boss
-            float pulse = 0.88F + 0.12F * Mth.sin(clientSec * 20.0F);
-            drawRing(lvc, mat, 0.4F, (3.2F + p * 2.8F) * pulse, 36, 0.14F, lr, lg, lb, (int) (125 * p));
-            drawRing(lvc, mat, 0.2F, (1.8F + p * 1.4F) * pulse, 28, 0.18F, 255, 255, 255, (int) (145 * p));
-        } else if (animTick >= 47 && animTick <= 68) {
+        if (animTick >= 47 && animTick <= 68) {
             float p = Mth.clamp((animTick - 47 + partialTicks) / 21.0F, 0.0F, 1.0F);
             float ease = 1.0F - (1.0F - p) * (1.0F - p);
             float waveR = 2.2F + ease * 16.5F;

@@ -65,7 +65,7 @@ public class RuinSubmersibleEntity extends Mob {
     public static final int PART_TORPEDO_POD = 1 << 3;
     public static final int FULL_PARTS       = PART_HULL | PART_COCKPIT | PART_PROPELLER | PART_TORPEDO_POD;
 
-    public static final float MAX_ENERGY = 1000.0F;
+    public static final float MAX_ENERGY = 900.0F;
     public static final int MAX_TORPEDOES = 6;
     public static final int SONAR_COOLDOWN_TICKS = 28;
     public static final int DASH_COOLDOWN_TICKS = 36;

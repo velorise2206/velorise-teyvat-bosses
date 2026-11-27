@@ -18,19 +18,18 @@ import java.util.Optional;
 /**
  * Unified Redstone-only Energy & Core Enchantment helper shared by Ruin Mech, Ruin Submersible, and Geo Driller:
  * <ul>
- *   <li>All 3 devices start at {@code 0} energy with base capacity {@code 1000}.</li>
- *   <li>Redstone-only fuel values: Redstone Dust = {@code 11.12} (9 dust = 100), Redstone Block = {@code 100},
+ *   <li>All 3 devices start at {@code 0} energy with base capacity {@code 900}.</li>
+ *   <li>Redstone-only fuel values: Redstone Block = {@code 100},
  *       Condensed Redstone Block (9x Block) = {@code 900}.</li>
- *   <li>{@code core_capacity} (Lv I–III): {@code +1000} max energy per level (up to {@code 4000}).</li>
+ *   <li>{@code core_capacity} (Lv I–III): {@code +900} max energy per level (up to {@code 3600}).</li>
  *   <li>{@code energy_conservation} (Lv I–III): {@code -15% / -30% / -45%} energy consumption.</li>
  * </ul>
  */
 public final class DeviceEnergyHelper {
-    public static final float BASE_MAX_ENERGY = 1000.0F;
-    public static final float CAPACITY_BONUS_PER_LEVEL = 1000.0F;
+    public static final float BASE_MAX_ENERGY = 900.0F;
+    public static final float CAPACITY_BONUS_PER_LEVEL = 900.0F;
     public static final float CONSERVATION_REDUCTION_PER_LEVEL = 0.15F;
 
-    public static final float ENERGY_REDSTONE_DUST = 11.12F;
     public static final float ENERGY_REDSTONE_BLOCK = 100.0F;
     public static final float ENERGY_CONDENSED_REDSTONE_BLOCK = 900.0F;
 

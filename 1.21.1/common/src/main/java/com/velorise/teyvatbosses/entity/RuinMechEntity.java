@@ -98,7 +98,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int SKILL_SUPER_LEAP  = 9;
 
     // 10 Redstone Blocks max (100 energy per block = 1000 max energy)
-    public static final int   MAX_REDSTONE_CELLS = 10;
+    public static final int   MAX_REDSTONE_CELLS = 9;
     public static final float ENERGY_PER_BLOCK   = 100.0F;
     public static final float MAX_ENERGY         = MAX_REDSTONE_CELLS * ENERGY_PER_BLOCK;
     public static final float MAX_ARMOR          = 100.0F;
@@ -226,7 +226,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public int getConservationLevel() { return entityData.get(DATA_CONSERVATION_LEVEL); }
     public boolean isRechargingCondensed() { return entityData.get(DATA_RECHARGE_CONDENSED); }
     public float getMaxEnergy() { return DeviceEnergyHelper.maxEnergyForLevel(getCapacityLevel()); }
-    public int getMaxRedstoneCells() { return Math.max(10, Math.round(getMaxEnergy() / ENERGY_PER_BLOCK)); }
+    public int getMaxRedstoneCells() { return Math.max(9, Math.round(getMaxEnergy() / ENERGY_PER_BLOCK)); }
 
     public void setCoreEnchants(int capacityLevel, int conservationLevel) {
         entityData.set(DATA_CAPACITY_LEVEL, Mth.clamp(capacityLevel, 0, 5));

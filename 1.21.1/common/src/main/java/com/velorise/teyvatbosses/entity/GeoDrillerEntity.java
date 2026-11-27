@@ -75,7 +75,7 @@ public class GeoDrillerEntity extends Mob {
     public static final int PART_DRILL   = 2;
     public static final int PART_ENGINE  = 4;
     public static final int PART_ALL     = PART_CHASSIS | PART_DRILL | PART_ENGINE;
-    public static final int MAX_FUEL     = 1000;
+    public static final int MAX_FUEL     = 900;
 
     public static final int PITCH_LEVEL = 0;
     public static final int PITCH_DOWN  = 1;
