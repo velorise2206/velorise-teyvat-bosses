@@ -280,6 +280,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             } else {
                 emissiveAlpha = 0.0F;
             }
+        } else if (animId == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && currSec < 0.35F) {
+            // Brief orange eye dim/flicker on Hit-1 weakpoint stagger before reigniting bright
+            emissiveAlpha = (currSec < 0.14F) ? 0.32F : Mth.lerp((currSec - 0.14F) / 0.21F, 0.32F, 1.0F);
         }
         if (emissiveAlpha > 0.02F) {
             int ec = Mth.clamp((int) (255.0F * emissiveAlpha), 0, 255);
@@ -481,9 +484,9 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
 
         if (anim == RuinGuardEntity.ANIM_MELEE_3HIT) {
             if (currSec >= 1.28F && currSec <= 1.58F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.90D, (currSec - 1.28F) / 0.30F, false);
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.90D, (currSec - 1.28F) / 0.30F, true);
             } else if (currSec >= 2.38F && currSec <= 2.70F) {
-                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.70D, (currSec - 2.38F) / 0.32F, false);
+                drawMeleeCrescentSlash(vc, poseStack, bodyYaw, 1.75D, (currSec - 2.38F) / 0.32F, false);
             } else if (currSec >= 4.28F && currSec <= 4.88F) {
                 drawExpandingShockwave(vc, poseStack, 5.8F, (currSec - 4.28F) / 0.60F);
             }
@@ -503,17 +506,19 @@ public class RuinGuardRenderer extends EntityRenderer<RuinGuardEntity> {
             poseStack.popPose();
         }
 
-        // Weakpoint Hit-1 crisp golden-white impact burst around eye/core height
-        if (anim == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH && currSec <= 0.36F) {
+        // Weakpoint Hit-1 & Hit-2 crisp blue-white head flash burst (matches Genshin Wiki Paralyzed preview)
+        if ((anim == RuinGuardEntity.ANIM_WEAKPOINT_FLINCH || anim == RuinGuardEntity.ANIM_STUNNED) && currSec <= 0.36F) {
             float p = Mth.clamp(currSec / 0.36F, 0.0F, 1.0F);
+            boolean hit2 = (anim == RuinGuardEntity.ANIM_STUNNED);
             poseStack.pushPose();
             poseStack.translate(0.0D, 3.05D, 0.0D);
             poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
             poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-            float rOut = 0.45F + p * 1.95F;
-            float rIn = Math.max(0.08F, rOut - 0.35F * (1.0F - p * 0.65F));
-            int alpha = (int) (235 * (1.0F - p));
-            drawHorizontalRing(vc, poseStack.last().pose(), rIn, rOut, 24, 255, 242, 170, alpha);
+            float rOut = (hit2 ? 0.60F : 0.42F) + p * (hit2 ? 2.45F : 1.75F);
+            float rIn = Math.max(0.08F, rOut - (hit2 ? 0.45F : 0.32F) * (1.0F - p * 0.65F));
+            int alpha = (int) ((hit2 ? 245 : 225) * (1.0F - p));
+            drawHorizontalRing(vc, poseStack.last().pose(), rIn, rOut, 24, 175, 238, 255, alpha);
+            drawHorizontalRing(vc, poseStack.last().pose(), Math.max(0.06F, rOut - 0.14F), rOut, 24, 245, 252, 255, alpha);
             poseStack.popPose();
         }
 

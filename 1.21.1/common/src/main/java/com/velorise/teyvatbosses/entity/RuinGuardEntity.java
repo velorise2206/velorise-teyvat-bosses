@@ -565,6 +565,10 @@ public class RuinGuardEntity extends Monster {
             case STATE_STUNNED -> {
                 setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
                 if (getAnimId() == ANIM_STUNNED) {
+                    if (stateTick == 22) {
+                        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_STEP, SoundSource.HOSTILE, 1.5F, 0.48F);
+                        spawnGroundDustRing(sl, 3.6D, 24);
+                    }
                     if (stateTick % 12 == 0) {
                         sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 2.0D, getZ(), 8, 0.7D, 0.5D, 0.7D, 0.05D);
                     }
