@@ -200,25 +200,42 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
         int st = entity.getAnimState();
         float ticks = entity.getStateTicks() + partialTicks;
         VertexConsumer lvc = buffer.getBuffer(RenderType.lightning());
+        double ex = Mth.lerp(partialTicks, entity.xo, entity.getX());
+        double ey = Mth.lerp(partialTicks, entity.yo, entity.getY());
+        double ez = Mth.lerp(partialTicks, entity.zo, entity.getZ());
+        Vec3 tele = entity.getSyncedTelegraphPos();
+        double ox = tele.x - ex;
+        double oy = tele.y - ey;
+        double oz = tele.z - ez;
+        float lockedYaw = entity.getSyncedTelegraphYaw();
 
         if (st == GoldflameQucusaurEntity.STATE_SHOCKWAVE_SLAM && ticks <= 17.0F) {
             float prog = Mth.clamp(ticks / 16.0F, 0.0F, 1.0F);
-            drawTelegraphCircle(poseStack, lvc, 0.0D, 0.06D, 0.0D, 9.0F, prog, 255, 78, 28);
+            drawTelegraphCircle(poseStack, lvc, ox, oy + 0.06D, oz, 9.0F, prog, 255, 78, 28);
         } else if (st == GoldflameQucusaurEntity.STATE_WING_SWIPE) {
             if (ticks <= 15.0F) {
-                drawTelegraphCone(poseStack, lvc, bodyYaw, 7.5F, 105.0F, Mth.clamp(ticks / 15.0F, 0.0F, 1.0F));
+                poseStack.pushPose();
+                poseStack.translate(ox, oy, oz);
+                drawTelegraphCone(poseStack, lvc, lockedYaw, 7.5F, 105.0F, Mth.clamp(ticks / 15.0F, 0.0F, 1.0F));
+                poseStack.popPose();
             } else if (ticks >= 22.0F && ticks <= 38.0F) {
-                drawTelegraphCone(poseStack, lvc, bodyYaw, 7.5F, 105.0F, Mth.clamp((ticks - 22.0F) / 16.0F, 0.0F, 1.0F));
+                poseStack.pushPose();
+                poseStack.translate(ox, oy, oz);
+                drawTelegraphCone(poseStack, lvc, lockedYaw, 7.5F, 105.0F, Mth.clamp((ticks - 22.0F) / 16.0F, 0.0F, 1.0F));
+                poseStack.popPose();
             } else if (ticks >= 46.0F && ticks <= 60.0F) {
-                drawTelegraphCircle(poseStack, lvc, 0.0D, 0.06D, 0.0D, 6.8F, Mth.clamp((ticks - 46.0F) / 14.0F, 0.0F, 1.0F), 255, 130, 24);
+                drawTelegraphCircle(poseStack, lvc, ox, oy + 0.06D, oz, 6.8F, Mth.clamp((ticks - 46.0F) / 14.0F, 0.0F, 1.0F), 255, 130, 24);
             }
         } else if (st == GoldflameQucusaurEntity.STATE_CHARGE_DRILL && ticks <= 13.0F) {
-            drawTelegraphLane(poseStack, lvc, bodyYaw, 3.6F, 15.0F, Mth.clamp(ticks / 12.0F, 0.0F, 1.0F));
+            poseStack.pushPose();
+            poseStack.translate(ox, oy, oz);
+            drawTelegraphLane(poseStack, lvc, lockedYaw, 3.6F, 15.0F, Mth.clamp(ticks / 12.0F, 0.0F, 1.0F));
+            poseStack.popPose();
         } else if (st == GoldflameQucusaurEntity.STATE_DIVE_BOMB && ticks <= 24.0F) {
             Vec3 tgt = entity.getSyncedDiveTarget();
             float rad = entity.isFeatherBrokenThisCycle() ? 5.5F : 8.0F;
             float prog = Mth.clamp(ticks / 20.0F, 0.0F, 1.0F);
-            drawTelegraphCircle(poseStack, lvc, tgt.x - entity.getX(), tgt.y - entity.getY() + 0.08D, tgt.z - entity.getZ(),
+            drawTelegraphCircle(poseStack, lvc, tgt.x - ex, tgt.y - ey + 0.08D, tgt.z - ez,
                     rad, prog, 255, 56, 22);
         }
     }

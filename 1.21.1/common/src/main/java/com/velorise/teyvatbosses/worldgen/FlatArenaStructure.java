@@ -365,7 +365,7 @@ public class FlatArenaStructure extends Structure {
                             for (int y = targetGroundY + 1; y <= topScan; y++) {
                                 pos.set(x, y, z);
                                 BlockState cur = level.getBlockState(pos);
-                                if (isNaturalTerrainOrVegetation(cur)) {
+                                if (isNaturalTerrainOrVegetation(cur) && !cur.is(BlockTags.TERRACOTTA)) {
                                     level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
                                 }
                             }

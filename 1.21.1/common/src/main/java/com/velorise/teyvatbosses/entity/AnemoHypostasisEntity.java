@@ -107,6 +107,7 @@ public class AnemoHypostasisEntity extends Monster {
     private int attackCooldown = 30;
     private int lastAttackAnim = -1;
     private int attacksSinceTornado = 0;
+    private boolean phase2Announced = false;
     private boolean revivalUsed = false;
     private final BossDamageCap damageCap = new BossDamageCap();
     private final BossReturnHomeHelper returnHelper = new BossReturnHomeHelper();
@@ -187,6 +188,8 @@ public class AnemoHypostasisEntity extends Monster {
             default -> "idle";
         };
     }
+
+    public boolean isPhase2() { return getHealth() <= getMaxHealth() * 0.50F; }
 
     public boolean isCoreExposed() {
         return getBossState() == STATE_VULNERABLE;
@@ -464,6 +467,14 @@ public class AnemoHypostasisEntity extends Monster {
         setTarget(nearest);
         faceTarget(nearest);
 
+        if (!phase2Announced && st == STATE_COMBAT && isPhase2()) {
+            phase2Announced = true;
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.BREEZE_WHIRL, SoundSource.HOSTILE, 1.7F, 0.72F);
+            sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.2F, 1.25F);
+            sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, getX(), getY() + 2.0D, getZ(), 5, 2.2D, 1.2D, 2.2D, 0.0D);
+            BossClientBridge.triggerCameraShake(position(), 0.65F, 28.0D);
+        }
+
         switch (st) {
             case STATE_AWAKEN -> {
                 if (stateTick >= 48) {
@@ -472,10 +483,11 @@ public class AnemoHypostasisEntity extends Monster {
                 }
             }
             case STATE_VULNERABLE -> {
-                if (stateTick >= 125) {
+                int vulnLimit = isPhase2() ? 92 : 125;
+                if (stateTick >= vulnLimit) {
                     sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.0F, 0.95F);
                     transitionTo(STATE_COMBAT, ANIM_IDLE);
-                    attackCooldown = 28;
+                    attackCooldown = isPhase2() ? 18 : 28;
                 }
             }
             case STATE_REVIVAL -> tickRevival(sl);
@@ -588,7 +600,7 @@ public class AnemoHypostasisEntity extends Monster {
     private void chooseNextAttack(ServerLevel sl, LivingEntity target) {
         attacksSinceTornado++;
         int chosen;
-        if (attacksSinceTornado >= 4) {
+        if (attacksSinceTornado >= (isPhase2() ? 3 : 4)) {
             chosen = ANIM_TORNADO_STORM;
             attacksSinceTornado = 0;
         } else {
@@ -617,7 +629,15 @@ public class AnemoHypostasisEntity extends Monster {
         if (stateTick == 26 || stateTick == 46 || stateTick == 66) {
             Vec3 origin = position().add(0.0D, 3.0D, 0.0D);
             Vec3 dir = target.position().add(0.0D, 0.9D, 0.0D).subtract(origin).normalize();
-            AnemoMissileProjectile.launch(sl, this, origin, dir.scale(1.05D), 12.0F, AnemoMissileProjectile.KIND_WIND_BLADE);
+            boolean p2 = isPhase2();
+            double spd = p2 ? 1.22D : 1.05D;
+            float dmg = p2 ? 14.0F : 12.0F;
+            AnemoMissileProjectile.launch(sl, this, origin, dir.scale(spd), dmg, AnemoMissileProjectile.KIND_WIND_BLADE);
+            if (p2) {
+                float rad = (float) Math.toRadians(14.0D);
+                AnemoMissileProjectile.launch(sl, this, origin, dir.yRot(rad).scale(spd), dmg * 0.85F, AnemoMissileProjectile.KIND_WIND_BLADE);
+                AnemoMissileProjectile.launch(sl, this, origin, dir.yRot(-rad).scale(spd), dmg * 0.85F, AnemoMissileProjectile.KIND_WIND_BLADE);
+            }
             sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.4F, 0.85F);
             sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BREEZE_SHOOT, SoundSource.HOSTILE, 1.2F, 1.05F);
         }
@@ -627,10 +647,12 @@ public class AnemoHypostasisEntity extends Monster {
     }
 
     private void tickMissileCircle(ServerLevel sl, LivingEntity target) {
-        if (stateTick >= 36 && stateTick <= 116 && (stateTick - 36) % 16 == 0) {
+        int interval = isPhase2() ? 11 : 16;
+        if (stateTick >= 36 && stateTick <= 116 && (stateTick - 36) % interval == 0) {
             Vec3 origin = position().add(0.0D, 3.2D, 0.0D);
             Vec3 dir = target.position().add(0.0D, 0.85D, 0.0D).subtract(origin).normalize();
-            AnemoMissileProjectile.launch(sl, this, origin, dir.scale(1.22D), 9.5F, AnemoMissileProjectile.KIND_ORB_BOLT);
+            double spd = isPhase2() ? 1.40D : 1.22D;
+            AnemoMissileProjectile.launch(sl, this, origin, dir.scale(spd), isPhase2() ? 11.0F : 9.5F, AnemoMissileProjectile.KIND_ORB_BOLT);
             sl.playSound(null, origin.x, origin.y, origin.z, SoundEvents.BREEZE_SHOOT, SoundSource.HOSTILE, 1.15F, 1.35F);
         }
         if (stateTick >= 140) {
@@ -639,39 +661,48 @@ public class AnemoHypostasisEntity extends Monster {
     }
 
     private void tickPillarEruption(ServerLevel sl, LivingEntity target) {
-        // 3 sequential ground telegraphs -> eruptions
-        if (stateTick == 12 || stateTick == 42 || stateTick == 72) {
+        boolean p2 = isPhase2();
+        boolean telegraphNow = p2
+                ? (stateTick == 12 || stateTick == 36 || stateTick == 60 || stateTick == 84)
+                : (stateTick == 12 || stateTick == 42 || stateTick == 72);
+        boolean eruptNow = p2
+                ? (stateTick == 28 || stateTick == 52 || stateTick == 76 || stateTick == 100)
+                : (stateTick == 30 || stateTick == 60 || stateTick == 90);
+        if (telegraphNow) {
             setTelegraph(new Vec3(target.getX(), arenaCenter.y, target.getZ()));
             sl.playSound(null, telegraphPos.x, telegraphPos.y, telegraphPos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.0F, 1.45F);
         }
-        if (stateTick == 30 || stateTick == 60 || stateTick == 90) {
+        if (eruptNow) {
             entityData.set(DATA_TELEGRAPH_ACTIVE, false);
             sl.playSound(null, telegraphPos.x, telegraphPos.y, telegraphPos.z, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 1.4F, 0.85F);
             sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, telegraphPos.x, telegraphPos.y + 0.8D, telegraphPos.z, 2, 0.5D, 0.8D, 0.5D, 0.0D);
             sl.sendParticles(ParticleTypes.END_ROD, telegraphPos.x, telegraphPos.y + 1.2D, telegraphPos.z, 26, 1.4D, 1.8D, 1.4D, 0.12D);
 
-            AABB blast = new AABB(telegraphPos.x - 3.2D, telegraphPos.y - 0.5D, telegraphPos.z - 3.2D,
-                    telegraphPos.x + 3.2D, telegraphPos.y + 4.5D, telegraphPos.z + 3.2D);
+            double r = p2 ? 3.7D : 3.2D;
+            AABB blast = new AABB(telegraphPos.x - r, telegraphPos.y - 0.5D, telegraphPos.z - r,
+                    telegraphPos.x + r, telegraphPos.y + 4.5D, telegraphPos.z + r);
             for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, blast, this::isValidCombatTarget)) {
-                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 22.0F, 1.0F, false, 0.30F);
-                p.setDeltaMovement(p.getDeltaMovement().x, 0.68D, p.getDeltaMovement().z);
+                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", p2 ? 25.0F : 22.0F, 1.0F, false, 0.30F);
+                p.setDeltaMovement(p.getDeltaMovement().x, 0.72D, p.getDeltaMovement().z);
                 p.hurtMarked = true;
             }
         }
-        if (stateTick >= 100) {
+        if (stateTick >= (p2 ? 110 : 100)) {
             transitionTo(STATE_COMBAT, ANIM_IDLE);
-            attackCooldown = 25;
+            attackCooldown = p2 ? 16 : 25;
         }
     }
 
     private void tickTornadoStorm(ServerLevel sl) {
         if (stateTick == 35) {
             sl.playSound(null, getX(), getY() + 3.0D, getZ(), SoundEvents.BREEZE_WHIRL, SoundSource.HOSTILE, 1.6F, 0.75F);
-            // Spawn 6 roaming Hurricane Tornadoes + 3 Updraft Wind Currents!
-            for (int i = 0; i < 6; i++) {
-                float ang = (float) (i * Math.PI / 3.0D);
+            boolean p2 = isPhase2();
+            int count = p2 ? 8 : 6;
+            float speedMul = p2 ? 1.25F : 1.0F;
+            for (int i = 0; i < count; i++) {
+                float ang = (float) (i * (Math.PI * 2.0D / count));
                 float rad = (i % 2 == 0) ? 7.5F : 12.5F;
-                float spd = (i % 2 == 0) ? 0.048F : -0.036F;
+                float spd = ((i % 2 == 0) ? 0.048F : -0.036F) * speedMul;
                 AnemoTornadoEntity.spawn(sl, arenaCenter, getUUID(), rad, ang, spd, 215, true);
             }
             for (int i = 0; i < 3; i++) {
@@ -694,10 +725,12 @@ public class AnemoHypostasisEntity extends Monster {
             sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, getX(), getY() + 1.8D, getZ(), 3, 1.2D, 1.0D, 1.2D, 0.0D);
             sl.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.6D, getZ(), 40, 2.4D, 1.5D, 2.4D, 0.14D);
 
-            AABB crushBox = new AABB(getX() - 4.0D, getY() - 0.5D, getZ() - 4.0D,
-                    getX() + 4.0D, getY() + 4.2D, getZ() + 4.0D);
+            boolean p2 = isPhase2();
+            double cr = p2 ? 4.8D : 4.0D;
+            AABB crushBox = new AABB(getX() - cr, getY() - 0.5D, getZ() - cr,
+                    getX() + cr, getY() + 4.2D, getZ() + cr);
             for (LivingEntity p : sl.getEntitiesOfClass(LivingEntity.class, crushBox, this::isValidCombatTarget)) {
-                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", 30.0F, 1.5F, true, 0.35F);
+                StavesElementBridge.dealElementalDamage(p, this, "ANEMO", p2 ? 36.0F : 30.0F, 1.5F, true, 0.35F);
                 Vec3 push = p.position().subtract(position()).normalize().scale(1.1D);
                 p.setDeltaMovement(push.x, 0.45D, push.z);
                 p.hurtMarked = true;
@@ -725,7 +758,7 @@ public class AnemoHypostasisEntity extends Monster {
                 Vec3 toBoss = position().subtract(p.position());
                 double dist = toBoss.length();
                 if (dist > 2.4D && dist < 14.0D) {
-                    Vec3 pull = toBoss.scale(0.11D / dist);
+                    Vec3 pull = toBoss.scale((isPhase2() ? 0.15D : 0.11D) / dist);
                     p.setDeltaMovement(p.getDeltaMovement().add(pull.x, 0.0D, pull.z));
                     p.hurtMarked = true;
                 }
@@ -735,7 +768,7 @@ public class AnemoHypostasisEntity extends Monster {
             }
         }
         // Main shockwave at tick 70 (+ bonus waves from recalled orbs at ticks 88, 106)
-        if (stateTick == 70 || (pendingRecallOrbs > 0 && (stateTick == 88 || stateTick == 106))) {
+        if (stateTick == 70 || (isPhase2() && stateTick == 88) || (pendingRecallOrbs > 0 && (stateTick == 88 || stateTick == 106))) {
             if (stateTick > 70) pendingRecallOrbs--;
             sl.playSound(null, getX(), getY() + 1.5D, getZ(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 1.6F, 0.72F);
             sl.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, getX(), getY() + 1.5D, getZ(), 4, 2.5D, 1.0D, 2.5D, 0.0D);

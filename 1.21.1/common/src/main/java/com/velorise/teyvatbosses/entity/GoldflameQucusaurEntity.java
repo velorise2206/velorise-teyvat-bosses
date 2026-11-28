@@ -76,6 +76,14 @@ public class GoldflameQucusaurEntity extends Monster {
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> DATA_FEATHER_BROKEN =
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Float> DATA_TELE_X =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELE_Y =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELE_Z =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_TELE_YAW =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
 
     private static final float MAX_PYRO_SHIELD = 240.0F; // Represents 24 GU Golden Flame Ward
 
@@ -125,6 +133,10 @@ public class GoldflameQucusaurEntity extends Monster {
         builder.define(DATA_DIVE_Y, 0.0F);
         builder.define(DATA_DIVE_Z, 0.0F);
         builder.define(DATA_FEATHER_BROKEN, false);
+        builder.define(DATA_TELE_X, 0.0F);
+        builder.define(DATA_TELE_Y, 0.0F);
+        builder.define(DATA_TELE_Z, 0.0F);
+        builder.define(DATA_TELE_YAW, 0.0F);
     }
 
     public int getAnimState() { return entityData.get(DATA_STATE); }
@@ -134,6 +146,14 @@ public class GoldflameQucusaurEntity extends Monster {
     public boolean isGoldenFlameActive() { return getPyroShield() > 0.0F; }
     public Vec3 getSyncedDiveTarget() { return new Vec3(entityData.get(DATA_DIVE_X), entityData.get(DATA_DIVE_Y), entityData.get(DATA_DIVE_Z)); }
     public boolean isFeatherBrokenThisCycle() { return entityData.get(DATA_FEATHER_BROKEN); }
+    public Vec3 getSyncedTelegraphPos() { return new Vec3(entityData.get(DATA_TELE_X), entityData.get(DATA_TELE_Y), entityData.get(DATA_TELE_Z)); }
+    public float getSyncedTelegraphYaw() { return entityData.get(DATA_TELE_YAW); }
+    private void lockTelegraphHere(float yawDeg) {
+        entityData.set(DATA_TELE_X, (float) getX());
+        entityData.set(DATA_TELE_Y, (float) getY());
+        entityData.set(DATA_TELE_Z, (float) getZ());
+        entityData.set(DATA_TELE_YAW, yawDeg);
+    }
     private void setSyncedDiveTarget(Vec3 tgt) {
         this.diveTarget = tgt;
         entityData.set(DATA_DIVE_X, (float) tgt.x);
@@ -151,6 +171,12 @@ public class GoldflameQucusaurEntity extends Monster {
         entityData.set(DATA_STATE, next);
         entityData.set(DATA_STATE_TICKS, 0);
         setNoGravity(isAirborneState());
+        if (next == STATE_SHOCKWAVE_SLAM || next == STATE_CHARGE_DRILL || next == STATE_WING_SWIPE) {
+            float yaw = (next == STATE_CHARGE_DRILL && attackDir.lengthSqr() > 1e-4D)
+                    ? (float) (Mth.atan2(attackDir.z, attackDir.x) * (180.0D / Math.PI)) - 90.0F
+                    : getYRot();
+            lockTelegraphHere(yaw);
+        }
     }
 
     public String getActiveAnimationClip() {
@@ -433,9 +459,12 @@ public class GoldflameQucusaurEntity extends Monster {
     private void tickWingSwipe(ServerLevel sl, Player target, int ticks) {
         // Synced 1:1 with 3.80s (76 ticks) wing_swipe 3-hit combo:
         // Hit 1: tick 15 (0.75s), Hit 2: tick 38 (1.90s), Hit 3 Cyclone Dash: ticks 58..69 (2.90..3.45s)
-        if (target != null && (ticks < 12 || (ticks > 22 && ticks < 34) || (ticks > 46 && ticks < 56))) {
-            faceTarget(target.position(), 7.0F);
+        if (target != null && ((ticks >= 16 && ticks <= 21) || (ticks >= 39 && ticks <= 45))) {
+            faceTarget(target.position(), 18.0F);
             attackDir = target.position().subtract(position()).multiply(1.0D, 0.0D, 1.0D).normalize();
+        }
+        if (ticks == 22 || ticks == 46) {
+            lockTelegraphHere(getYRot());
         }
         if (ticks == 15 || ticks == 38) {
             dealConePyroDamage(sl, 7.5D, 110.0F, 11.0F);
@@ -630,7 +659,7 @@ public class GoldflameQucusaurEntity extends Monster {
 
     private void dealConePyroDamage(ServerLevel sl, double radius, float halfAngleDeg, float baseDmg) {
         float dmg = TeyvatBossesConfig.scaleDamage(BOSS_ID, baseDmg);
-        Vec3 forward = Vec3.directionFromRotation(0.0F, getYRot()).normalize();
+        Vec3 forward = Vec3.directionFromRotation(0.0F, getSyncedTelegraphYaw()).normalize();
         double cosLim = Math.cos(Math.toRadians(halfAngleDeg));
         AABB box = getBoundingBox().inflate(radius, 3.0D, radius);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,

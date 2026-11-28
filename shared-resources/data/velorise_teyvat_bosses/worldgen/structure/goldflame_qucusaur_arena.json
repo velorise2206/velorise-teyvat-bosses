@@ -6,10 +6,10 @@
   "start_pool": "velorise_teyvat_bosses:goldflame_qucusaur_arena",
   "sample_radius": 22,
   "max_height_variance": 12,
-  "y_offset": -3,
+  "y_offset": -4,
   "min_surface_y": 64,
   "blend_radius": 14,
   "underground_cave": false,
-  "clear_interior_radius": 18,
+  "clear_interior_radius": 22,
   "spawn_overrides": {}
 }

@@ -206,5 +206,11 @@
   "hud.velorise_teyvat_bosses.qucusaur_hint_ground": "[Space] Takeoff | [LMB] Fire/Breath | [RMB] Heatwave",
   "hud.velorise_teyvat_bosses.qucusaur_hint_air": "[Space/C] Up/Down | [Sprint] Boost | [LMB] Fire/Breath | [RMB] Dive",
   "item.velorise_teyvat_bosses.music_disc_goldflame_qucusaur": "Music Disc",
-  "jukebox_song.velorise_teyvat_bosses.goldflame_qucusaur_theme": "Velorise — Goldflame Qucusaur Tyrant"
+  "jukebox_song.velorise_teyvat_bosses.goldflame_qucusaur_theme": "Velorise — Goldflame Qucusaur Tyrant",
+  "jei.velorise_teyvat_bosses.goldflame_egg": "Dropped by Goldflame Qucusaur Tyrant (Badlands / Desert / Savanna Arena).\n\nHatching: Place the egg on the ground near a heat source (Magma Block, Campfire, Fire, or Lava) to hatch your own tameable Goldflame Qucusaur Mount.\n\nControls: Equip a Phlogiston Saddle to ride. W/S (Forward/Brake), Space (Ascend / Flap), Ctrl (Descend), Shift+Space or R (Phlogiston Boost), LMB (Fireball Spit), RMB (Goldflame Breath).",
+  "jei.velorise_teyvat_bosses.phlogiston_saddle": "Crafted from Goldflame Qucusaur Crest & Mark of the Binding Blessing (dropped by Goldflame Qucusaur Tyrant).\n\nRight-click a hatched Goldflame Qucusaur Mount to equip the saddle and unlock 3D aerial flight, Phlogiston Boost, Fireball Spit, and Goldflame Breath.",
+  "jei.velorise_teyvat_bosses.goldflame_crest": "Dropped by Goldflame Qucusaur Tyrant from the Trounce Blossom.\n\nUsed to craft the Phlogiston Saddle for riding your hatched Goldflame Qucusaur Mount.",
+  "jei.velorise_teyvat_bosses.mark_of_binding": "Dropped by Goldflame Qucusaur Tyrant from the Trounce Blossom.\n\nUsed as a key catalyst to craft the Phlogiston Saddle.",
+  "jei.velorise_teyvat_bosses.condensed_redstone": "Crafted from 9 Redstone Blocks (and unpackable back into 9 Redstone Blocks).\n\nHigh-density fuel cell for recharging the Ruin Mech, Ruin Submersible, and Geo Tunnel Driller with 9x the energy per block.",
+  "jei.velorise_teyvat_bosses.music_discs": "Dropped directly by each corresponding Teyvat World Boss upon claiming its Trounce Blossom.\n\nInsert into a vanilla Jukebox to play the remastered boss theme."
 }
