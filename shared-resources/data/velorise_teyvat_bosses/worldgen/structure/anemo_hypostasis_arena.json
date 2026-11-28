@@ -10,6 +10,6 @@
   "min_surface_y": 63,
   "blend_radius": 12,
   "underground_cave": false,
-  "clear_interior_radius": 0,
+  "clear_interior_radius": 20,
   "spawn_overrides": {}
 }

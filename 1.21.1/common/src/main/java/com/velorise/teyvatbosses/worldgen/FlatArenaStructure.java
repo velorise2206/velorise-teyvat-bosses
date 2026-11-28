@@ -18,6 +18,8 @@ import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CrossCollisionBlock;
+import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
@@ -283,6 +285,37 @@ public class FlatArenaStructure extends Structure {
         } else {
             blendSurfaceArena(level, random, chunkBox, pieceBox, centerX, centerZ, placeY, groundY);
         }
+        reconnectWallsAndFences(level, chunkBox, pieceBox);
+    }
+
+    /**
+     * Recomputes neighbor shape connections for all walls, fences, bars, and panes placed from
+     * structure NBT files (Minecraft pastes NBT palette properties verbatim without neighbor updates).
+     */
+    private static void reconnectWallsAndFences(WorldGenLevel level, BoundingBox chunkBox, BoundingBox pieceBox) {
+        int minX = Math.max(chunkBox.minX(), pieceBox.minX());
+        int maxX = Math.min(chunkBox.maxX(), pieceBox.maxX());
+        int minY = Math.max(level.getMinBuildHeight(), pieceBox.minY());
+        int maxY = Math.min(level.getMaxBuildHeight() - 1, pieceBox.maxY());
+        int minZ = Math.max(chunkBox.minZ(), pieceBox.minZ());
+        int maxZ = Math.min(chunkBox.maxZ(), pieceBox.maxZ());
+        if (minX > maxX || minY > maxY || minZ > maxZ) return;
+
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int y = minY; y <= maxY; y++) {
+                    pos.set(x, y, z);
+                    BlockState state = level.getBlockState(pos);
+                    if (state.getBlock() instanceof WallBlock || state.getBlock() instanceof CrossCollisionBlock) {
+                        BlockState updated = Block.updateFromNeighbourShapes(state, level, pos);
+                        if (updated != state) {
+                            level.setBlock(pos, updated, Block.UPDATE_CLIENTS);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void blendSurfaceArena(
@@ -312,8 +345,9 @@ public class FlatArenaStructure extends Structure {
                 double organicNoise = smoothNoise2D(x * 0.16D, z * 0.16D) * 3.2D;
 
                 if (dist <= this.sampleRadius + 0.5D) {
+                    boolean insideClearZone = !underwaterArena && this.clearInteriorRadius > 0 && dist <= this.clearInteriorRadius;
                     boolean isArenaColumn = hasStructureBlockNearSurface(level, pos, x, z, placeY, targetGroundY);
-                    if (isArenaColumn) {
+                    if (isArenaColumn || insideClearZone) {
                         pos.set(x, placeY, z);
                         if (!level.getBlockState(pos).isAir()) {
                             for (int y = placeY - 1; y >= Math.max(minBuildY, placeY - 16); y--) {
@@ -326,8 +360,8 @@ public class FlatArenaStructure extends Structure {
                             }
                         }
 
-                        if (!underwaterArena && this.clearInteriorRadius > 0 && dist <= this.clearInteriorRadius) {
-                            int topScan = Math.min(level.getMaxBuildHeight() - 1, targetGroundY + 14);
+                        if (insideClearZone) {
+                            int topScan = Math.min(level.getMaxBuildHeight() - 1, targetGroundY + 28);
                             for (int y = targetGroundY + 1; y <= topScan; y++) {
                                 pos.set(x, y, z);
                                 BlockState cur = level.getBlockState(pos);

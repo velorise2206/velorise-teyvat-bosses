@@ -136,8 +136,24 @@ public class PrimoInfusedStoneEntity extends Entity {
             } else if (getPhase() == PHASE_LAVA_POOL && tickCount % 2 == 0) {
                 double rx = (random.nextDouble() - 0.5D) * 4.4D;
                 double rz = (random.nextDouble() - 0.5D) * 4.4D;
-                level().addParticle(ParticleTypes.LAVA, getX() + rx, getY() + 0.15D, getZ() + rz, 0.0D, 0.04D, 0.0D);
-                level().addParticle(ParticleTypes.FLAME, getX() + rx, getY() + 0.25D, getZ() + rz, 0.0D, 0.03D, 0.0D);
+                switch (getInfusion()) {
+                    case PrimoGeovishapEntity.INFUSION_HYDRO -> {
+                        level().addParticle(ParticleTypes.SPLASH, getX() + rx, getY() + 0.18D, getZ() + rz, 0.0D, 0.06D, 0.0D);
+                        level().addParticle(ParticleTypes.BUBBLE_POP, getX() + rx, getY() + 0.24D, getZ() + rz, 0.0D, 0.04D, 0.0D);
+                    }
+                    case PrimoGeovishapEntity.INFUSION_CRYO -> {
+                        level().addParticle(ParticleTypes.SNOWFLAKE, getX() + rx, getY() + 0.22D, getZ() + rz, 0.0D, 0.03D, 0.0D);
+                        level().addParticle(ParticleTypes.CLOUD, getX() + rx, getY() + 0.14D, getZ() + rz, 0.0D, 0.015D, 0.0D);
+                    }
+                    case PrimoGeovishapEntity.INFUSION_ELECTRO -> {
+                        level().addParticle(ParticleTypes.ELECTRIC_SPARK, getX() + rx, getY() + 0.20D, getZ() + rz, 0.0D, 0.05D, 0.0D);
+                        level().addParticle(ParticleTypes.ENCHANTED_HIT, getX() + rx, getY() + 0.26D, getZ() + rz, 0.0D, 0.04D, 0.0D);
+                    }
+                    default -> {
+                        level().addParticle(ParticleTypes.LAVA, getX() + rx, getY() + 0.15D, getZ() + rz, 0.0D, 0.04D, 0.0D);
+                        level().addParticle(ParticleTypes.FLAME, getX() + rx, getY() + 0.25D, getZ() + rz, 0.0D, 0.03D, 0.0D);
+                    }
+                }
             }
             return;
         }
@@ -188,7 +204,8 @@ public class PrimoInfusedStoneEntity extends Entity {
                     sl.sendParticles(ParticleTypes.BUBBLE_POP, gPos.x, gPos.y + 1.0D, gPos.z, 5, 0.3D, 0.5D, 0.3D, 0.05D);
                 }
                 dealRadialDamage(sl, 3.6D, 10.5F, 0.65D, 0.45D);
-                discard();
+                entityData.set(DATA_PHASE, PHASE_LAVA_POOL);
+                lavaTicksLeft = 70; // 3.5s Hydro blast-zone pool
             }
             case PrimoGeovishapEntity.INFUSION_CRYO -> {
                 sl.playSound(null, p.x, p.y, p.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.25F, 0.75F);
@@ -200,7 +217,8 @@ public class PrimoInfusedStoneEntity extends Entity {
                     }
                 }
                 dealRadialDamage(sl, 4.0D, 11.5F, 0.60D, 0.32D);
-                discard();
+                entityData.set(DATA_PHASE, PHASE_LAVA_POOL);
+                lavaTicksLeft = 70; // 3.5s Cryo blast-zone pool
             }
             default -> { // ELECTRO X-pattern detonation
                 sl.playSound(null, p.x, p.y, p.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.HOSTILE, 0.95F, 1.35F);
@@ -212,7 +230,8 @@ public class PrimoInfusedStoneEntity extends Entity {
                     }
                 }
                 dealRadialDamage(sl, 3.8D, 10.5F, 0.75D, 0.30D);
-                discard();
+                entityData.set(DATA_PHASE, PHASE_LAVA_POOL);
+                lavaTicksLeft = 70; // 3.5s Electro blast-zone pool
             }
         }
     }

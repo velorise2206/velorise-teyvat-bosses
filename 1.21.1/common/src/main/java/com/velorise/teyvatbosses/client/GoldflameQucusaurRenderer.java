@@ -53,9 +53,13 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
     @Override
     public void render(GoldflameQucusaurEntity entity, float entityYaw, float partialTicks,
                        PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
-        boolean musicActive = entity.isAlive() && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE;
+        boolean musicActive = entity.isAlive()
+                && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DORMANT
+                && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE;
         BossMusicManager.update(entity, BOSS_MUSIC_ID, musicActive,
-                () -> entity.isAlive() && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE);
+                () -> entity.isAlive()
+                        && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DORMANT
+                        && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE);
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
         float stateSec = (entity.getStateTicks() + partialTicks) / 20.0F;
         float clientSec = (entity.tickCount + partialTicks) / 20.0F;
@@ -77,9 +81,11 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
         bodyModel.renderToBuffer(poseStack, bodyVc, packedLight, overlay, 0xFFFFFFFF);
 
         // Pulsing molten-gold emissive layer (brightens during Golden Flame form)
-        float pulse = entity.isGoldenFlameActive()
-                ? 0.85F + 0.15F * Mth.sin(clientSec * 8.0F)
-                : 0.65F + 0.20F * Mth.sin(clientSec * 3.5F);
+        float pulse = entity.isDormant()
+                ? 0.28F + 0.10F * Mth.sin(clientSec * 1.6F)
+                : (entity.isGoldenFlameActive()
+                    ? 0.85F + 0.15F * Mth.sin(clientSec * 8.0F)
+                    : 0.65F + 0.20F * Mth.sin(clientSec * 3.5F));
         int alpha = Mth.clamp((int) (pulse * 255.0F), 90, 255);
         int emissiveColor = (alpha << 24) | 0x00FFFFFF;
         VertexConsumer emVc = buffer.getBuffer(RenderType.entityTranslucentEmissive(EMISSIVE_TEXTURE));

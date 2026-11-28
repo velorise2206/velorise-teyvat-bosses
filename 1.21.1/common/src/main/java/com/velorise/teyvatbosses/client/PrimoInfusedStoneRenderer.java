@@ -89,7 +89,7 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
             VertexConsumer dvc = buf.getBuffer(RenderType.entityTranslucent(blastZoneFor(entity.getInfusion())));
             drawTexturedGroundQuad(dvc, pose, radius, 0.055F, 255, 255, 255, 240, packedLight);
             // Pass 2: Gentle emissive glow pulse inside the cracks (geometry never scales or wobbles)
-            VertexConsumer evc = buf.getBuffer(RenderType.eyes(blastZoneEmissiveFor(entity.getInfusion())));
+            VertexConsumer evc = buf.getBuffer(RenderType.entityTranslucentEmissive(blastZoneEmissiveFor(entity.getInfusion())));
             int ea = Mth.clamp((int) (235 * glowPulse), 0, 255);
             drawTexturedGroundQuad(evc, pose, radius, 0.068F, 255, 255, 255, ea, LightTexture.FULL_BRIGHT);
             poseStack.popPose();

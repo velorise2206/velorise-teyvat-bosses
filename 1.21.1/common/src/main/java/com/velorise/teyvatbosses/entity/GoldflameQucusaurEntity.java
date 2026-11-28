@@ -59,6 +59,8 @@ public class GoldflameQucusaurEntity extends Monster {
     public static final int STATE_DIVE_BOMB         = 9;
     public static final int STATE_CRASH_STUN        = 10;
     public static final int STATE_DEATH_COLLAPSE    = 11;
+    public static final int STATE_DORMANT           = 12;
+    public static final int STATE_WAKE_UP           = 13;
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.INT);
@@ -93,12 +95,14 @@ public class GoldflameQucusaurEntity extends Monster {
     private boolean featherDestroyedThisCycle = false;
     private int deathAnimTicks = 0;
     private boolean blossomSpawned = false;
+    private int idleOutOfCombatTicks = 0;
 
     public GoldflameQucusaurEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
         this.xpReward = 220;
         this.setPersistenceRequired();
         TeyvatBossesConfig.applyBossScaling(this, BOSS_ID);
+        this.bossEvent.setVisible(false);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -114,7 +118,7 @@ public class GoldflameQucusaurEntity extends Monster {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(DATA_STATE, STATE_IDLE_GROUND);
+        builder.define(DATA_STATE, STATE_DORMANT);
         builder.define(DATA_STATE_TICKS, 0);
         builder.define(DATA_PYRO_SHIELD, 0.0F);
         builder.define(DATA_DIVE_X, 0.0F);
@@ -136,6 +140,8 @@ public class GoldflameQucusaurEntity extends Monster {
         entityData.set(DATA_DIVE_Y, (float) tgt.y);
         entityData.set(DATA_DIVE_Z, (float) tgt.z);
     }
+    public boolean isDormant() { return getAnimState() == STATE_DORMANT; }
+
     public boolean isAirborneState() {
         int st = getAnimState();
         return st == STATE_TAKEOFF_ROAR || st == STATE_GOLDEN_FLAME_HOVER || st == STATE_FEATHER_BARRAGE || st == STATE_DIVE_BOMB;
@@ -160,6 +166,8 @@ public class GoldflameQucusaurEntity extends Monster {
             case STATE_DIVE_BOMB -> "dive_bomb";
             case STATE_CRASH_STUN -> "crash_stun";
             case STATE_DEATH_COLLAPSE -> "death_collapse";
+            case STATE_DORMANT -> "dormant_sleep";
+            case STATE_WAKE_UP -> "wake_up";
             default -> "idle_ground";
         };
     }
@@ -215,6 +223,9 @@ public class GoldflameQucusaurEntity extends Monster {
     @Override
     public boolean hurt(DamageSource source, float amount) {
         if (getAnimState() == STATE_DEATH_COLLAPSE) return false;
+        if (getAnimState() == STATE_DORMANT && !level().isClientSide()) {
+            triggerWakeUp((ServerLevel) level());
+        }
         if (source.is(DamageTypeTags.IS_FIRE)) {
             amount *= 0.30F; // 70% Pyro RES
         }
@@ -287,10 +298,20 @@ public class GoldflameQucusaurEntity extends Monster {
 
         bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
         bossEvent.setColor(isGoldenFlameActive() ? BossEvent.BossBarColor.YELLOW : BossEvent.BossBarColor.RED);
+        bossEvent.setVisible(st != STATE_DORMANT);
 
         Player target = sl.getNearestPlayer(getX(), getY(), getZ(), 42.0D,
                 e -> e instanceof Player p && !p.isCreative() && !p.isSpectator() && p.isAlive());
         setTarget(target);
+
+        if (st == STATE_DORMANT) {
+            tickDormant(sl, target);
+            return;
+        }
+        if (st == STATE_WAKE_UP) {
+            tickWakeUp(sl, target, ticks);
+            return;
+        }
 
         if (attackCooldown > 0) attackCooldown--;
 
@@ -330,6 +351,38 @@ public class GoldflameQucusaurEntity extends Monster {
         }
     }
 
+    private void triggerWakeUp(ServerLevel sl) {
+        if (getAnimState() != STATE_DORMANT) return;
+        idleOutOfCombatTicks = 0;
+        setState(STATE_WAKE_UP);
+        bossEvent.setVisible(true);
+        sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.HOSTILE, 1.2F, 0.85F);
+    }
+
+    private void tickDormant(ServerLevel sl, Player target) {
+        setDeltaMovement(0.0D, onGround() ? 0.0D : -0.35D, 0.0D);
+        bossEvent.setVisible(false);
+        if (target != null && distanceToSqr(target) <= 16.0D * 16.0D) {
+            triggerWakeUp(sl);
+        }
+    }
+
+    private void tickWakeUp(ServerLevel sl, Player target, int ticks) {
+        setDeltaMovement(0.0D, onGround() ? 0.0D : -0.35D, 0.0D);
+        if (target != null && ticks >= 10) {
+            faceTarget(target.position(), 6.0F);
+        }
+        if (ticks == 20) { // 1.0s roar peak
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.5F, 0.92F);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.4D, getZ(), 28, 2.2D, 0.8D, 2.2D, 0.10D);
+            BossClientBridge.triggerCameraShake(position(), 0.55F, 26.0D);
+        }
+        if (ticks >= 36) { // 1.8s clip duration
+            setState(STATE_IDLE_GROUND);
+            attackCooldown = 18;
+        }
+    }
+
     private void tickGroundLocomotion(ServerLevel sl, Player target) {
         if (target == null) {
             if (homePos != null && position().distanceToSqr(homePos) > 16.0D) {
@@ -338,9 +391,21 @@ public class GoldflameQucusaurEntity extends Monster {
             } else {
                 setDeltaMovement(0.0D, getDeltaMovement().y, 0.0D);
                 if (getAnimState() != STATE_IDLE_GROUND) setState(STATE_IDLE_GROUND);
+                idleOutOfCombatTicks++;
+                if (idleOutOfCombatTicks % 20 == 0 && getHealth() < getMaxHealth()) {
+                    heal(getMaxHealth() * 0.05F);
+                }
+                if (idleOutOfCombatTicks >= 160) {
+                    idleOutOfCombatTicks = 0;
+                    aerialPhaseCount = 0;
+                    entityData.set(DATA_PYRO_SHIELD, 0.0F);
+                    setState(STATE_DORMANT);
+                    bossEvent.setVisible(false);
+                }
             }
             return;
         }
+        idleOutOfCombatTicks = 0;
 
         faceTarget(target.position(), 8.0F);
         double dist = distanceTo(target);
@@ -590,6 +655,7 @@ public class GoldflameQucusaurEntity extends Monster {
         }
         tag.putInt("AerialPhaseCount", aerialPhaseCount);
         tag.putFloat("PyroShield", getPyroShield());
+        tag.putBoolean("Dormant", getAnimState() == STATE_DORMANT);
     }
 
     @Override
@@ -600,5 +666,10 @@ public class GoldflameQucusaurEntity extends Monster {
         }
         aerialPhaseCount = tag.getInt("AerialPhaseCount");
         entityData.set(DATA_PYRO_SHIELD, tag.getFloat("PyroShield"));
+        if (tag.contains("Dormant")) {
+            boolean dormant = tag.getBoolean("Dormant");
+            entityData.set(DATA_STATE, dormant ? STATE_DORMANT : STATE_IDLE_GROUND);
+            bossEvent.setVisible(!dormant);
+        }
     }
 }

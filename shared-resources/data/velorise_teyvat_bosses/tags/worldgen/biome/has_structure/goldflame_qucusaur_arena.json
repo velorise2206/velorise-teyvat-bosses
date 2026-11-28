@@ -1,5 +1,25 @@
 {
   "values": [
-    "#minecraft:is_badlands"
+    "#minecraft:is_badlands",
+    "minecraft:desert",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    "minecraft:windswept_savanna",
+    {
+      "id": "#c:is_badlands",
+      "required": false
+    },
+    {
+      "id": "#c:is_desert",
+      "required": false
+    },
+    {
+      "id": "#c:is_savanna",
+      "required": false
+    },
+    {
+      "id": "#c:is_hot/overworld",
+      "required": false
+    }
   ]
 }
