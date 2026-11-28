@@ -89,7 +89,8 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
                 .add(Attributes.MAX_HEALTH, 160.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.34D)
                 .add(Attributes.ARMOR, 8.0D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.7D);
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.7D)
+                .add(Attributes.STEP_HEIGHT, 1.5D);
     }
 
     @Override

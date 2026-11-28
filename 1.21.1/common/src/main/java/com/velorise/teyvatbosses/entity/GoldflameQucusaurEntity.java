@@ -19,6 +19,8 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -104,6 +106,7 @@ public class GoldflameQucusaurEntity extends Monster {
     private int deathAnimTicks = 0;
     private boolean blossomSpawned = false;
     private int idleOutOfCombatTicks = 0;
+    private int destroyBlocksTick = 0;
 
     public GoldflameQucusaurEntity(EntityType<? extends Monster> type, Level level) {
         super(type, level);
@@ -120,7 +123,8 @@ public class GoldflameQucusaurEntity extends Monster {
                 .add(Attributes.ATTACK_DAMAGE, 24.0D)
                 .add(Attributes.ARMOR, 10.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.FOLLOW_RANGE, 48.0D);
+                .add(Attributes.FOLLOW_RANGE, 48.0D)
+                .add(Attributes.STEP_HEIGHT, 1.75D);
     }
 
     @Override
@@ -337,6 +341,10 @@ public class GoldflameQucusaurEntity extends Monster {
         if (st == STATE_WAKE_UP) {
             tickWakeUp(sl, target, ticks);
             return;
+        }
+
+        if (st != STATE_CRASH_STUN) {
+            tickAntiTrapBlockBreak(sl, st == STATE_CHARGE_DRILL);
         }
 
         if (attackCooldown > 0) attackCooldown--;
@@ -620,6 +628,43 @@ public class GoldflameQucusaurEntity extends Monster {
         }
     }
 
+    /**
+     * Anti-trap block breaking (matching RuinGuardEntity): shatters obstructing blocks
+     * intersecting the wyvern's hitbox when pinned against walls or charging, respecting
+     * config and mobGriefing while preserving chests, Bedrock, Obsidian, and the floor.
+     */
+    private void tickAntiTrapBlockBreak(ServerLevel sl, boolean immediateCharge) {
+        if (!TeyvatBossesConfig.get().enableBossBlockBreaking) return;
+        if ((this.horizontalCollision || this.isInWall()) && destroyBlocksTick <= 0) {
+            destroyBlocksTick = immediateCharge ? 1 : 8;
+        }
+        if (destroyBlocksTick <= 0) return;
+        destroyBlocksTick--;
+        if (destroyBlocksTick != 0) return;
+        if (!sl.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)) return;
+
+        AABB box = getBoundingBox().inflate(0.32D, 0.05D, 0.32D);
+        int minX = Mth.floor(box.minX);
+        int minY = Mth.floor(getY());
+        int minZ = Mth.floor(box.minZ);
+        int maxX = Mth.floor(box.maxX);
+        int maxY = Mth.floor(box.maxY);
+        int maxZ = Mth.floor(box.maxZ);
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    pos.set(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState state = sl.getBlockState(pos);
+                    if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) continue;
+                    float hardness = state.getDestroySpeed(sl, pos);
+                    if (hardness < 0.0F || hardness >= 50.0F) continue;
+                    sl.destroyBlock(pos, true, this);
+                }
+            }
+        }
+    }
+
     private void moveToward(Vec3 pos, double speed) {
         Vec3 dir = pos.subtract(position()).multiply(1.0D, 0.0D, 1.0D);
         if (dir.lengthSqr() > 0.01D) {
@@ -700,5 +745,46 @@ public class GoldflameQucusaurEntity extends Monster {
             entityData.set(DATA_STATE, dormant ? STATE_DORMANT : STATE_IDLE_GROUND);
             bossEvent.setVisible(!dormant);
         }
+    }
+
+    @Override
+    public boolean isPushable() {
+        return false;
+    }
+
+    @Override
+    public boolean canUsePortal(boolean allowPassengers) {
+        return false;
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeLeashed() {
+        return false;
+    }
+
+    @Override
+    public boolean canBeAffected(MobEffectInstance effect) {
+        if (effect.getEffect().equals(MobEffects.LEVITATION)) {
+            return false;
+        }
+        if (effect.getEffect().equals(MobEffects.MOVEMENT_SLOWDOWN) && effect.getAmplifier() >= 3) {
+            return false;
+        }
+        return super.canBeAffected(effect);
+    }
+
+    @Override
+    protected int decreaseAirSupply(int currentAir) {
+        return currentAir;
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return super.getBoundingBoxForCulling().inflate(7.0D);
     }
 }
