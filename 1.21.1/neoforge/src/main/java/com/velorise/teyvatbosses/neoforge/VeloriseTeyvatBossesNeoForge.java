@@ -44,6 +44,7 @@ import com.velorise.teyvatbosses.entity.GoldflameQucusaurEggEntity;
 import com.velorise.teyvatbosses.entity.GoldflameQucusaurEntity;
 import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
 import com.velorise.teyvatbosses.item.GoldflameQucusaurCrestItem;
+import com.velorise.teyvatbosses.item.PhlogistonFluteItem;
 import com.velorise.teyvatbosses.item.GoldflameQucusaurEggItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.GoldflameQucusaurControlPayload;
@@ -300,7 +301,7 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_EGG_ITEM =
             ITEMS.register("goldflame_qucusaur_egg", () -> new GoldflameQucusaurEggItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
     public static final DeferredHolder<Item, Item> PHLOGISTON_SADDLE =
-            ITEMS.register("phlogiston_saddle", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).fireResistant()));
+            ITEMS.register("phlogiston_saddle", () -> new PhlogistonFluteItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).fireResistant()));
     public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_CREST =
             ITEMS.register("goldflame_qucusaur_crest", () -> new GoldflameQucusaurCrestItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
     public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_COMPASS =

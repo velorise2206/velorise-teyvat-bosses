@@ -674,7 +674,10 @@ public class RuinSubmersibleEntity extends Mob {
         super.tick();
         setAirSupply(getMaxAirSupply());
         double speed = getDeltaMovement().length();
-        propSpinAngle += (float) (0.12D + speed * 1.75D);
+        // Keep gears & propeller completely still while assembling, unpiloted, out of energy, or stationary
+        if (isFullyAssembled() && isVehicle() && getEnergy() > 0.1F && speed > 0.015D) {
+            propSpinAngle += (float) (speed * 1.85D);
+        }
 
         if (level().isClientSide()) {
             if (clientDashCooldown > 0) clientDashCooldown--;

@@ -189,7 +189,7 @@
   "entity.velorise_teyvat_bosses.goldflame_fireball": "Phlogiston Fireball",
   "item.velorise_teyvat_bosses.mark_of_binding_blessing": "Mark of the Binding Blessing",
   "item.velorise_teyvat_bosses.goldflame_qucusaur_egg": "Goldflame Qucusaur Egg",
-  "item.velorise_teyvat_bosses.phlogiston_saddle": "Phlogiston Saddle",
+  "item.velorise_teyvat_bosses.phlogiston_saddle": "Phlogiston Flute",
   "item.velorise_teyvat_bosses.goldflame_qucusaur_crest": "Goldflame Qucusaur Crest",
   "item.velorise_teyvat_bosses.goldflame_qucusaur_compass": "Goldflame Qucusaur Boss Compass",
   "item.velorise_teyvat_bosses.goldflame_qucusaur_spawn_egg": "Goldflame Qucusaur Tyrant Spawn Egg",
@@ -207,10 +207,16 @@
   "hud.velorise_teyvat_bosses.qucusaur_hint_air": "[Space/C] Up/Down | [Sprint] Boost | [LMB] Fire/Breath | [RMB] Dive",
   "item.velorise_teyvat_bosses.music_disc_goldflame_qucusaur": "Music Disc",
   "jukebox_song.velorise_teyvat_bosses.goldflame_qucusaur_theme": "Velorise — Goldflame Qucusaur Tyrant",
-  "jei.velorise_teyvat_bosses.goldflame_egg": "Dropped by Goldflame Qucusaur Tyrant (Badlands / Desert / Savanna Arena).\n\nHatching: Place the egg on the ground near a heat source (Magma Block, Campfire, Fire, or Lava) to hatch your own tameable Goldflame Qucusaur Mount.\n\nControls: Equip a Phlogiston Saddle to ride. W/S (Forward/Brake), Space (Ascend / Flap), Ctrl (Descend), Shift+Space or R (Phlogiston Boost), LMB (Fireball Spit), RMB (Goldflame Breath).",
-  "jei.velorise_teyvat_bosses.phlogiston_saddle": "Crafted from Goldflame Qucusaur Crest & Mark of the Binding Blessing (dropped by Goldflame Qucusaur Tyrant).\n\nRight-click a hatched Goldflame Qucusaur Mount to equip the saddle and unlock 3D aerial flight, Phlogiston Boost, Fireball Spit, and Goldflame Breath.",
+  "jei.velorise_teyvat_bosses.goldflame_egg": "Dropped by Goldflame Qucusaur Tyrant (Badlands / Desert / Savanna Arena).\n\nHatching: Place the egg on the ground near a heat source (Magma Block, Campfire, Fire, or Lava) to hatch your own Goldflame Qucusaur Mount.\n\nControls: Right-click to mount and ride immediately (no saddle required)! W/S (Forward/Brake), Space (Takeoff / Ascend), Ctrl (Descend), Shift+Space or Sprint (Phlogiston Boost), LMB Tap/Hold (Fireball Spit / Goldflame Breath), RMB (Heatwave Takeoff / Golden Dive). Shift+Right-click with empty hand to pack into Crest.",
+  "jei.velorise_teyvat_bosses.phlogiston_saddle": "Crafted from Goldflame Qucusaur Crest & Mark of the Binding Blessing (dropped by Goldflame Qucusaur Tyrant).\n\nDragon Command Flute:\n• Right-Click: Calls your nearest Goldflame Qucusaur Mount (within 64 blocks) to fly to you and land.\n• Shift + Right-Click: Toggles Follow / Stay mode.\n• Right-Click on a Mob: Commands your dragon to spit a Goldflame Fireball at that target.",
   "jei.velorise_teyvat_bosses.goldflame_crest": "Dropped by Goldflame Qucusaur Tyrant from the Trounce Blossom.\n\nUsed to craft the Phlogiston Saddle for riding your hatched Goldflame Qucusaur Mount.",
   "jei.velorise_teyvat_bosses.mark_of_binding": "Dropped by Goldflame Qucusaur Tyrant from the Trounce Blossom.\n\nUsed as a key catalyst to craft the Phlogiston Saddle.",
   "jei.velorise_teyvat_bosses.condensed_redstone": "Crafted from 9 Redstone Blocks (and unpackable back into 9 Redstone Blocks).\n\nHigh-density fuel cell for recharging the Ruin Mech, Ruin Submersible, and Geo Tunnel Driller with 9x the energy per block.",
-  "jei.velorise_teyvat_bosses.music_discs": "Dropped directly by each corresponding Teyvat World Boss upon claiming its Trounce Blossom.\n\nInsert into a vanilla Jukebox to play the remastered boss theme."
+  "jei.velorise_teyvat_bosses.music_discs": "Dropped directly by each corresponding Teyvat World Boss upon claiming its Trounce Blossom.\n\nInsert into a vanilla Jukebox to play the remastered boss theme.",
+  "tooltip.velorise_teyvat_bosses.phlogiston_flute": "Right-Click: Call Dragon | Shift+Right-Click: Follow/Stay | Right-Click Mob: Fireball",
+  "message.velorise_teyvat_bosses.phlogiston_flute.no_dragon": "No Goldflame Qucusaur Mount within 64 blocks heard the flute.",
+  "message.velorise_teyvat_bosses.phlogiston_flute.called": "Your Goldflame Qucusaur heard the flute and is flying to you!",
+  "message.velorise_teyvat_bosses.phlogiston_flute.follow": "Goldflame Qucusaur Mode: Follow",
+  "message.velorise_teyvat_bosses.phlogiston_flute.stay": "Goldflame Qucusaur Mode: Stay",
+  "message.velorise_teyvat_bosses.phlogiston_flute.attack": "Commanded Goldflame Qucusaur to blast %s!"
 }

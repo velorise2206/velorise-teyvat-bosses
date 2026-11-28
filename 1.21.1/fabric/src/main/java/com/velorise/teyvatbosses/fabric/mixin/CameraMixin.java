@@ -2,6 +2,7 @@ package com.velorise.teyvatbosses.fabric.mixin;
 
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurClientController;
 import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import net.minecraft.client.Camera;
@@ -35,6 +36,9 @@ public abstract class CameraMixin {
         }
         if (GeoDrillerClientController.isPilotingDriller()) {
             return GeoDrillerClientController.THIRD_PERSON_ZOOM;
+        }
+        if (GoldflameQucusaurClientController.getRiddenMount() != null) {
+            return GoldflameQucusaurClientController.getThirdPersonZoom();
         }
         return originalDistance;
     }

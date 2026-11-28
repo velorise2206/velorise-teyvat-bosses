@@ -41,6 +41,7 @@ public final class RuinMechInputController {
     private static boolean spaceWasDown = false;
     private static boolean spaceConsumed = false;
     private static int spaceHoldTicks = 0;
+    private static boolean dualChordConsumed = false;
 
     private RuinMechInputController() {}
 
@@ -53,6 +54,7 @@ public final class RuinMechInputController {
             spaceWasDown = false;
             spaceConsumed = false;
             spaceHoldTicks = 0;
+            dualChordConsumed = false;
             return;
         }
         boolean mmbDown = mc.options.keyPickItem.isDown();
@@ -83,8 +85,29 @@ public final class RuinMechInputController {
         }
         spaceWasDown = spaceDown;
 
-        LMB.update(mc.options.keyAttack.isDown(), skillSender);
-        RMB.update(mc.options.keyUse.isDown(), skillSender);
+        boolean lmbDown = mc.options.keyAttack.isDown();
+        boolean rmbDown = mc.options.keyUse.isDown();
+        // Secret move: pressing LMB + RMB simultaneously triggers Two-Handed Seismic Slam!
+        if (lmbDown && rmbDown) {
+            if (!dualChordConsumed) {
+                dualChordConsumed = true;
+                LMB.reset();
+                RMB.reset();
+                skillSender.accept(RuinMechEntity.SKILL_TWO_HAND_SLAM);
+            }
+            return;
+        }
+        if (dualChordConsumed) {
+            // Wait until both mouse buttons are fully released so no stray tap fires
+            if (!lmbDown && !rmbDown) {
+                dualChordConsumed = false;
+            }
+            LMB.reset();
+            RMB.reset();
+            return;
+        }
+        LMB.update(lmbDown, skillSender);
+        RMB.update(rmbDown, skillSender);
     }
 
     public static float getLmbHoldProgress() {

@@ -701,6 +701,43 @@ public class FlatArenaStructure extends Structure {
                 }
             }
         }
+
+        // Place alternating torches along the underground spiral tunnel edges so the descent is clearly lit
+        int torchStep = 0;
+        for (double s = 5.0D; s <= 47.0D; s += 7.0D) {
+            double r;
+            double ang;
+            double fy;
+            if (s <= 6.0D) {
+                r = 20.5D + s;
+                ang = doorAngle;
+                fy = (placeY + 3.0D) + (s / 6.0D) * 2.0D;
+            } else {
+                double u = s - 6.0D;
+                r = 26.5D + Math.min(4.0D, u * 0.085D);
+                ang = doorAngle + (u / 27.5D);
+                fy = (placeY + 5.0D) + u * 0.76D;
+            }
+            double sideSign = (torchStep++ % 2 == 0) ? 1.0D : -1.0D;
+            // Radial inward/outward offset sits cleanly on the tunnel walkway edge (hd ~ 2.05)
+            double txD = centerX + Math.cos(ang) * (r + sideSign * 2.05D);
+            double tzD = centerZ + Math.sin(ang) * (r + sideSign * 2.05D);
+            int tx = (int) Math.round(txD);
+            int tz = (int) Math.round(tzD);
+            int ty = (int) Math.floor(fy) + 1;
+            if (tx < chunkBox.minX() || tx > chunkBox.maxX() || tz < chunkBox.minZ() || tz > chunkBox.maxZ()) {
+                continue;
+            }
+            if (ty < minBuildY + 1 || ty >= maxBuildY) continue;
+            int localSurfY = Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, tx, tz), rimY - 2);
+            if (ty + 1 >= localSurfY) continue; // Only place torches inside the covered underground tunnel
+            pos.set(tx, ty - 1, tz);
+            BlockState below = level.getBlockState(pos);
+            pos.set(tx, ty, tz);
+            if (below.isSolid() && below.getFluidState().isEmpty() && level.getBlockState(pos).isAir()) {
+                level.setBlock(pos, Blocks.TORCH.defaultBlockState(), Block.UPDATE_CLIENTS);
+            }
+        }
     }
 
     private static BlockState pickTunnelFloorBlock(int x, int y, int z) {

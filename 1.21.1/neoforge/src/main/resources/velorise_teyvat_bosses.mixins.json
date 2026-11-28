@@ -4,7 +4,8 @@
   "package": "com.velorise.teyvatbosses.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "HumanoidModelMixin"
+    "HumanoidModelMixin",
+    "LivingEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

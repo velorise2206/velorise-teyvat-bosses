@@ -45,6 +45,7 @@ import com.velorise.teyvatbosses.entity.GoldflameQucusaurEggEntity;
 import com.velorise.teyvatbosses.entity.GoldflameQucusaurEntity;
 import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
 import com.velorise.teyvatbosses.item.GoldflameQucusaurCrestItem;
+import com.velorise.teyvatbosses.item.PhlogistonFluteItem;
 import com.velorise.teyvatbosses.item.GoldflameQucusaurEggItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
 import com.velorise.teyvatbosses.network.GoldflameQucusaurControlPayload;
@@ -324,7 +325,7 @@ public class VeloriseTeyvatBossesFabric implements ModInitializer {
             new GoldflameQucusaurEggItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
     public static final Item PHLOGISTON_SADDLE = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("phlogiston_saddle"),
-            new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).fireResistant()));
+            new PhlogistonFluteItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).fireResistant()));
     public static final Item GOLDFLAME_QUCUSAUR_CREST = Registry.register(
             BuiltInRegistries.ITEM, TeyvatBossesConstants.id("goldflame_qucusaur_crest"),
             new GoldflameQucusaurCrestItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));

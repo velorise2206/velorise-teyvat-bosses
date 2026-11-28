@@ -67,6 +67,11 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setYaw(event.getYaw() + off[0]);
             event.setPitch(event.getPitch() + off[1]);
             event.setRoll(event.getRoll() + off[2]);
+        } else if (GoldflameQucusaurClientController.getRiddenMount() != null) {
+            float[] off = GoldflameQucusaurClientController.computeCameraOffsets((float) event.getPartialTick());
+            event.setYaw(event.getYaw() + off[0]);
+            event.setPitch(event.getPitch() + off[1]);
+            event.setRoll(event.getRoll() + off[2]);
         }
         if (BossCameraShake.isActive()) {
             float[] off = BossCameraShake.computeOffsets((float) event.getPartialTick());
@@ -84,6 +89,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
             event.setDistance(RuinSubClientController.THIRD_PERSON_ZOOM);
         } else if (GeoDrillerClientController.isPilotingDriller()) {
             event.setDistance(GeoDrillerClientController.THIRD_PERSON_ZOOM);
+        } else if (GoldflameQucusaurClientController.getRiddenMount() != null) {
+            event.setDistance(GoldflameQucusaurClientController.getThirdPersonZoom());
         }
     }
 

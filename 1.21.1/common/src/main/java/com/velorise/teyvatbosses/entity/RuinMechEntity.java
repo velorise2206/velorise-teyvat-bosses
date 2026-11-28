@@ -86,6 +86,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int ANIM_CYCLONE_RECOVER = 13;
     public static final int ANIM_BOOST_LEAP      = 14;
     public static final int ANIM_SUPER_LEAP      = 15;
+    public static final int ANIM_TWO_HAND_SLAM   = 16;
 
     // 6 Combat Skills + Lock-On + Space Mobility Leap (used by C2S RuinMechSkillPayload & HUD)
     public static final int SKILL_DOUBLE_CLAP = 1;
@@ -96,7 +97,8 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
     public static final int SKILL_MISSILES    = 6;
     public static final int SKILL_TOGGLE_LOCK = 7;
     public static final int SKILL_BOOST_LEAP  = 8;
-    public static final int SKILL_SUPER_LEAP  = 9;
+    public static final int SKILL_SUPER_LEAP    = 9;
+    public static final int SKILL_TWO_HAND_SLAM = 10;
 
     // 10 Redstone Blocks max (100 energy per block = 1000 max energy)
     public static final int   MAX_REDSTONE_CELLS = 9;
@@ -250,6 +252,7 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
             case ANIM_LEAP_SLAM -> "leap_slam";
             case ANIM_BOOST_LEAP, ANIM_SUPER_LEAP -> "mobility_leap";
             case ANIM_MISSILE_SALVO -> "missile_barrage";
+            case ANIM_TWO_HAND_SLAM -> "two_hand_ground_slam";
             default -> "idle_combat";
         };
     }
@@ -418,6 +421,14 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
                 consumeEnergy(15.0F);
                 playAnim(ANIM_STOMP);
                 setCooldown(38);
+                yield true;
+            }
+            case SKILL_TWO_HAND_SLAM -> {
+                if (energy < 28.0F) yield false;
+                consumeEnergy(28.0F);
+                faceHardLockedTarget();
+                playAnim(ANIM_TWO_HAND_SLAM);
+                setCooldown(50);
                 yield true;
             }
             case SKILL_CYCLONE -> {
@@ -838,7 +849,43 @@ public class RuinMechEntity extends Mob implements PlayerRideableJumping {
         }
 
         // Execute all 6 Ruin Guard Boss Combat Skills + Space Mobility Long Jump
-        if (anim == ANIM_DOUBLE_CLAP) {
+        if (anim == ANIM_TWO_HAND_SLAM) {
+            if (t == 2) {
+                playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 2.2D, 1.05F, 0.72F);
+                sl.playSound(null, getX(), getY() + 2.0D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.PLAYERS, 1.4F, 0.55F);
+            } else if (t == 14) {
+                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 3.2D, getZ(), 14, 0.7D, 0.4D, 0.7D, 0.12D);
+            } else if (t == 21) { // Exact 1.05s two-handed seismic slam impact!
+                Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(1.8D);
+                Vec3 center = new Vec3(getX() + fwd.x, getY(), getZ() + fwd.z);
+                double radius = 7.2D;
+                AABB quake = new AABB(center.x - radius, center.y - 5.0D, center.z - radius,
+                        center.x + radius, center.y + 3.8D, center.z + radius);
+                Player rider = getControllingPassenger() instanceof Player p ? p : null;
+                boolean hitAny = false;
+                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, quake,
+                        le -> le != this && le != rider && le.isAlive() && !isPassengerOfSameVehicle(le))) {
+                    double dx = e.getX() - center.x;
+                    double dz = e.getZ() - center.z;
+                    if (dx * dx + dz * dz > radius * radius) continue;
+                    DamageSource src = rider != null ? sl.damageSources().playerAttack(rider) : sl.damageSources().mobAttack(this);
+                    if (e.hurt(src, 36.0F)) hitAny = true;
+                    Vec3 push = new Vec3(dx, 0.0D, dz);
+                    if (push.lengthSqr() > 1e-4D) push = push.normalize().scale(0.85D);
+                    e.setDeltaMovement(push.x, 0.96D, push.z);
+                    e.hurtMarked = true;
+                }
+                if (hitAny) rechargeMissileAmmo(sl, 2);
+                sl.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.8F, 0.54F);
+                sl.playSound(null, center.x, center.y, center.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.45F, 0.48F);
+                playMechSfx(sl, TeyvatBossesSounds.mechMetalClank(), center.y + 0.5D, 1.25F, 0.72F);
+                sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, center.x, center.y + 0.5D, center.z, 2, 1.2D, 0.3D, 1.2D, 0.0D);
+                sl.sendParticles(ParticleTypes.POOF, center.x, center.y + 0.2D, center.z, 36, 3.2D, 0.25D, 3.2D, 0.08D);
+                sl.sendParticles(ParticleTypes.CRIT, center.x, center.y + 0.6D, center.z, 24, 2.4D, 0.6D, 2.4D, 0.16D);
+                BossClientBridge.triggerCameraShake(center, 0.85F, 26.0D);
+            }
+            if (t >= 48) playAnim(ANIM_IDLE);
+        } else if (anim == ANIM_DOUBLE_CLAP) {
             if (t == 4) {
                 playMechSfx(sl, TeyvatBossesSounds.mechServoWhir(), getY() + 2.0D, 0.85F, 0.95F);
                 playMechSfx(sl, TeyvatBossesSounds.mechJointCreak(), getY() + 2.0D, 0.72F, 0.88F);

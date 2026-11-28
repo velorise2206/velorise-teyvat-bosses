@@ -1,6 +1,7 @@
 package com.velorise.teyvatbosses.fabric.mixin;
 
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
@@ -35,6 +36,38 @@ public abstract class HumanoidModelMixin<T extends LivingEntity> {
             T entity, float limbSwing, float limbSwingAmount, float ageInTicks,
             float netHeadYaw, float headPitch, CallbackInfo ci
     ) {
+        if (entity.getVehicle() instanceof GoldflameQucusaurMountEntity dragon) {
+            // Natural dragon-riding posture: legs straddling the saddle flank pads, torso leaning into flight
+            float lean = dragon.isBoosting() ? 0.30F : (dragon.isFlying() ? 0.16F : 0.06F);
+            this.body.xRot = lean;
+            this.body.yRot = 0.0F;
+            this.body.zRot = 0.0F;
+
+            this.leftLeg.xRot = -1.22F;
+            this.rightLeg.xRot = -1.22F;
+            this.leftLeg.yRot = -0.34F;
+            this.rightLeg.yRot = 0.34F;
+            this.leftLeg.zRot = -0.16F;
+            this.rightLeg.zRot = 0.16F;
+
+            if (entity.attackAnim <= 0.0F && !entity.isUsingItem()) {
+                this.leftArm.xRot = -0.78F + lean * 0.45F;
+                this.rightArm.xRot = -0.78F + lean * 0.45F;
+                this.leftArm.yRot = 0.18F;
+                this.rightArm.yRot = -0.18F;
+                this.leftArm.zRot = -0.06F;
+                this.rightArm.zRot = 0.06F;
+            }
+
+            if ((Object) this instanceof PlayerModel<?> pm) {
+                pm.leftSleeve.copyFrom(this.leftArm);
+                pm.rightSleeve.copyFrom(this.rightArm);
+                pm.leftPants.copyFrom(this.leftLeg);
+                pm.rightPants.copyFrom(this.rightLeg);
+                pm.jacket.copyFrom(this.body);
+            }
+            return;
+        }
         if (!(entity.getVehicle() instanceof GeoDrillerEntity driller)) {
             return;
         }
