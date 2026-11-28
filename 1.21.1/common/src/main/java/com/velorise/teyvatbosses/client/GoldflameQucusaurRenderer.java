@@ -15,6 +15,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 /**
@@ -95,6 +96,8 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
             renderGoldflameBreathVfx(poseStack, lvc, sweepYaw, 8.0F, 2.55D, 2.25D, 16.0F, clientSec, fade);
         }
 
+        // Genshin-style Ground Danger Telegraphs (circle / cone / charge lane / dive target)
+        renderTelegraphZones(entity, bodyYaw, partialTicks, clientSec, poseStack, buffer);
         super.render(entity, entityYaw, partialTicks, poseStack, buffer, packedLight);
     }
 
@@ -184,5 +187,113 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
                 vc.addVertex(mat, x1a, y1a, z1).setColor(r, g, b, a1);
             }
         }
+    }
+
+    private static void renderTelegraphZones(GoldflameQucusaurEntity entity, float bodyYaw, float partialTicks,
+                                             float clientSec, PoseStack poseStack, MultiBufferSource buffer) {
+        int st = entity.getAnimState();
+        float ticks = entity.getStateTicks() + partialTicks;
+        VertexConsumer lvc = buffer.getBuffer(RenderType.lightning());
+
+        if (st == GoldflameQucusaurEntity.STATE_SHOCKWAVE_SLAM && ticks <= 17.0F) {
+            float prog = Mth.clamp(ticks / 16.0F, 0.0F, 1.0F);
+            drawTelegraphCircle(poseStack, lvc, 0.0D, 0.06D, 0.0D, 9.0F, prog, 255, 78, 28);
+        } else if (st == GoldflameQucusaurEntity.STATE_WING_SWIPE) {
+            if (ticks <= 15.0F) {
+                drawTelegraphCone(poseStack, lvc, bodyYaw, 7.5F, 105.0F, Mth.clamp(ticks / 15.0F, 0.0F, 1.0F));
+            } else if (ticks >= 22.0F && ticks <= 38.0F) {
+                drawTelegraphCone(poseStack, lvc, bodyYaw, 7.5F, 105.0F, Mth.clamp((ticks - 22.0F) / 16.0F, 0.0F, 1.0F));
+            } else if (ticks >= 46.0F && ticks <= 60.0F) {
+                drawTelegraphCircle(poseStack, lvc, 0.0D, 0.06D, 0.0D, 6.8F, Mth.clamp((ticks - 46.0F) / 14.0F, 0.0F, 1.0F), 255, 130, 24);
+            }
+        } else if (st == GoldflameQucusaurEntity.STATE_CHARGE_DRILL && ticks <= 13.0F) {
+            drawTelegraphLane(poseStack, lvc, bodyYaw, 3.6F, 15.0F, Mth.clamp(ticks / 12.0F, 0.0F, 1.0F));
+        } else if (st == GoldflameQucusaurEntity.STATE_DIVE_BOMB && ticks <= 24.0F) {
+            Vec3 tgt = entity.getSyncedDiveTarget();
+            float rad = entity.isFeatherBrokenThisCycle() ? 5.5F : 8.0F;
+            float prog = Mth.clamp(ticks / 20.0F, 0.0F, 1.0F);
+            drawTelegraphCircle(poseStack, lvc, tgt.x - entity.getX(), tgt.y - entity.getY() + 0.08D, tgt.z - entity.getZ(),
+                    rad, prog, 255, 56, 22);
+        }
+    }
+
+    private static void drawTelegraphCircle(PoseStack poseStack, VertexConsumer vc, double ox, double oy, double oz,
+                                            float radius, float progress, int r, int g, int b) {
+        poseStack.pushPose();
+        poseStack.translate(ox, oy, oz);
+        Matrix4f mat = poseStack.last().pose();
+        int segs = 36;
+        float fillR = Math.max(0.25F, radius * progress);
+        int ringA = 205;
+        int fillA = (int) (75 + 85 * progress);
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (Math.PI * 2.0D * i / segs);
+            float a1 = (float) (Math.PI * 2.0D * (i + 1) / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            // Outer border ring
+            float rIn = Math.max(0.1F, radius - 0.35F);
+            vc.addVertex(mat, c0 * rIn, 0.0F, s0 * rIn).setColor(r, g, b, ringA);
+            vc.addVertex(mat, c1 * rIn, 0.0F, s1 * rIn).setColor(r, g, b, ringA);
+            vc.addVertex(mat, c1 * radius, 0.0F, s1 * radius).setColor(255, 226, 118, ringA);
+            vc.addVertex(mat, c0 * radius, 0.0F, s0 * radius).setColor(255, 226, 118, ringA);
+            // Expanding inner warning fill
+            vc.addVertex(mat, 0.0F, 0.01F, 0.0F).setColor(r, g, b, fillA / 2);
+            vc.addVertex(mat, c0 * fillR, 0.01F, s0 * fillR).setColor(r, g, b, fillA);
+            vc.addVertex(mat, c1 * fillR, 0.01F, s1 * fillR).setColor(r, g, b, fillA);
+            vc.addVertex(mat, 0.0F, 0.01F, 0.0F).setColor(r, g, b, fillA / 2);
+        }
+        poseStack.popPose();
+    }
+
+    private static void drawTelegraphCone(PoseStack poseStack, VertexConsumer vc, float bodyYaw,
+                                          float radius, float halfAngleDeg, float progress) {
+        poseStack.pushPose();
+        poseStack.translate(0.0D, 0.06D, 0.0D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        Matrix4f mat = poseStack.last().pose();
+        int segs = 18;
+        float halfRad = (float) Math.toRadians(halfAngleDeg);
+        float fillR = Math.max(0.5F, radius * progress);
+        int fillA = (int) (75 + 95 * progress);
+        for (int i = 0; i < segs; i++) {
+            float a0 = Mth.lerp(i / (float) segs, -halfRad, halfRad);
+            float a1 = Mth.lerp((i + 1) / (float) segs, -halfRad, halfRad);
+            float x0 = Mth.sin(a0), z0 = -Mth.cos(a0);
+            float x1 = Mth.sin(a1), z1 = -Mth.cos(a1);
+            // Outer arc
+            float rIn = radius - 0.35F;
+            vc.addVertex(mat, x0 * rIn, 0.0F, z0 * rIn).setColor(255, 92, 24, 210);
+            vc.addVertex(mat, x1 * rIn, 0.0F, z1 * rIn).setColor(255, 92, 24, 210);
+            vc.addVertex(mat, x1 * radius, 0.0F, z1 * radius).setColor(255, 224, 112, 215);
+            vc.addVertex(mat, x0 * radius, 0.0F, z0 * radius).setColor(255, 224, 112, 215);
+            // Inner progress wedge
+            vc.addVertex(mat, 0.0F, 0.01F, 0.0F).setColor(255, 72, 20, fillA / 2);
+            vc.addVertex(mat, x0 * fillR, 0.01F, z0 * fillR).setColor(255, 112, 28, fillA);
+            vc.addVertex(mat, x1 * fillR, 0.01F, z1 * fillR).setColor(255, 112, 28, fillA);
+            vc.addVertex(mat, 0.0F, 0.01F, 0.0F).setColor(255, 72, 20, fillA / 2);
+        }
+        poseStack.popPose();
+    }
+
+    private static void drawTelegraphLane(PoseStack poseStack, VertexConsumer vc, float bodyYaw,
+                                          float halfWidth, float length, float progress) {
+        poseStack.pushPose();
+        poseStack.translate(0.0D, 0.06D, 0.0D);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        Matrix4f mat = poseStack.last().pose();
+        float curL = Math.max(1.0F, length * progress);
+        int fillA = (int) (80 + 100 * progress);
+        // Outer outline rectangle
+        vc.addVertex(mat, -halfWidth, 0.0F, 0.0F).setColor(255, 80, 22, 110);
+        vc.addVertex(mat,  halfWidth, 0.0F, 0.0F).setColor(255, 80, 22, 110);
+        vc.addVertex(mat,  halfWidth, 0.0F, -length).setColor(255, 218, 96, 150);
+        vc.addVertex(mat, -halfWidth, 0.0F, -length).setColor(255, 218, 96, 150);
+        // Advancing charge progress fill
+        vc.addVertex(mat, -halfWidth * 0.85F, 0.015F, 0.0F).setColor(255, 110, 28, fillA);
+        vc.addVertex(mat,  halfWidth * 0.85F, 0.015F, 0.0F).setColor(255, 110, 28, fillA);
+        vc.addVertex(mat,  halfWidth * 0.85F, 0.015F, -curL).setColor(255, 240, 140, fillA);
+        vc.addVertex(mat, -halfWidth * 0.85F, 0.015F, -curL).setColor(255, 240, 140, fillA);
+        poseStack.popPose();
     }
 }

@@ -66,6 +66,14 @@ public class GoldflameQucusaurEntity extends Monster {
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_PYRO_SHIELD =
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_DIVE_X =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_DIVE_Y =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_DIVE_Z =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> DATA_FEATHER_BROKEN =
+            SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.BOOLEAN);
 
     private static final float MAX_PYRO_SHIELD = 240.0F; // Represents 24 GU Golden Flame Ward
 
@@ -109,6 +117,10 @@ public class GoldflameQucusaurEntity extends Monster {
         builder.define(DATA_STATE, STATE_IDLE_GROUND);
         builder.define(DATA_STATE_TICKS, 0);
         builder.define(DATA_PYRO_SHIELD, 0.0F);
+        builder.define(DATA_DIVE_X, 0.0F);
+        builder.define(DATA_DIVE_Y, 0.0F);
+        builder.define(DATA_DIVE_Z, 0.0F);
+        builder.define(DATA_FEATHER_BROKEN, false);
     }
 
     public int getAnimState() { return entityData.get(DATA_STATE); }
@@ -116,6 +128,14 @@ public class GoldflameQucusaurEntity extends Monster {
     public float getPyroShield() { return entityData.get(DATA_PYRO_SHIELD); }
     public float getPyroShieldProgress() { return Mth.clamp(getPyroShield() / MAX_PYRO_SHIELD, 0.0F, 1.0F); }
     public boolean isGoldenFlameActive() { return getPyroShield() > 0.0F; }
+    public Vec3 getSyncedDiveTarget() { return new Vec3(entityData.get(DATA_DIVE_X), entityData.get(DATA_DIVE_Y), entityData.get(DATA_DIVE_Z)); }
+    public boolean isFeatherBrokenThisCycle() { return entityData.get(DATA_FEATHER_BROKEN); }
+    private void setSyncedDiveTarget(Vec3 tgt) {
+        this.diveTarget = tgt;
+        entityData.set(DATA_DIVE_X, (float) tgt.x);
+        entityData.set(DATA_DIVE_Y, (float) tgt.y);
+        entityData.set(DATA_DIVE_Z, (float) tgt.z);
+    }
     public boolean isAirborneState() {
         int st = getAnimState();
         return st == STATE_TAKEOFF_ROAR || st == STATE_GOLDEN_FLAME_HOVER || st == STATE_FEATHER_BARRAGE || st == STATE_DIVE_BOMB;
@@ -171,6 +191,7 @@ public class GoldflameQucusaurEntity extends Monster {
 
     public void onFlamewindFeatherDestroyed(Vec3 featherPos) {
         featherDestroyedThisCycle = true;
+        entityData.set(DATA_FEATHER_BROKEN, true);
         if (isGoldenFlameActive()) {
             float rem = Math.max(0.0F, getPyroShield() - 80.0F);
             entityData.set(DATA_PYRO_SHIELD, rem);
@@ -280,6 +301,7 @@ public class GoldflameQucusaurEntity extends Monster {
                 aerialPhaseCount++;
                 aerialTimer = 0;
                 featherDestroyedThisCycle = false;
+                entityData.set(DATA_FEATHER_BROKEN, false);
                 entityData.set(DATA_PYRO_SHIELD, MAX_PYRO_SHIELD);
                 setState(STATE_TAKEOFF_ROAR);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.6F, 0.95F);
@@ -448,7 +470,7 @@ public class GoldflameQucusaurEntity extends Monster {
         } else if (aerialTimer >= 900 || !isGoldenFlameActive()) {
             // End Golden Flame phase cleanly
             entityData.set(DATA_PYRO_SHIELD, 0.0F);
-            diveTarget = target != null ? target.position() : center;
+            setSyncedDiveTarget(target != null ? target.position() : center);
             setState(STATE_DIVE_BOMB);
         }
     }
@@ -468,7 +490,7 @@ public class GoldflameQucusaurEntity extends Monster {
             }
         }
         if (ticks >= 31) {
-            diveTarget = target != null ? target.position() : (homePos != null ? homePos : position());
+            setSyncedDiveTarget(target != null ? target.position() : (homePos != null ? homePos : position()));
             setState(STATE_DIVE_BOMB);
         }
     }
