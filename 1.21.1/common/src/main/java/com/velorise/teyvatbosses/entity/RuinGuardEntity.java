@@ -77,6 +77,7 @@ public class RuinGuardEntity extends Monster {
     public static final int ANIM_STUN_RECOVERY      = 15;
     public static final int ANIM_OVERDRIVE_FINISHER = 16;
     public static final int ANIM_WEAKPOINT_FLINCH   = 17;
+    public static final int ANIM_TWO_HAND_GROUND_SLAM = 18;
 
     private static final int DEATH_DURATION_TICKS    = 58;
     public static final int WP_CLOSED    = 0;
@@ -270,6 +271,7 @@ public class RuinGuardEntity extends Monster {
             case ANIM_STUN_RECOVERY -> "stunned_recovery";
             case ANIM_OVERDRIVE_FINISHER -> "overdrive_finisher";
             case ANIM_WEAKPOINT_FLINCH -> "weakpoint_flinch";
+            case ANIM_TWO_HAND_GROUND_SLAM -> "two_hand_ground_slam";
             default -> "idle_combat";
         };
     }
@@ -918,6 +920,7 @@ public class RuinGuardEntity extends Monster {
             case ANIM_MELEE_3HIT -> tickMelee3Hit(sl, target);
             case ANIM_DOUBLE_CLAP -> tickDoubleClap(sl, target);
             case ANIM_STOMP_SHOCKWAVE -> tickStompShockwave(sl, target);
+            case ANIM_TWO_HAND_GROUND_SLAM -> tickTwoHandGroundSlam(sl, target);
             case ANIM_CYCLONE_WINDUP -> {
                 faceTarget(target, 5.5F);
                 setDeltaMovement(getDeltaMovement().x * 0.7D, getDeltaMovement().y, getDeltaMovement().z * 0.7D);
@@ -968,6 +971,12 @@ public class RuinGuardEntity extends Monster {
     private void chooseNextAttack(ServerLevel sl, LivingEntity target, double dist) {
         getNavigation().stop();
         double dy = Math.abs(target.getY() - getY());
+        // Anti-hole-cheese priority: if target is hiding below ground level, smash the earth to launch them out!
+        if (target.getY() <= getY() - 1.2D && dist <= 9.5D && random.nextFloat() < 0.85F) {
+            lastAttack = ANIM_TWO_HAND_GROUND_SLAM;
+            transitionTo(STATE_COMBAT, ANIM_TWO_HAND_GROUND_SLAM);
+            return;
+        }
         if (isPhase2() && finisherCooldown <= 0 && dist <= 7.6D && dy <= 3.0D && random.nextFloat() < 0.40F) {
             lastAttack = ANIM_OVERDRIVE_FINISHER;
             startOverdriveFinisher(sl, target);
@@ -976,7 +985,7 @@ public class RuinGuardEntity extends Monster {
 
         int chosen;
         if (dist <= 5.2D && dy <= 2.8D) {
-            int[] closePool = {ANIM_MELEE_3HIT, ANIM_DOUBLE_CLAP, ANIM_STOMP_SHOCKWAVE, ANIM_CYCLONE_WINDUP};
+            int[] closePool = {ANIM_MELEE_3HIT, ANIM_DOUBLE_CLAP, ANIM_STOMP_SHOCKWAVE, ANIM_TWO_HAND_GROUND_SLAM, ANIM_CYCLONE_WINDUP};
             chosen = closePool[random.nextInt(closePool.length)];
             if (chosen == lastAttack) {
                 chosen = (lastAttack == ANIM_MELEE_3HIT) ? ANIM_STOMP_SHOCKWAVE : ANIM_MELEE_3HIT;
@@ -1287,6 +1296,88 @@ public class RuinGuardEntity extends Monster {
                 transitionTo(STATE_COMBAT, ANIM_IDLE);
                 attackCooldown = 40;
             }
+        }
+    }
+
+    /**
+     * Two-handed overhead seismic slam (2.40s / 48 ticks, impact at tick 21):
+     * leans torso forward to drive both fists into the earth, shattering underground hole ceilings
+     * and launching buried or nearby targets high into the air!
+     */
+    private void tickTwoHandGroundSlam(ServerLevel sl, LivingEntity target) {
+        setDeltaMovement(getDeltaMovement().x * 0.65D, getDeltaMovement().y, getDeltaMovement().z * 0.65D);
+        if (stateTick < 15 && target != null) {
+            faceTarget(target, 6.5F);
+        }
+        if (stateTick == 2) {
+            sl.playSound(null, getX(), getY() + 2.2D, getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.45F, 0.55F);
+            net.minecraft.sounds.SoundEvent whir = TeyvatBossesSounds.mechServoWhir();
+            if (whir != null) sl.playSound(null, getX(), getY() + 2.0D, getZ(), whir, SoundSource.HOSTILE, 1.0F, 0.72F);
+            playAttackSpeech(sl, 0.85F);
+        }
+        if (stateTick == 12) {
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(1.8D);
+            double ix = getX() + fwd.x;
+            double iz = getZ() + fwd.z;
+            setTelegraph(new Vec3(ix, sampleGroundY(sl, ix, iz, getY()), iz), 6.8F);
+        }
+        if (stateTick == 21) { // Exact 1.05s two-handed impact frame!
+            clearTelegraph();
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, getYRot()).scale(1.8D);
+            Vec3 center = new Vec3(getX() + fwd.x, getY(), getZ() + fwd.z);
+            double radius = 6.8D;
+            float dmg = isPhase2() ? 30.0F : 26.0F;
+
+            // Deep underground-reaching seismic AoE (5.5 blocks below feet!)
+            AABB quakeBox = new AABB(center.x - radius, center.y - 5.5D, center.z - radius,
+                    center.x + radius, center.y + 3.5D, center.z + radius);
+            boolean canBreak = TeyvatBossesConfig.get().enableBossBlockBreaking
+                    && sl.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING);
+
+            for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, quakeBox,
+                    le -> le != this && le.isAlive() && !(le instanceof RuinGuardEntity))) {
+                double dx = e.getX() - center.x;
+                double dz = e.getZ() - center.z;
+                if (dx * dx + dz * dz > radius * radius) continue;
+
+                boolean underground = e.getY() < getY() - 0.5D;
+                // Break hole lid/ceiling above buried targets so the shockwave erupts them cleanly upward!
+                if (underground && canBreak) {
+                    BlockPos.MutableBlockPos bpos = new BlockPos.MutableBlockPos();
+                    int px = Mth.floor(e.getX()), pz = Mth.floor(e.getZ());
+                    int yStart = Mth.floor(e.getY()) + 1;
+                    int yEnd = Mth.floor(getY()) + 1;
+                    for (int bx = px - 1; bx <= px + 1; bx++) {
+                        for (int bz = pz - 1; bz <= pz + 1; bz++) {
+                            for (int by = yStart; by <= yEnd; by++) {
+                                bpos.set(bx, by, bz);
+                                BlockState bs = sl.getBlockState(bpos);
+                                if (bs.isAir() || !bs.getFluidState().isEmpty() || bs.hasBlockEntity()) continue;
+                                float h = bs.getDestroySpeed(sl, bpos);
+                                if (h >= 0.0F && h < 50.0F) {
+                                    sl.destroyBlock(bpos, true, this);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                e.hurt(sl.damageSources().mobAttack(this), TeyvatBossesConfig.scaleDamage("ruin_guard", dmg));
+                Vec3 push = new Vec3(dx, 0.0D, dz);
+                if (push.lengthSqr() > 1e-4D) push = push.normalize().scale(underground ? 0.55D : 1.15D);
+                e.setDeltaMovement(push.x, underground ? 1.02D : 0.78D, push.z);
+                e.hurtMarked = true;
+            }
+
+            sl.playSound(null, center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.85F, 0.54F);
+            sl.playSound(null, center.x, center.y, center.z, SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5F, 0.48F);
+            sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, center.x, center.y + 0.5D, center.z, 2, 1.2D, 0.3D, 1.2D, 0.0D);
+            spawnGroundDustRing(sl, 6.4D, 48);
+            BossClientBridge.triggerCameraShake(center, 0.90F, 32.0D);
+        }
+        if (stateTick >= 48) {
+            transitionTo(STATE_COMBAT, ANIM_IDLE);
+            attackCooldown = isPhase2() ? 28 : 38;
         }
     }
 

@@ -54,11 +54,15 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
     public void render(GoldflameQucusaurEntity entity, float entityYaw, float partialTicks,
                        PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
         boolean musicActive = entity.isAlive()
+                && entity.hasCombatTarget()
                 && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DORMANT
+                && entity.getAnimState() != GoldflameQucusaurEntity.STATE_RETURN_FLIGHT
                 && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE;
         BossMusicManager.update(entity, BOSS_MUSIC_ID, musicActive,
                 () -> entity.isAlive()
+                        && entity.hasCombatTarget()
                         && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DORMANT
+                        && entity.getAnimState() != GoldflameQucusaurEntity.STATE_RETURN_FLIGHT
                         && entity.getAnimState() != GoldflameQucusaurEntity.STATE_DEATH_COLLAPSE);
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
         float stateSec = (entity.getStateTicks() + partialTicks) / 20.0F;
@@ -96,10 +100,11 @@ public class GoldflameQucusaurRenderer extends EntityRenderer<GoldflameQucusaurE
         if (entity.getAnimState() == GoldflameQucusaurEntity.STATE_BREATH_SWEEP
                 && entity.getStateTicks() >= 15 && entity.getStateTicks() <= 50) {
             float progress = Mth.clamp((entity.getStateTicks() - 16 + partialTicks) / 32.0F, 0.0F, 1.0F);
-            float sweepYaw = bodyYaw + Mth.lerp(progress, -38.0F, 38.0F);
+            float sweepYaw = bodyYaw + Mth.lerp(progress, -28.0F, 28.0F);
+            float breathPitch = entity.getSyncedBreathPitch();
             float fade = (progress < 0.08F) ? (progress / 0.08F) : (progress > 0.90F ? (1.0F - progress) / 0.10F : 1.0F);
             VertexConsumer lvc = buffer.getBuffer(RenderType.lightning());
-            renderGoldflameBreathVfx(poseStack, lvc, sweepYaw, 8.0F, 2.55D, 2.25D, 16.0F, clientSec, fade);
+            renderGoldflameBreathVfx(poseStack, lvc, sweepYaw, breathPitch, 2.55D, 2.25D, 16.0F, clientSec, fade);
         }
 
         // Genshin-style Ground Danger Telegraphs (circle / cone / charge lane / dive target)
