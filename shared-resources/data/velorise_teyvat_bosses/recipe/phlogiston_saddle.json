@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GBG",
+    "MSM",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "B": {
+      "item": "minecraft:blaze_powder"
+    },
+    "M": {
+      "item": "velorise_teyvat_bosses:mark_of_binding_blessing"
+    },
+    "S": {
+      "item": "minecraft:saddle"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:phlogiston_saddle",
+    "count": 1
+  }
+}

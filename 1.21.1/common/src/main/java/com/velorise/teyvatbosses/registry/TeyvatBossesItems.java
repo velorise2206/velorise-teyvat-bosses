@@ -36,6 +36,11 @@ public final class TeyvatBossesItems {
     private static Supplier<Item> geovishapChestplate;
     private static Supplier<Item> geovishapLeggings;
     private static Supplier<Item> geovishapBoots;
+    private static Supplier<Item> markOfBindingBlessing;
+    private static Supplier<Item> goldflameQucusaurEgg;
+    private static Supplier<Item> phlogistonSaddle;
+    private static Supplier<Item> goldflameQucusaurCrest;
+    private static Supplier<Item> goldflameQucusaurDisc;
 
     private TeyvatBossesItems() {}
 
@@ -134,4 +139,22 @@ public final class TeyvatBossesItems {
     public static Item geovishapChestplate() { return geovishapChestplate != null ? geovishapChestplate.get() : null; }
     public static Item geovishapLeggings() { return geovishapLeggings != null ? geovishapLeggings.get() : null; }
     public static Item geovishapBoots() { return geovishapBoots != null ? geovishapBoots.get() : null; }
+
+    public static void bindQucusaur(
+            Supplier<Item> markSupplier,
+            Supplier<Item> eggSupplier,
+            Supplier<Item> saddleSupplier,
+            Supplier<Item> crestSupplier
+    ) {
+        markOfBindingBlessing = markSupplier;
+        goldflameQucusaurEgg = eggSupplier;
+        phlogistonSaddle = saddleSupplier;
+        goldflameQucusaurCrest = crestSupplier;
+    }
+    public static Item markOfBindingBlessing() { return markOfBindingBlessing != null ? markOfBindingBlessing.get() : null; }
+    public static Item goldflameQucusaurEgg() { return goldflameQucusaurEgg != null ? goldflameQucusaurEgg.get() : null; }
+    public static Item phlogistonSaddle() { return phlogistonSaddle != null ? phlogistonSaddle.get() : null; }
+    public static Item goldflameQucusaurCrest() { return goldflameQucusaurCrest != null ? goldflameQucusaurCrest.get() : null; }
+    public static void bindQucusaurDisc(Supplier<Item> s) { goldflameQucusaurDisc = s; }
+    public static Item goldflameQucusaurDisc() { return goldflameQucusaurDisc != null ? goldflameQucusaurDisc.get() : null; }
 }

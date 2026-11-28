@@ -15,7 +15,14 @@ import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.entity.BossClientBridge;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
+import com.velorise.teyvatbosses.client.FlamewindFeatherRenderer;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
+import com.velorise.teyvatbosses.client.GoldflameFireballRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurClientController;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurEggRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurMountRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurRenderer;
+import com.velorise.teyvatbosses.client.model.GoldflameQucusaurModel;
 import com.velorise.teyvatbosses.client.PrimoGeovishapPartRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
 import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
@@ -86,6 +93,8 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         EntityModelLayerRegistry.registerModelLayer(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
         EntityModelLayerRegistry.registerModelLayer(PrimoInfusedStoneModel.LAYER_LOCATION, PrimoInfusedStoneModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(GoldflameQucusaurModel.LAYER_LOCATION, GoldflameQucusaurModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(GoldflameQucusaurModel.LAYER_LOCATION_EMISSIVE, GoldflameQucusaurModel::createEmissiveLayer);
 
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_REGISVINE, CryoRegisvineRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.CRYO_ICICLE, CryoIcicleRenderer::new);
@@ -111,6 +120,11 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GEO_DRILLER, GeoDrillerRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_INFUSED_STONE, PrimoInfusedStoneRenderer::new);
         EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP_PART, PrimoGeovishapPartRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GOLDFLAME_QUCUSAUR, GoldflameQucusaurRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GOLDFLAME_QUCUSAUR_MOUNT, GoldflameQucusaurMountRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GOLDFLAME_QUCUSAUR_EGG, GoldflameQucusaurEggRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.FLAMEWIND_FEATHER, FlamewindFeatherRenderer::new);
+        EntityRendererRegistry.register(VeloriseTeyvatBossesFabric.GOLDFLAME_FIREBALL, GoldflameFireballRenderer::new);
 
         BlockEntityRenderers.register(VeloriseTeyvatBossesFabric.BOSS_TROPHY_BE, BossTrophyRenderer::new);
 
@@ -121,7 +135,8 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
                 VeloriseTeyvatBossesFabric.ANEMO_HYPOSTASIS_COMPASS,
                 VeloriseTeyvatBossesFabric.RUIN_GUARD_COMPASS,
                 VeloriseTeyvatBossesFabric.RUIN_NAUTILUS_COMPASS,
-                VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP_COMPASS
+                VeloriseTeyvatBossesFabric.PRIMO_GEOVISHAP_COMPASS,
+                VeloriseTeyvatBossesFabric.GOLDFLAME_QUCUSAUR_COMPASS
         }) {
             ItemProperties.register(compass, ResourceLocation.withDefaultNamespace("angle"), bossCompassProp);
         }
@@ -133,6 +148,8 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             RuinSubClientController.tick(client);
             GeoDrillerClientController.setPacketSender(ClientPlayNetworking::send);
             GeoDrillerClientController.tick(client);
+            GoldflameQucusaurClientController.setPacketSender(ClientPlayNetworking::send);
+            GoldflameQucusaurClientController.tick(client);
             AnemoBootsClientController.setPacketSender(ClientPlayNetworking::send);
             AnemoBootsClientController.tick(client);
             BossCameraShake.clientTick();
@@ -141,6 +158,7 @@ public class VeloriseTeyvatBossesFabricClient implements ClientModInitializer {
             RuinMechCockpitHud.render(gui, deltaTracker.getGameTimeDeltaPartialTick(false));
             RuinSubClientController.renderHud(gui);
             GeoDrillerClientController.renderHud(gui);
+            GoldflameQucusaurClientController.renderHud(gui);
         });
     }
 }

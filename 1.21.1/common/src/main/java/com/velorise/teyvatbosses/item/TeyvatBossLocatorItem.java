@@ -57,7 +57,8 @@ public class TeyvatBossLocatorItem extends Item {
             new BossTarget("anemo_hypostasis_arena", "entity.velorise_teyvat_bosses.anemo_hypostasis", ChatFormatting.GREEN),
             new BossTarget("thousand_winds_temple_arena", "entity.velorise_teyvat_bosses.ruin_guard", ChatFormatting.GOLD),
             new BossTarget("ruin_nautilus_arena", "entity.velorise_teyvat_bosses.ruin_nautilus", ChatFormatting.DARK_AQUA),
-            new BossTarget("primo_geovishap_arena", "entity.velorise_teyvat_bosses.primo_geovishap", ChatFormatting.YELLOW)
+            new BossTarget("primo_geovishap_arena", "entity.velorise_teyvat_bosses.primo_geovishap", ChatFormatting.YELLOW),
+            new BossTarget("goldflame_qucusaur_arena", "entity.velorise_teyvat_bosses.goldflame_qucusaur", ChatFormatting.RED)
     };
 
     private record CachedScan(@Nullable BlockPos pos, long expiresMs) {}

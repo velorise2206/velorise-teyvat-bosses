@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.client.model.PrimoInfusedStoneModel;
+import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
 import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -29,8 +30,32 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
 
     private static final ResourceLocation TEXTURE = TeyvatBossesConstants.id("textures/entity/primo_infused_stone.png");
     private static final ResourceLocation EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_stone_emissive.png");
-    private static final ResourceLocation BLAST_ZONE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone.png");
-    private static final ResourceLocation BLAST_ZONE_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_emissive.png");
+    private static final ResourceLocation BLAST_ZONE_PYRO = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_pyro.png");
+    private static final ResourceLocation BLAST_ZONE_PYRO_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_pyro_emissive.png");
+    private static final ResourceLocation BLAST_ZONE_HYDRO = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_hydro.png");
+    private static final ResourceLocation BLAST_ZONE_HYDRO_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_hydro_emissive.png");
+    private static final ResourceLocation BLAST_ZONE_ELECTRO = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_electro.png");
+    private static final ResourceLocation BLAST_ZONE_ELECTRO_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_electro_emissive.png");
+    private static final ResourceLocation BLAST_ZONE_CRYO = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_cryo.png");
+    private static final ResourceLocation BLAST_ZONE_CRYO_EMISSIVE = TeyvatBossesConstants.id("textures/entity/primo_infused_blast_zone_cryo_emissive.png");
+
+    private static ResourceLocation blastZoneFor(int infusion) {
+        return switch (infusion) {
+            case PrimoGeovishapEntity.INFUSION_HYDRO -> BLAST_ZONE_HYDRO;
+            case PrimoGeovishapEntity.INFUSION_ELECTRO -> BLAST_ZONE_ELECTRO;
+            case PrimoGeovishapEntity.INFUSION_CRYO -> BLAST_ZONE_CRYO;
+            default -> BLAST_ZONE_PYRO;
+        };
+    }
+
+    private static ResourceLocation blastZoneEmissiveFor(int infusion) {
+        return switch (infusion) {
+            case PrimoGeovishapEntity.INFUSION_HYDRO -> BLAST_ZONE_HYDRO_EMISSIVE;
+            case PrimoGeovishapEntity.INFUSION_ELECTRO -> BLAST_ZONE_ELECTRO_EMISSIVE;
+            case PrimoGeovishapEntity.INFUSION_CRYO -> BLAST_ZONE_CRYO_EMISSIVE;
+            default -> BLAST_ZONE_PYRO_EMISSIVE;
+        };
+    }
 
     private final PrimoInfusedStoneModel model;
 
@@ -61,12 +86,12 @@ public class PrimoInfusedStoneRenderer extends EntityRenderer<PrimoInfusedStoneE
             poseStack.mulPose(Axis.YP.rotationDegrees(entity.getSpinYaw()));
             PoseStack.Pose pose = poseStack.last();
             // Pass 1: Completely static cracked basalt & lava decal anchored cleanly to the ground
-            VertexConsumer dvc = buf.getBuffer(RenderType.entityTranslucent(BLAST_ZONE));
+            VertexConsumer dvc = buf.getBuffer(RenderType.entityTranslucent(blastZoneFor(entity.getInfusion())));
             drawTexturedGroundQuad(dvc, pose, radius, 0.055F, 255, 255, 255, 240, packedLight);
             // Pass 2: Gentle emissive glow pulse inside the cracks (geometry never scales or wobbles)
-            VertexConsumer evc = buf.getBuffer(RenderType.eyes(BLAST_ZONE_EMISSIVE));
+            VertexConsumer evc = buf.getBuffer(RenderType.eyes(blastZoneEmissiveFor(entity.getInfusion())));
             int ea = Mth.clamp((int) (235 * glowPulse), 0, 255);
-            drawTexturedGroundQuad(evc, pose, radius, 0.068F, 255, 225, 175, ea, LightTexture.FULL_BRIGHT);
+            drawTexturedGroundQuad(evc, pose, radius, 0.068F, 255, 255, 255, ea, LightTexture.FULL_BRIGHT);
             poseStack.popPose();
             super.render(entity, entityYaw, partialTicks, poseStack, buf, packedLight);
             return;

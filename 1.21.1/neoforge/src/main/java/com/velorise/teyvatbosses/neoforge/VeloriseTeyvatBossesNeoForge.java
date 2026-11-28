@@ -38,7 +38,15 @@ import com.velorise.teyvatbosses.item.RuinMechPartItem;
 import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import com.velorise.teyvatbosses.item.RuinSubPartItem;
 import com.velorise.teyvatbosses.item.TeyvatBossLocatorItem;
+import com.velorise.teyvatbosses.entity.FlamewindFeatherEntity;
+import com.velorise.teyvatbosses.entity.GoldflameFireballEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurEggEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
+import com.velorise.teyvatbosses.item.GoldflameQucusaurCrestItem;
+import com.velorise.teyvatbosses.item.GoldflameQucusaurEggItem;
 import com.velorise.teyvatbosses.network.GeoDrillerControlPayload;
+import com.velorise.teyvatbosses.network.GoldflameQucusaurControlPayload;
 import com.velorise.teyvatbosses.network.RuinMechSkillPayload;
 import com.velorise.teyvatbosses.network.RuinSubControlPayload;
 import com.velorise.teyvatbosses.registry.TeyvatBossesBlocks;
@@ -55,6 +63,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -178,6 +187,16 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<EntityType<?>, EntityType<PrimoInfusedStoneEntity>> PRIMO_INFUSED_STONE =
             ENTITIES.register("primo_infused_stone", () -> EntityType.Builder.<PrimoInfusedStoneEntity>of(PrimoInfusedStoneEntity::new, MobCategory.MISC)
                     .sized(1.3F, 2.2F).clientTrackingRange(14).updateInterval(2).build("primo_infused_stone"));
+    public static final DeferredHolder<EntityType<?>, EntityType<GoldflameQucusaurEntity>> GOLDFLAME_QUCUSAUR =
+            ENTITIES.register("goldflame_qucusaur", () -> EntityType.Builder.of(GoldflameQucusaurEntity::new, MobCategory.MONSTER).sized(3.2F, 3.8F).fireImmune().clientTrackingRange(16).build("goldflame_qucusaur"));
+    public static final DeferredHolder<EntityType<?>, EntityType<GoldflameQucusaurMountEntity>> GOLDFLAME_QUCUSAUR_MOUNT =
+            ENTITIES.register("goldflame_qucusaur_mount", () -> EntityType.Builder.of(GoldflameQucusaurMountEntity::new, MobCategory.CREATURE).sized(2.0F, 2.3F).fireImmune().clientTrackingRange(16).build("goldflame_qucusaur_mount"));
+    public static final DeferredHolder<EntityType<?>, EntityType<GoldflameQucusaurEggEntity>> GOLDFLAME_QUCUSAUR_EGG =
+            ENTITIES.register("goldflame_qucusaur_egg", () -> EntityType.Builder.<GoldflameQucusaurEggEntity>of(GoldflameQucusaurEggEntity::new, MobCategory.MISC).sized(0.85F, 0.95F).fireImmune().clientTrackingRange(8).build("goldflame_qucusaur_egg"));
+    public static final DeferredHolder<EntityType<?>, EntityType<FlamewindFeatherEntity>> FLAMEWIND_FEATHER =
+            ENTITIES.register("flamewind_feather", () -> EntityType.Builder.<FlamewindFeatherEntity>of(FlamewindFeatherEntity::new, MobCategory.MISC).sized(1.0F, 2.2F).fireImmune().clientTrackingRange(12).build("flamewind_feather"));
+    public static final DeferredHolder<EntityType<?>, EntityType<GoldflameFireballEntity>> GOLDFLAME_FIREBALL =
+            ENTITIES.register("goldflame_fireball", () -> EntityType.Builder.<GoldflameFireballEntity>of(GoldflameFireballEntity::new, MobCategory.MISC).sized(0.85F, 0.85F).fireImmune().clientTrackingRange(12).build("goldflame_fireball"));
     public static final DeferredHolder<EntityType<?>, EntityType<PrimoGeovishapPartEntity>> PRIMO_GEOVISHAP_PART =
             ENTITIES.register("primo_geovishap_part", () -> EntityType.Builder.<PrimoGeovishapPartEntity>of(PrimoGeovishapPartEntity::new, MobCategory.MISC)
                     .sized(2.4F, 2.2F).noSave().noSummon().clientTrackingRange(16).updateInterval(1).build("primo_geovishap_part"));
@@ -276,6 +295,18 @@ public class VeloriseTeyvatBossesNeoForge {
             ITEMS.register("ruin_guard_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 2));
     public static final DeferredHolder<Item, Item> RUIN_NAUTILUS_COMPASS =
             ITEMS.register("ruin_nautilus_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 3));
+    public static final DeferredHolder<Item, Item> MARK_OF_BINDING_BLESSING =
+            ITEMS.register("mark_of_binding_blessing", () -> new Item(new Item.Properties().rarity(Rarity.EPIC).fireResistant()));
+    public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_EGG_ITEM =
+            ITEMS.register("goldflame_qucusaur_egg", () -> new GoldflameQucusaurEggItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
+    public static final DeferredHolder<Item, Item> PHLOGISTON_SADDLE =
+            ITEMS.register("phlogiston_saddle", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).fireResistant()));
+    public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_CREST =
+            ITEMS.register("goldflame_qucusaur_crest", () -> new GoldflameQucusaurCrestItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
+    public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_COMPASS =
+            ITEMS.register("goldflame_qucusaur_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON), 5));
+    public static final DeferredHolder<Item, Item> GOLDFLAME_QUCUSAUR_SPAWN_EGG =
+            ITEMS.register("goldflame_qucusaur_spawn_egg", () -> new DeferredSpawnEggItem(GOLDFLAME_QUCUSAUR, 0xA81E16, 0xFFAE19, new Item.Properties()));
     public static final DeferredHolder<Item, Item> PRIMO_GEOVISHAP_COMPASS =
             ITEMS.register("primo_geovishap_compass", () -> new TeyvatBossLocatorItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE), 4));
 
@@ -305,6 +336,8 @@ public class VeloriseTeyvatBossesNeoForge {
             SOUNDS.register("music.ruin_guard_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_guard_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_RUIN_NAUTILUS_THEME =
             SOUNDS.register("music.ruin_nautilus_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.ruin_nautilus_theme")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_GOLDFLAME_QUCUSAUR_THEME =
+            SOUNDS.register("music.goldflame_qucusaur_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.goldflame_qucusaur_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_PRIMO_GEOVISHAP_THEME =
             SOUNDS.register("music.primo_geovishap_theme", () -> SoundEvent.createVariableRangeEvent(TeyvatBossesConstants.id("music.primo_geovishap_theme")));
     public static final DeferredHolder<SoundEvent, SoundEvent> SOUND_MECH_ENGINE_HUM =
@@ -371,6 +404,10 @@ public class VeloriseTeyvatBossesNeoForge {
     public static final DeferredHolder<Item, Item> MUSIC_DISC_RUIN_NAUTILUS =
             ITEMS.register("music_disc_ruin_nautilus", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("ruin_nautilus_theme")))));
+    public static final ResourceKey<JukeboxSong> SONG_GOLDFLAME_QUCUSAUR =
+            ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("goldflame_qucusaur_theme"));
+    public static final DeferredHolder<Item, Item> MUSIC_DISC_GOLDFLAME_QUCUSAUR =
+            ITEMS.register("music_disc_goldflame_qucusaur", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE).jukeboxPlayable(SONG_GOLDFLAME_QUCUSAUR)));
     public static final DeferredHolder<Item, Item> MUSIC_DISC_PRIMO_GEOVISHAP =
             ITEMS.register("music_disc_primo_geovishap", () -> new Item(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)
                     .jukeboxPlayable(ResourceKey.create(Registries.JUKEBOX_SONG, TeyvatBossesConstants.id("primo_geovishap_theme")))));
@@ -385,6 +422,12 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(RUIN_GUARD_COMPASS.get());
                         output.accept(RUIN_NAUTILUS_COMPASS.get());
                         output.accept(PRIMO_GEOVISHAP_COMPASS.get());
+                        output.accept(GOLDFLAME_QUCUSAUR_COMPASS.get());
+                        output.accept(GOLDFLAME_QUCUSAUR_SPAWN_EGG.get());
+                        output.accept(MARK_OF_BINDING_BLESSING.get());
+                        output.accept(GOLDFLAME_QUCUSAUR_EGG_ITEM.get());
+                        output.accept(PHLOGISTON_SADDLE.get());
+                        output.accept(GOLDFLAME_QUCUSAUR_CREST.get());
                         output.accept(CRYO_REGISVINE_SPAWN_EGG.get());
                         output.accept(ANEMO_HYPOSTASIS_SPAWN_EGG.get());
                         output.accept(RUIN_GUARD_SPAWN_EGG.get());
@@ -422,6 +465,7 @@ public class VeloriseTeyvatBossesNeoForge {
                         output.accept(MUSIC_DISC_RUIN_GUARD.get());
                         output.accept(MUSIC_DISC_RUIN_NAUTILUS.get());
                         output.accept(MUSIC_DISC_PRIMO_GEOVISHAP.get());
+                        output.accept(MUSIC_DISC_GOLDFLAME_QUCUSAUR.get());
                     })
                     .build());
 
@@ -454,6 +498,9 @@ public class VeloriseTeyvatBossesNeoForge {
                 PRIMO_GEOVISHAP, GEO_DRILLER, PRIMO_INFUSED_STONE
         );
         TeyvatBossesEntities.bindPrimoPart(PRIMO_GEOVISHAP_PART);
+        TeyvatBossesEntities.bindQucusaur(GOLDFLAME_QUCUSAUR, GOLDFLAME_QUCUSAUR_MOUNT, GOLDFLAME_QUCUSAUR_EGG, FLAMEWIND_FEATHER, GOLDFLAME_FIREBALL);
+        TeyvatBossesItems.bindQucusaur(MARK_OF_BINDING_BLESSING, GOLDFLAME_QUCUSAUR_EGG_ITEM, PHLOGISTON_SADDLE, GOLDFLAME_QUCUSAUR_CREST);
+        TeyvatBossesItems.bindQucusaurDisc(MUSIC_DISC_GOLDFLAME_QUCUSAUR);
         TeyvatBossesBlocks.bind(
                 CRYO_REGISVINE_TROPHY, ANEMO_HYPOSTASIS_TROPHY,
                 RUIN_GUARD_TROPHY, RUIN_NAUTILUS_TROPHY, PRIMO_GEOVISHAP_TROPHY, BOSS_TROPHY_BE
@@ -482,6 +529,13 @@ public class VeloriseTeyvatBossesNeoForge {
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").playToServer(
+                GoldflameQucusaurControlPayload.TYPE,
+                GoldflameQucusaurControlPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player() instanceof ServerPlayer sp) GoldflameQucusaurControlPayload.handleOnServer(payload, sp);
+                })
+        );
         event.registrar("1").playToServer(
                 GeoDrillerControlPayload.TYPE,
                 GeoDrillerControlPayload.STREAM_CODEC,
@@ -525,5 +579,7 @@ public class VeloriseTeyvatBossesNeoForge {
         event.put(ANEMO_COMPANION.get(), AnemoCompanionEntity.createAttributes().build());
         event.put(PRIMO_GEOVISHAP.get(), PrimoGeovishapEntity.createAttributes().build());
         event.put(GEO_DRILLER.get(), GeoDrillerEntity.createAttributes().build());
+        event.put(GOLDFLAME_QUCUSAUR.get(), GoldflameQucusaurEntity.createAttributes().build());
+        event.put(GOLDFLAME_QUCUSAUR_MOUNT.get(), GoldflameQucusaurMountEntity.createAttributes().build());
     }
 }

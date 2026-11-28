@@ -46,6 +46,7 @@ public final class TeyvatBossBarRenderer {
     private static final String KEY_RUIN_GUARD = "entity.velorise_teyvat_bosses.ruin_guard";
     private static final String KEY_RUIN_NAUTILUS = "entity.velorise_teyvat_bosses.ruin_nautilus";
     private static final String KEY_PRIMO_GEOVISHAP = "entity.velorise_teyvat_bosses.primo_geovishap";
+    private static final String KEY_GOLDFLAME_QUCUSAUR = "entity.velorise_teyvat_bosses.goldflame_qucusaur";
 
     private static final Map<UUID, DrainState> DRAIN_STATES = new HashMap<>();
 
@@ -111,6 +112,12 @@ public final class TeyvatBossBarRenderer {
                     tex("anemo_hypostasis_fill.png"),
                     tex("anemo_hypostasis_overlay.png"),
                     0xFFE0FFF1
+            ),
+            KEY_GOLDFLAME_QUCUSAUR, new BossBarStyle(
+                    tex("goldflame_qucusaur_bg.png"),
+                    tex("goldflame_qucusaur_fill.png"),
+                    tex("goldflame_qucusaur_overlay.png"),
+                    0xFFFFE4A8
             ),
             KEY_RUIN_GUARD, new BossBarStyle(
                     tex("ruin_guard_bg.png"),

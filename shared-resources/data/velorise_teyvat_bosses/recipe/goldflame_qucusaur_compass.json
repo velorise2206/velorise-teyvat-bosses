@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TBT",
+    "GCG",
+    "TTT"
+  ],
+  "key": {
+    "T": {
+      "item": "minecraft:terracotta"
+    },
+    "B": {
+      "item": "minecraft:blaze_powder"
+    },
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "C": {
+      "item": "minecraft:compass"
+    }
+  },
+  "result": {
+    "id": "velorise_teyvat_bosses:goldflame_qucusaur_compass",
+    "count": 1
+  }
+}

@@ -187,6 +187,17 @@ public class TrounceBlossomEntity extends Entity {
             giveToPlayer(sl, player, new ItemStack(Items.SEA_LANTERN, 3 + random.nextInt(3)));
             giveToPlayer(sl, player, new ItemStack(Items.PRISMARINE_BRICKS, 8 + random.nextInt(6)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
+        } else if (kind == BossRespawnAnchorEntity.BOSS_GOLDFLAME_QUCUSAUR) {
+            if (TeyvatBossesItems.goldflameQucusaurDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.goldflameQucusaurDisc()));
+            if (TeyvatBossesItems.markOfBindingBlessing() != null) {
+                giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.markOfBindingBlessing(), 2 + random.nextInt(2)));
+            }
+            if (TeyvatBossesItems.goldflameQucusaurEgg() != null) {
+                giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.goldflameQucusaurEgg(), 1));
+            }
+            giveToPlayer(sl, player, new ItemStack(Items.BLAZE_POWDER, 6 + random.nextInt(5)));
+            giveToPlayer(sl, player, new ItemStack(Items.GOLD_INGOT, 8 + random.nextInt(6)));
+            giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));
         } else if (kind == BossRespawnAnchorEntity.BOSS_CRYO_REGISVINE) {
             if (TeyvatBossesItems.cryoDisc() != null && random.nextFloat() < 0.5F) giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.cryoDisc()));
             int partDrops = 2 + random.nextInt(2); // 2-3 smart anti-duplicate Cryo Turret salvage parts

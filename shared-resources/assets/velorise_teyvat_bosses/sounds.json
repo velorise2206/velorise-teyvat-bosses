@@ -182,5 +182,13 @@
     "sounds": [
       "velorise_teyvat_bosses:sfx/primo_geovishap_death"
     ]
+  },
+  "music.goldflame_qucusaur_theme": {
+    "sounds": [
+      {
+        "name": "velorise_teyvat_bosses:music/goldflame_qucusaur_theme",
+        "stream": true
+      }
+    ]
   }
 }

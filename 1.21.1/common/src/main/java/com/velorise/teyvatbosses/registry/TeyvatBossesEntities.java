@@ -10,7 +10,12 @@ import com.velorise.teyvatbosses.entity.CryoIceSpikeEntity;
 import com.velorise.teyvatbosses.entity.CryoIcicleProjectile;
 import com.velorise.teyvatbosses.entity.CryoRegisvineEntity;
 import com.velorise.teyvatbosses.entity.CryoTurretEntity;
+import com.velorise.teyvatbosses.entity.FlamewindFeatherEntity;
 import com.velorise.teyvatbosses.entity.GeoDrillerEntity;
+import com.velorise.teyvatbosses.entity.GoldflameFireballEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurEggEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurEntity;
+import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapEntity;
 import com.velorise.teyvatbosses.entity.PrimoGeovishapPartEntity;
 import com.velorise.teyvatbosses.entity.PrimoInfusedStoneEntity;
@@ -54,6 +59,11 @@ public final class TeyvatBossesEntities {
     private static Supplier<EntityType<GeoDrillerEntity>> geoDriller;
     private static Supplier<EntityType<PrimoInfusedStoneEntity>> primoInfusedStone;
     private static Supplier<EntityType<PrimoGeovishapPartEntity>> primoGeovishapPart;
+    private static Supplier<EntityType<GoldflameQucusaurEntity>> goldflameQucusaur;
+    private static Supplier<EntityType<GoldflameQucusaurMountEntity>> goldflameQucusaurMount;
+    private static Supplier<EntityType<GoldflameQucusaurEggEntity>> goldflameQucusaurEgg;
+    private static Supplier<EntityType<FlamewindFeatherEntity>> flamewindFeather;
+    private static Supplier<EntityType<GoldflameFireballEntity>> goldflameFireball;
 
     private TeyvatBossesEntities() {}
 
@@ -126,4 +136,23 @@ public final class TeyvatBossesEntities {
     public static EntityType<PrimoInfusedStoneEntity> primoInfusedStone() { return primoInfusedStone.get(); }
     public static void bindPrimoPart(Supplier<EntityType<PrimoGeovishapPartEntity>> supplier) { primoGeovishapPart = supplier; }
     public static EntityType<PrimoGeovishapPartEntity> primoGeovishapPart() { return primoGeovishapPart.get(); }
+
+    public static void bindQucusaur(
+            Supplier<EntityType<GoldflameQucusaurEntity>> boss,
+            Supplier<EntityType<GoldflameQucusaurMountEntity>> mount,
+            Supplier<EntityType<GoldflameQucusaurEggEntity>> egg,
+            Supplier<EntityType<FlamewindFeatherEntity>> feather,
+            Supplier<EntityType<GoldflameFireballEntity>> fireball
+    ) {
+        goldflameQucusaur = boss;
+        goldflameQucusaurMount = mount;
+        goldflameQucusaurEgg = egg;
+        flamewindFeather = feather;
+        goldflameFireball = fireball;
+    }
+    public static EntityType<GoldflameQucusaurEntity> goldflameQucusaur() { return goldflameQucusaur.get(); }
+    public static EntityType<GoldflameQucusaurMountEntity> goldflameQucusaurMount() { return goldflameQucusaurMount.get(); }
+    public static EntityType<GoldflameQucusaurEggEntity> goldflameQucusaurEgg() { return goldflameQucusaurEgg.get(); }
+    public static EntityType<FlamewindFeatherEntity> flamewindFeather() { return flamewindFeather.get(); }
+    public static EntityType<GoldflameFireballEntity> goldflameFireball() { return goldflameFireball.get(); }
 }

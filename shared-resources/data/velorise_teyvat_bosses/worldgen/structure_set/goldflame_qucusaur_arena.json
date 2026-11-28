@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "velorise_teyvat_bosses:goldflame_qucusaur_arena",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 914726385,
+    "spacing": 44,
+    "separation": 22
+  }
+}

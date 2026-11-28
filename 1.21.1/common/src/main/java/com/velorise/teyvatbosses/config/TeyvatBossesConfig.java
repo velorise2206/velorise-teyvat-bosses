@@ -60,6 +60,10 @@ public final class TeyvatBossesConfig {
     public double ruinNautilusDamageMultiplier = 1.0D;
     public double primoGeovishapHealthMultiplier = 1.0D;
     public double primoGeovishapDamageMultiplier = 1.0D;
+    public double goldflameQucusaurHealthMultiplier = 1.0D;
+    public double goldflameQucusaurDamageMultiplier = 1.0D;
+    public boolean enableMountFireBlockIgnition = false;
+    public int qucusaurEggHatchSeconds = 60;
 
     public static TeyvatBossesConfig get() {
         return instance;
@@ -72,6 +76,7 @@ public final class TeyvatBossesConfig {
             case "ruin_guard" -> ruinGuardHealthMultiplier;
             case "ruin_nautilus" -> ruinNautilusHealthMultiplier;
             case "primo_geovishap" -> primoGeovishapHealthMultiplier;
+            case "goldflame_qucusaur" -> goldflameQucusaurHealthMultiplier;
             default -> 1.0D;
         };
         return clampDouble(globalHealthMultiplier * perBoss, 0.1D, 50.0D);
@@ -84,6 +89,7 @@ public final class TeyvatBossesConfig {
             case "ruin_guard" -> ruinGuardDamageMultiplier;
             case "ruin_nautilus" -> ruinNautilusDamageMultiplier;
             case "primo_geovishap" -> primoGeovishapDamageMultiplier;
+            case "goldflame_qucusaur" -> goldflameQucusaurDamageMultiplier;
             default -> 1.0D;
         };
         return clampDouble(globalDamageMultiplier * perBoss, 0.1D, 50.0D);

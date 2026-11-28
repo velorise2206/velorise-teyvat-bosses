@@ -15,7 +15,14 @@ import com.velorise.teyvatbosses.client.CryoIcicleRenderer;
 import com.velorise.teyvatbosses.client.CryoRegisvineRenderer;
 import com.velorise.teyvatbosses.client.CryoTurretRenderer;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
+import com.velorise.teyvatbosses.client.FlamewindFeatherRenderer;
 import com.velorise.teyvatbosses.client.GeoDrillerRenderer;
+import com.velorise.teyvatbosses.client.GoldflameFireballRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurClientController;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurEggRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurMountRenderer;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurRenderer;
+import com.velorise.teyvatbosses.client.model.GoldflameQucusaurModel;
 import com.velorise.teyvatbosses.client.PrimoGeovishapPartRenderer;
 import com.velorise.teyvatbosses.client.PrimoGeovishapRenderer;
 import com.velorise.teyvatbosses.client.PrimoInfusedStoneRenderer;
@@ -71,6 +78,8 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerLayerDefinition(PrimoGeovishapModel.LAYER_LOCATION_EMISSIVE, PrimoGeovishapModel::createEmissiveLayer);
         event.registerLayerDefinition(GeoDrillerModel.LAYER_LOCATION, GeoDrillerModel::createBodyLayer);
         event.registerLayerDefinition(PrimoInfusedStoneModel.LAYER_LOCATION, PrimoInfusedStoneModel::createBodyLayer);
+        event.registerLayerDefinition(GoldflameQucusaurModel.LAYER_LOCATION, GoldflameQucusaurModel::createBodyLayer);
+        event.registerLayerDefinition(GoldflameQucusaurModel.LAYER_LOCATION_EMISSIVE, GoldflameQucusaurModel::createEmissiveLayer);
     }
 
     @SubscribeEvent
@@ -99,6 +108,11 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GEO_DRILLER.get(), GeoDrillerRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_INFUSED_STONE.get(), PrimoInfusedStoneRenderer::new);
         event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP_PART.get(), PrimoGeovishapPartRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GOLDFLAME_QUCUSAUR.get(), GoldflameQucusaurRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GOLDFLAME_QUCUSAUR_MOUNT.get(), GoldflameQucusaurMountRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GOLDFLAME_QUCUSAUR_EGG.get(), GoldflameQucusaurEggRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.FLAMEWIND_FEATHER.get(), FlamewindFeatherRenderer::new);
+        event.registerEntityRenderer(VeloriseTeyvatBossesNeoForge.GOLDFLAME_FIREBALL.get(), GoldflameFireballRenderer::new);
 
         event.registerBlockEntityRenderer(VeloriseTeyvatBossesNeoForge.BOSS_TROPHY_BE.get(), BossTrophyRenderer::new);
     }
@@ -114,7 +128,8 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
                     VeloriseTeyvatBossesNeoForge.ANEMO_HYPOSTASIS_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.RUIN_GUARD_COMPASS.get(),
                     VeloriseTeyvatBossesNeoForge.RUIN_NAUTILUS_COMPASS.get(),
-                    VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP_COMPASS.get()
+                    VeloriseTeyvatBossesNeoForge.PRIMO_GEOVISHAP_COMPASS.get(),
+                    VeloriseTeyvatBossesNeoForge.GOLDFLAME_QUCUSAUR_COMPASS.get()
             }) {
                 ItemProperties.register(compass, ResourceLocation.withDefaultNamespace("angle"), bossCompassProp);
             }
@@ -132,6 +147,7 @@ public final class VeloriseTeyvatBossesNeoForgeClient {
             RuinMechCockpitHud.render(gui, delta.getGameTimeDeltaPartialTick(false));
             RuinSubClientController.renderHud(gui);
             GeoDrillerClientController.renderHud(gui);
+            GoldflameQucusaurClientController.renderHud(gui);
         });
     }
 }

@@ -6,6 +6,7 @@ import com.velorise.teyvatbosses.client.RuinMechCameraController;
 import com.velorise.teyvatbosses.client.RuinMechInputController;
 import com.velorise.teyvatbosses.client.BossCameraShake;
 import com.velorise.teyvatbosses.client.GeoDrillerClientController;
+import com.velorise.teyvatbosses.client.GoldflameQucusaurClientController;
 import com.velorise.teyvatbosses.client.RuinSubClientController;
 import com.velorise.teyvatbosses.client.TeyvatBossBarRenderer;
 import net.minecraft.client.Minecraft;
@@ -33,6 +34,8 @@ public final class VeloriseTeyvatBossesNeoForgeClientEvents {
         RuinSubClientController.tick(Minecraft.getInstance());
         GeoDrillerClientController.setPacketSender(PacketDistributor::sendToServer);
         GeoDrillerClientController.tick(Minecraft.getInstance());
+        GoldflameQucusaurClientController.setPacketSender(PacketDistributor::sendToServer);
+        GoldflameQucusaurClientController.tick(Minecraft.getInstance());
         AnemoBootsClientController.setPacketSender(PacketDistributor::sendToServer);
         AnemoBootsClientController.tick(Minecraft.getInstance());
         BossCameraShake.clientTick();

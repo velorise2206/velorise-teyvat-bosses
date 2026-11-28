@@ -29,7 +29,8 @@ public class BossRespawnAnchorEntity extends Entity {
     public static final int BOSS_ANEMO_HYPOSTASIS = 1;
     public static final int BOSS_RUIN_GUARD       = 2;
     public static final int BOSS_RUIN_NAUTILUS    = 3;
-    public static final int BOSS_PRIMO_GEOVISHAP  = 4;
+    public static final int BOSS_PRIMO_GEOVISHAP      = 4;
+    public static final int BOSS_GOLDFLAME_QUCUSAUR   = 5;
     public static final int DEFAULT_RESPAWN_TICKS = 2400;
 
     private static final EntityDataAccessor<Integer> DATA_BOSS_KIND =
@@ -123,6 +124,7 @@ public class BossRespawnAnchorEntity extends Entity {
             case BOSS_ANEMO_HYPOSTASIS -> "entity.velorise_teyvat_bosses.anemo_hypostasis";
             case BOSS_RUIN_GUARD -> "entity.velorise_teyvat_bosses.ruin_guard";
             case BOSS_RUIN_NAUTILUS -> "entity.velorise_teyvat_bosses.ruin_nautilus";
+            case BOSS_GOLDFLAME_QUCUSAUR -> "entity.velorise_teyvat_bosses.goldflame_qucusaur";
             default -> "entity.velorise_teyvat_bosses.primo_geovishap";
         };
         ChatFormatting col = switch (getBossKind()) {
@@ -130,6 +132,7 @@ public class BossRespawnAnchorEntity extends Entity {
             case BOSS_ANEMO_HYPOSTASIS -> ChatFormatting.GREEN;
             case BOSS_RUIN_GUARD -> ChatFormatting.GOLD;
             case BOSS_RUIN_NAUTILUS -> ChatFormatting.AQUA;
+            case BOSS_GOLDFLAME_QUCUSAUR -> ChatFormatting.RED;
             default -> ChatFormatting.YELLOW;
         };
         setCustomName(Component.translatable(bossKey)
@@ -162,6 +165,14 @@ public class BossRespawnAnchorEntity extends Entity {
                 sl.addFreshEntity(boss);
                 sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.0D, getZ(), 48, 1.6D, 1.8D, 1.6D, 0.09D);
                 sl.playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_GOLEM_REPAIR, SoundSource.HOSTILE, 1.5F, 0.72F);
+            }
+        } else if (kind == BOSS_GOLDFLAME_QUCUSAUR) {
+            GoldflameQucusaurEntity boss = TeyvatBossesEntities.goldflameQucusaur().create(sl);
+            if (boss != null) {
+                boss.moveTo(getX(), getY(), getZ(), savedYaw, 0.0F);
+                sl.addFreshEntity(boss);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 2.0D, getZ(), 60, 2.2D, 1.8D, 2.2D, 0.14D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.5F, 0.95F);
             }
         } else if (kind == BOSS_RUIN_NAUTILUS) {
             RuinNautilusEntity boss = TeyvatBossesEntities.ruinNautilus().create(sl);
