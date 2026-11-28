@@ -27,11 +27,11 @@ import java.util.WeakHashMap;
  * Overhauled Genshin-accurate renderer for CryoRegisvineEntity with:
  * <ul>
  *   <li><b>Fixed Grounded Roots:</b> {@code root_base} & {@code root_core} remain permanently anchored at spawn
- *       {@link CryoRegisvineEntity#getRootYaw()} — ONLY the upper stem joint ({@code stem_1.yRot}) rotates smoothly
+ *       {@link CryoRegisvineEntity#getRootYaw()} - ONLY the upper stem joint ({@code stem_1.yRot}) rotates smoothly
  *       to track the player!</li>
  *   <li><b>True Pose-Snapshot Animation State Machine:</b> Captures every bone's live pose before any state/clip
  *       switch and cross-fades over 8 ticks (0.40s) using shortest-angle radian interpolation ({@code lerpAngleRad}),
- *       completely eliminating 1-frame reset snaps and 360° backwards unwind spins after {@code flail_360}/{@code rotary_spray_beam}.</li>
+ *       completely eliminating 1-frame reset snaps and 360 deg backwards unwind spins after {@code flail_360}/{@code rotary_spray_beam}.</li>
  *   <li><b>Matrix-Verified Slash & Laser Alignment:</b> All 3D slash crescents ({@code flail_360}, {@code spin_frost_ring},
  *       {@code half_flail_combo}) sweep in the exact world-space direction of {@code stem_1.yRot}.</li>
  * </ul>
@@ -174,7 +174,7 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         renderGroundAndSlashVFX(entity, stemWorldYaw, animTicksF, partialTicks, poseStack, bufferSource);
 
         poseStack.pushPose();
-        // ROOT BASE IS ALWAYS FIXED AT SPAWN rootYaw — NEVER SPINS ON THE FLOOR!
+        // ROOT BASE IS ALWAYS FIXED AT SPAWN rootYaw - NEVER SPINS ON THE FLOOR!
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - rootYaw));
         poseStack.scale(-BOSS_RENDER_SCALE, -BOSS_RENDER_SCALE, BOSS_RENDER_SCALE);
         poseStack.translate(0.0D, -1.501D, 0.0D);
@@ -232,7 +232,7 @@ public class CryoRegisvineRenderer extends EntityRenderer<CryoRegisvineEntity> {
         hideBone(model, "lash_beam_r");
         hideBone(model, "lash_beam_l");
 
-        VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutout(TEXTURE));
         int overlay = OverlayTexture.pack(OverlayTexture.u(0.0F), OverlayTexture.v(entity.hurtTime > 0 || entity.deathTime > 0));
         model.renderToBuffer(poseStack, vc, packedLight, overlay, 0xFFFFFFFF);
 

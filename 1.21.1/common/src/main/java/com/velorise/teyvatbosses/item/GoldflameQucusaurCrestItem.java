@@ -71,7 +71,7 @@ public class GoldflameQucusaurCrestItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext ctx, List<Component> tooltip, TooltipFlag flag) {
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        float hp = tag.contains(TAG_HP) ? tag.getFloat(TAG_HP) : 160.0F;
+        float hp = tag.contains(TAG_HP) ? tag.getFloat(TAG_HP) : 320.0F;
         float phlog = tag.contains(TAG_PHLOG) ? tag.getFloat(TAG_PHLOG) : 200.0F;
         tooltip.add(Component.translatable("tooltip.velorise_teyvat_bosses.goldflame_qucusaur_crest",
                 (int) hp, (int) phlog).withStyle(ChatFormatting.GOLD));

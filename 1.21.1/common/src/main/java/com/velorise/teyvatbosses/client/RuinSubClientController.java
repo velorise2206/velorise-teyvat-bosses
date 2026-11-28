@@ -27,6 +27,9 @@ public final class RuinSubClientController {
 
     private static Consumer<RuinSubControlPayload> packetSender = p -> {};
     private static boolean prevRmb = false;
+    private static int lastSubId = -1;
+    private static int mountGraceTicks = 0;
+    private static boolean waitingForRmbRelease = false;
     private static int boostPulseTick = 0;
     private static float lastFwd = 0.0F;
     private static float lastStrafe = 0.0F;
@@ -78,6 +81,9 @@ public final class RuinSubClientController {
 
         if (mc.player == null || mc.screen != null || !(mc.player.getVehicle() instanceof RuinSubmersibleEntity sub)) {
             prevRmb = false;
+            lastSubId = -1;
+            mountGraceTicks = 0;
+            waitingForRmbRelease = false;
             boostPulseTick = 0;
             lastFwd = 0.0F;
             lastStrafe = 0.0F;
@@ -95,6 +101,19 @@ public final class RuinSubClientController {
 
         boolean lmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
         boolean rmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+        if (sub.getId() != lastSubId) {
+            lastSubId = sub.getId();
+            mountGraceTicks = 8;
+            waitingForRmbRelease = true;
+            prevRmb = false;
+        }
+        if (mountGraceTicks > 0) mountGraceTicks--;
+        if (waitingForRmbRelease) {
+            if (!rmb) waitingForRmbRelease = false;
+            rmb = false;
+        } else if (mountGraceTicks > 0) {
+            rmb = false;
+        }
         boolean keyR = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_R) == GLFW.GLFW_PRESS;
 
         boolean boostHeld = keyR && sub.getEnergy() > 1.0F && sub.isInOrOnWater();
@@ -215,7 +234,7 @@ public final class RuinSubClientController {
         String navLine = "Y:" + (int) sub.getY() + "  " + speedKt + "kt  " + heading;
         g.drawString(mc.font, navLine, lx + 5, yBase + 35, 0xFFC2D4E6, false);
 
-        // Right Panel: Torpedoes [LMB], Sonar [RMB], Dash [R], Light [F] — zero text overlap!
+        // Right Panel: Torpedoes [LMB], Sonar [RMB], Dash [R], Light [F] - zero text overlap!
         int rx = cx + 98;
         int rw = 126;
         int rh = 46;

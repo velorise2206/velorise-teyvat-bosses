@@ -5,6 +5,11 @@ import com.velorise.teyvatbosses.config.TeyvatBossesConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import org.joml.Vector3f;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.util.RandomSource;
+import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -19,6 +24,9 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import com.velorise.teyvatbosses.registry.TeyvatBossesEntities;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -37,7 +45,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
- * Boss #6: Goldflame Qucusaur Tyrant (Holawaqa Ngoubou) — pure Pyro flying wyvern World Boss.
+ * Boss #6: Goldflame Qucusaur Tyrant (Holawaqa Ngoubou) - pure Pyro flying wyvern World Boss.
  * <ul>
  *   <li>680 base HP, 70% Pyro RES, 3-layer {@link BossDamageCap}, and custom Goldflame BossBar.</li>
  *   <li>Ground phase: 3-hit {@code wing_swipe} combo, {@code shockwave_slam}, {@code charge_drill}, {@code breath_sweep}.</li>
@@ -64,6 +72,7 @@ public class GoldflameQucusaurEntity extends Monster {
     public static final int STATE_DORMANT           = 12;
     public static final int STATE_WAKE_UP           = 13;
     public static final int STATE_RETURN_FLIGHT     = 14;
+    public static final int STATE_SUBDUED           = 15;
 
     private static final EntityDataAccessor<Integer> DATA_STATE =
             SynchedEntityData.defineId(GoldflameQucusaurEntity.class, EntityDataSerializers.INT);
@@ -210,6 +219,7 @@ public class GoldflameQucusaurEntity extends Monster {
             case STATE_DORMANT -> "dormant_sleep";
             case STATE_WAKE_UP -> "wake_up";
             case STATE_RETURN_FLIGHT -> "fly_hover";
+            case STATE_SUBDUED -> "crash_stun";
             default -> "idle_ground";
         };
     }
@@ -264,8 +274,13 @@ public class GoldflameQucusaurEntity extends Monster {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (getAnimState() == STATE_DEATH_COLLAPSE) return false;
-        if (getAnimState() == STATE_DORMANT && !level().isClientSide()) {
+        int st = getAnimState();
+        if (st == STATE_DEATH_COLLAPSE) return false;
+        if (st == STATE_SUBDUED) {
+            // Subdued dragon waits at 1 HP to be tamed & mounted; only /kill bypasses
+            return source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && super.hurt(source, amount);
+        }
+        if (st == STATE_DORMANT && !level().isClientSide()) {
             triggerWakeUp((ServerLevel) level());
         }
         if (source.is(DamageTypeTags.IS_FIRE)) {
@@ -282,23 +297,72 @@ public class GoldflameQucusaurEntity extends Monster {
             }
             return true;
         }
-        boolean vulnerable = getAnimState() == STATE_CRASH_STUN;
+        boolean vulnerable = st == STATE_CRASH_STUN;
         float capped = damageCap.apply(this, source, vulnerable ? amount * 1.25F : amount, vulnerable);
         if (capped <= 0.0F) return false;
+        if (!source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && getHealth() - capped <= 1.0F) {
+            enterSubduedState();
+            return true;
+        }
         return super.hurt(source, capped);
+    }
+
+    private void enterSubduedState() {
+        setHealth(1.0F);
+        setState(STATE_SUBDUED);
+        entityData.set(DATA_PYRO_SHIELD, 0.0F);
+        setNoGravity(false);
+        bossEvent.setProgress(0.0F);
+        bossEvent.setVisible(false);
+        setCustomName(Component.literal("Goldflame Qucusaur Tyrant [Right-Click to Tame & Ride]")
+                .withStyle(ChatFormatting.GOLD));
+        setCustomNameVisible(true);
+        if (level() instanceof ServerLevel sl) {
+            if (!blossomSpawned) {
+                blossomSpawned = true;
+                TrounceBlossomEntity.spawn(sl, BossRespawnAnchorEntity.BOSS_GOLDFLAME_QUCUSAUR,
+                        homePos != null ? homePos : position(), getYRot());
+            }
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.1F, 1.25F);
+            sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 1.3F, 1.1F);
+            sl.sendParticles(ParticleTypes.HEART, getX(), getY() + 2.2D, getZ(), 14, 1.4D, 0.8D, 1.4D, 0.03D);
+            sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.2D, getZ(), 32, 1.8D, 0.8D, 1.8D, 0.08D);
+        }
+    }
+
+    @Override
+    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (getAnimState() == STATE_SUBDUED) {
+            if (level().isClientSide()) return InteractionResult.SUCCESS;
+            if (level() instanceof ServerLevel sl) {
+                GoldflameQucusaurMountEntity mount = new GoldflameQucusaurMountEntity(
+                        TeyvatBossesEntities.goldflameQucusaurMount(), sl);
+                mount.setPos(getX(), getY() + 0.1D, getZ());
+                mount.setYRot(getYRot());
+                mount.yBodyRot = yBodyRot;
+                mount.yHeadRot = yHeadRot;
+                mount.setOwnerUuid(player.getUUID());
+                mount.setSaddled(true);
+                mount.setHealth(mount.getMaxHealth());
+                sl.addFreshEntity(mount);
+                player.startRiding(mount);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 1.3F, 1.35F);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.NEUTRAL, 1.1F, 1.1F);
+                sl.sendParticles(ParticleTypes.HEART, getX(), getY() + 2.2D, getZ(), 20, 1.5D, 1.0D, 1.5D, 0.04D);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.4D, getZ(), 36, 1.6D, 0.9D, 1.6D, 0.10D);
+                player.displayClientMessage(Component.literal("You tamed the Goldflame Qucusaur Tyrant!")
+                        .withStyle(ChatFormatting.GOLD), true);
+                discard();
+                return InteractionResult.CONSUME;
+            }
+        }
+        return super.mobInteract(player, hand);
     }
 
     @Override
     public void die(DamageSource cause) {
-        if (getAnimState() != STATE_DEATH_COLLAPSE) {
-            setHealth(1.0F);
-            setState(STATE_DEATH_COLLAPSE);
-            deathAnimTicks = 0;
-            entityData.set(DATA_PYRO_SHIELD, 0.0F);
-            bossEvent.setProgress(0.0F);
-            if (level() instanceof ServerLevel sl) {
-                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_DEATH, SoundSource.HOSTILE, 1.1F, 1.15F);
-            }
+        if (!cause.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && getAnimState() != STATE_SUBDUED) {
+            enterSubduedState();
             return;
         }
         super.die(cause);
@@ -318,6 +382,17 @@ public class GoldflameQucusaurEntity extends Monster {
                         getZ() + (random.nextDouble() - 0.5D) * 3.0D,
                         0.0D, 0.06D, 0.0D);
             }
+            if (getAnimState() == STATE_BREATH_SWEEP) {
+                int stTicks = getStateTicks();
+                if (stTicks >= 15 && stTicks <= 50) {
+                    float progress = Mth.clamp((stTicks - 16) / 32.0F, 0.0F, 1.0F);
+                    float sweepYaw = getYRot() + Mth.lerp(progress, -28.0F, 28.0F);
+                    float pitch = getSyncedBreathPitch();
+                    Vec3 dir = Vec3.directionFromRotation(pitch, sweepYaw).normalize();
+                    Vec3 mouth = position().add(0.0D, 2.55D, 0.0D).add(dir.scale(2.25D));
+                    spawnIceAndFireBreathParticles(this, mouth, dir, 16.5D, 1.15F, progress * 0.75F);
+                }
+            }
             return;
         }
 
@@ -326,6 +401,17 @@ public class GoldflameQucusaurEntity extends Monster {
         int ticks = getStateTicks() + 1;
         entityData.set(DATA_STATE_TICKS, ticks);
 
+        if (st == STATE_SUBDUED) {
+            setNoGravity(false);
+            setDeltaMovement(0.0D, onGround() ? 0.0D : -0.35D, 0.0D);
+            if (getHealth() < 1.0F) setHealth(1.0F);
+            bossEvent.setVisible(false);
+            if (tickCount % 16 == 0) {
+                sl.sendParticles(ParticleTypes.HEART, getX(), getY() + 2.2D, getZ(), 2, 1.1D, 0.5D, 1.1D, 0.02D);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.0D, getZ(), 4, 1.2D, 0.4D, 1.2D, 0.03D);
+            }
+            return;
+        }
         if (st == STATE_DEATH_COLLAPSE) {
             setDeltaMovement(0.0D, onGround() ? 0.0D : -0.35D, 0.0D);
             deathAnimTicks++;
@@ -668,8 +754,7 @@ public class GoldflameQucusaurEntity extends Monster {
             Vec3 dir = Vec3.directionFromRotation(pitch, sweepYaw);
             for (double d = 2.0D; d <= 16.0D; d += 2.0D) {
                 Vec3 pt = origin.add(dir.scale(d));
-                sl.sendParticles(ParticleTypes.FLAME, pt.x, pt.y, pt.z, 3, 0.45D, 0.35D, 0.45D, 0.03D);
-                dealRadialPyroDamage(sl, pt, 2.3D, 7.0F, 0.35D);
+                dealRadialPyroDamage(sl, pt, 2.3D, 7.0F + progress * 4.5F, 0.35D);
             }
         }
         if (ticks >= 60) {
@@ -703,6 +788,11 @@ public class GoldflameQucusaurEntity extends Monster {
         setDeltaMovement(delta.scale(0.10D));
         if (target != null) {
             faceTarget(target.position(), 8.0F);
+        }
+        if (target == null && idleOutOfCombatTicks > 100) {
+            entityData.set(DATA_PYRO_SHIELD, 0.0F);
+            setState(STATE_RETURN_FLIGHT);
+            return;
         }
         if (ticks == 40) {
             setState(STATE_FEATHER_BARRAGE);
@@ -911,6 +1001,8 @@ public class GoldflameQucusaurEntity extends Monster {
         tag.putInt("AerialPhaseCount", aerialPhaseCount);
         tag.putFloat("PyroShield", getPyroShield());
         tag.putBoolean("Dormant", getAnimState() == STATE_DORMANT);
+        tag.putBoolean("Subdued", getAnimState() == STATE_SUBDUED);
+        tag.putBoolean("BlossomSpawned", blossomSpawned);
     }
 
     @Override
@@ -921,7 +1013,13 @@ public class GoldflameQucusaurEntity extends Monster {
         }
         aerialPhaseCount = tag.getInt("AerialPhaseCount");
         entityData.set(DATA_PYRO_SHIELD, tag.getFloat("PyroShield"));
-        if (tag.contains("Dormant")) {
+        blossomSpawned = tag.getBoolean("BlossomSpawned");
+        if (tag.getBoolean("Subdued")) {
+            entityData.set(DATA_STATE, STATE_SUBDUED);
+            entityData.set(DATA_PYRO_SHIELD, 0.0F);
+            setNoGravity(false);
+            bossEvent.setVisible(false);
+        } else if (tag.contains("Dormant")) {
             boolean dormant = tag.getBoolean("Dormant");
             entityData.set(DATA_STATE, dormant ? STATE_DORMANT : STATE_IDLE_GROUND);
             bossEvent.setVisible(!dormant);
@@ -967,5 +1065,130 @@ public class GoldflameQucusaurEntity extends Monster {
     @Override
     public AABB getBoundingBoxForCulling() {
         return super.getBoundingBoxForCulling().inflate(7.0D);
+    }
+
+    /**
+     * Ice-and-Fire style roaring volumetric dragon fire particle stream (no solid cone mesh).
+     * Emits pressurized core flame jets, expanding gold-to-crimson billowy fire clouds,
+     * arcing lava embers, trailing smoke, and a block-impact splash along the live aim ray.
+     */
+    public static void spawnIceAndFireBreathParticles(Entity source, Vec3 mouth, Vec3 dir,
+                                                      double maxRange, float cloudScale, float heatFactor) {
+        float heat = Mth.clamp(heatFactor, 0.0F, 1.0F);
+        float dynScale = cloudScale * (1.0F + heat * 0.35F);
+        Level lvl = source.level();
+        RandomSource rnd = lvl.getRandom();
+        Vec3 end = mouth.add(dir.scale(maxRange));
+        HitResult hit = lvl.clip(new ClipContext(mouth, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, source));
+        double reach = (hit.getType() == HitResult.Type.BLOCK)
+                ? Math.max(1.2D, mouth.distanceTo(hit.getLocation()))
+                : maxRange;
+
+        // Orthonormal basis perpendicular to the breath jet for realistic conical spread
+        Vec3 upRef = Math.abs(dir.y) > 0.92D ? new Vec3(1.0D, 0.0D, 0.0D) : new Vec3(0.0D, 1.0D, 0.0D);
+        Vec3 right = dir.cross(upRef).normalize();
+        Vec3 up = right.cross(dir).normalize();
+
+        // 1. High-velocity pressurized core flame stream (intensifies with heat)
+        int coreCount = 14 + (int) (heat * 10.0F);
+        for (int i = 0; i < coreCount; i++) {
+            double jitterR = 0.14D + rnd.nextDouble() * 0.16D;
+            double ang = rnd.nextDouble() * Math.PI * 2.0D;
+            Vec3 off = right.scale(Math.cos(ang) * jitterR).add(up.scale(Math.sin(ang) * jitterR));
+            double spd = (0.78D + rnd.nextDouble() * 0.62D) * Math.min(1.0D, reach / 10.0D + 0.35D);
+            double spread = 0.09D + rnd.nextDouble() * 0.08D;
+            Vec3 vel = dir.scale(spd)
+                    .add(right.scale((rnd.nextDouble() - 0.5D) * spread))
+                    .add(up.scale((rnd.nextDouble() - 0.5D) * spread));
+            lvl.addParticle(ParticleTypes.FLAME,
+                    mouth.x + off.x, mouth.y + off.y, mouth.z + off.z,
+                    vel.x, vel.y, vel.z);
+        }
+
+        // 2. Expanding volumetric fire puffs (shifts brighter white-gold as heat ramps up)
+        DustColorTransitionOptions goldToCrimson = new DustColorTransitionOptions(
+                new Vector3f(1.0F, Mth.lerp(heat, 0.86F, 0.98F), Mth.lerp(heat, 0.26F, 0.72F)),
+                new Vector3f(Mth.lerp(heat, 0.88F, 1.0F), Mth.lerp(heat, 0.16F, 0.42F), Mth.lerp(heat, 0.03F, 0.10F)),
+                Math.min(4.0F, 2.8F * dynScale));
+        DustColorTransitionOptions coreToOrange = new DustColorTransitionOptions(
+                new Vector3f(1.0F, 0.98F, Mth.lerp(heat, 0.65F, 0.95F)),
+                new Vector3f(1.0F, Mth.lerp(heat, 0.45F, 0.72F), Mth.lerp(heat, 0.06F, 0.20F)),
+                Math.min(4.0F, 2.2F * dynScale));
+
+        int cloudCount = 11 + (int) (heat * 6.0F);
+        for (int i = 0; i < cloudCount; i++) {
+            double frac = (i + rnd.nextDouble()) / (double) cloudCount;
+            double dist = 0.6D + frac * (reach - 0.6D);
+            double coneR = (0.16D + frac * 1.45D) * dynScale;
+            double ang = rnd.nextDouble() * Math.PI * 2.0D;
+            double rad = Math.sqrt(rnd.nextDouble()) * coneR;
+            Vec3 pt = mouth.add(dir.scale(dist))
+                    .add(right.scale(Math.cos(ang) * rad))
+                    .add(up.scale(Math.sin(ang) * rad));
+            DustColorTransitionOptions opt = (frac < 0.35D && (i & 1) == 0) ? coreToOrange : goldToCrimson;
+            lvl.addParticle(opt, pt.x, pt.y, pt.z,
+                    dir.x * 0.18D, dir.y * 0.18D + 0.04D, dir.z * 0.18D);
+        }
+
+        // 2b. Superheated white-blue plasma core sparks at high continuous heat (>55%)
+        if (heat > 0.55F) {
+            int hotCount = 2 + (int) ((heat - 0.55F) * 10.0F);
+            for (int i = 0; i < hotCount; i++) {
+                double spd = 0.95D + rnd.nextDouble() * 0.55D;
+                lvl.addParticle(ParticleTypes.SOUL_FIRE_FLAME,
+                        mouth.x + (rnd.nextDouble() - 0.5D) * 0.25D,
+                        mouth.y + (rnd.nextDouble() - 0.5D) * 0.25D,
+                        mouth.z + (rnd.nextDouble() - 0.5D) * 0.25D,
+                        dir.x * spd, dir.y * spd, dir.z * spd);
+            }
+        }
+
+        // 3. Swirling outer embers, sparks, and billowing heat smoke
+        for (int i = 0; i < 6; i++) {
+            double frac = 0.15D + rnd.nextDouble() * 0.85D;
+            double dist = frac * reach;
+            double coneR = (0.25D + frac * 1.35D) * cloudScale;
+            Vec3 pt = mouth.add(dir.scale(dist))
+                    .add(right.scale((rnd.nextDouble() - 0.5D) * coneR * 2.0D))
+                    .add(up.scale((rnd.nextDouble() - 0.5D) * coneR * 2.0D));
+            lvl.addParticle(ParticleTypes.SMALL_FLAME, pt.x, pt.y, pt.z,
+                    dir.x * 0.35D, dir.y * 0.35D + 0.05D, dir.z * 0.35D);
+        }
+        for (int i = 0; i < 3; i++) {
+            double frac = 0.25D + rnd.nextDouble() * 0.75D;
+            Vec3 pt = mouth.add(dir.scale(frac * reach));
+            lvl.addParticle(ParticleTypes.LAVA, pt.x, pt.y, pt.z,
+                    dir.x * 0.25D, 0.08D, dir.z * 0.25D);
+        }
+        for (int i = 0; i < 3; i++) {
+            double frac = 0.45D + rnd.nextDouble() * 0.55D;
+            double coneR = (0.35D + frac * 1.40D) * cloudScale;
+            Vec3 pt = mouth.add(dir.scale(frac * reach))
+                    .add(right.scale((rnd.nextDouble() - 0.5D) * coneR * 1.8D))
+                    .add(up.scale((rnd.nextDouble() - 0.5D) * coneR * 1.8D));
+            lvl.addParticle(ParticleTypes.LARGE_SMOKE, pt.x, pt.y, pt.z,
+                    dir.x * 0.12D, 0.07D + rnd.nextDouble() * 0.05D, dir.z * 0.12D);
+        }
+
+        // 4. Fiery surface impact splash when the breath hits terrain or walls
+        if (hit.getType() == HitResult.Type.BLOCK) {
+            Vec3 hp = hit.getLocation().subtract(dir.scale(0.25D));
+            for (int i = 0; i < 7; i++) {
+                lvl.addParticle(ParticleTypes.FLAME,
+                        hp.x + (rnd.nextDouble() - 0.5D) * 0.9D,
+                        hp.y + (rnd.nextDouble() - 0.5D) * 0.6D,
+                        hp.z + (rnd.nextDouble() - 0.5D) * 0.9D,
+                        (rnd.nextDouble() - 0.5D) * 0.26D,
+                        0.08D + rnd.nextDouble() * 0.18D,
+                        (rnd.nextDouble() - 0.5D) * 0.26D);
+            }
+            for (int i = 0; i < 3; i++) {
+                lvl.addParticle(goldToCrimson,
+                        hp.x + (rnd.nextDouble() - 0.5D) * 1.2D,
+                        hp.y + rnd.nextDouble() * 0.7D,
+                        hp.z + (rnd.nextDouble() - 0.5D) * 1.2D,
+                        0.0D, 0.06D, 0.0D);
+            }
+        }
     }
 }

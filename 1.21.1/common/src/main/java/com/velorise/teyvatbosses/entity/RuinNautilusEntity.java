@@ -5,6 +5,7 @@ import com.velorise.teyvatbosses.entity.ai.BossReturnHomeHelper;
 
 import com.velorise.teyvatbosses.compat.StavesElementBridge;
 import com.velorise.teyvatbosses.registry.TeyvatBossesSounds;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -40,16 +41,16 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * AAA 2-Phase Underwater Boss: <b>Ruin Nautilus — Abyssal Dreadnought</b>.
+ * AAA 2-Phase Underwater Boss: <b>Ruin Nautilus - Abyssal Dreadnought</b>.
  *
  * <p>Inspired by L_Ender's Cataclysm (The Leviathan) and Ace Combat 7 (Alicorn):
  * <ul>
  *   <li><b>Anti-cheese underwater combat</b>: 80% damage reduction out of water, 60% reduction beyond 36 blocks,
  *       28-damage per-hit cap, and fair skill-based stun interrupts (no infinite bow stun-lock).</li>
- *   <li><b>Phase 1 (100%-50% HP — Hunter-Killer)</b>: Distance-reactive Sonar Shockwave, Fin-Blade Sweep,
+ *   <li><b>Phase 1 (100%-50% HP - Hunter-Killer)</b>: Distance-reactive Sonar Shockwave, Fin-Blade Sweep,
  *       Interruptible Hydro-Jet Ram, 6-Torpedo Salvo, Floating Acoustic Depth Mines, Harpoon Tether Pull,
  *       and Sweeping Abyssal Eye Beam.</li>
- *   <li><b>Phase 2 (&lt;50% HP — Abyssal Dreadnought Overdrive)</b>: Uninterruptible 4s transformation deploying
+ *   <li><b>Phase 2 (&lt;50% HP - Abyssal Dreadnought Overdrive)</b>: Uninterruptible 4s transformation deploying
  *       the hidden <b>Dorsal Hydro-Railgun</b>, unlocking Dorsal Railgun Overcharge (with 3.5s thermal vent
  *       overheat punish window), Sonar Blackout Breach Ambush, and Trench Whirlpool.</li>
  * </ul>
@@ -243,6 +244,41 @@ public class RuinNautilusEntity extends Mob {
         return isInWater() || isUnderWater() || level().getFluidState(blockPosition()).is(FluidTags.WATER);
     }
 
+    private boolean isWaterAt(double x, double y, double z) {
+        return level().getFluidState(BlockPos.containing(x, y, z)).is(FluidTags.WATER);
+    }
+
+    /**
+     * Prevents the aquatic submarine boss from ever swimming in air or sliding onto dry land.
+     * On dry land, real gravity pulls it down and horizontal swim propulsion is disabled.
+     */
+    private void applyAquaticVelocity(Vec3 desiredVel, double lerpFactor) {
+        if (!isSubmergedOrWet()) {
+            setNoGravity(false);
+            Vec3 cur = getDeltaMovement();
+            double nextY = onGround() ? Math.min(cur.y, 0.0D) : cur.y;
+            setDeltaMovement(cur.x * 0.55D, nextY, cur.z * 0.55D);
+            return;
+        }
+        setNoGravity(true);
+        double vx = desiredVel.x;
+        double vy = desiredVel.y;
+        double vz = desiredVel.z;
+        // Never breach/fly above the water surface
+        if (vy > 0.0D && !isWaterAt(getX(), getY() + 1.6D, getZ())) {
+            vy = 0.0D;
+        }
+        // Never swim horizontally onto dry shore blocks
+        double stepX = getX() + vx * 4.0D;
+        double stepZ = getZ() + vz * 4.0D;
+        if ((vx * vx + vz * vz) > 1.0E-4D && !isWaterAt(stepX, getY() + 0.5D, stepZ) && !isWaterAt(stepX, getY() - 0.5D, stepZ)) {
+            vx = 0.0D;
+            vz = 0.0D;
+        }
+        Vec3 clamped = new Vec3(vx, vy, vz);
+        setDeltaMovement(lerpFactor >= 0.999D ? clamped : getDeltaMovement().lerp(clamped, lerpFactor));
+    }
+
     @Override
     public void startSeenByPlayer(ServerPlayer player) {
         super.startSeenByPlayer(player);
@@ -395,6 +431,15 @@ public class RuinNautilusEntity extends Mob {
         bossEvent.setProgress(Mth.clamp(getHealth() / getMaxHealth(), 0.0F, 1.0F));
         tickDepthMines(sl);
 
+        boolean inWater = isSubmergedOrWet();
+        setNoGravity(inWater);
+        if (!inWater) {
+            // Beached on dry land: flatten pitch and let gravity pull the submarine down (never swim on land!)
+            entityData.set(DATA_HULL_PITCH, Mth.lerp(0.20F, getHullPitchDeg(), 0.0F));
+            Vec3 cur = getDeltaMovement();
+            setDeltaMovement(cur.x * 0.60D, onGround() ? Math.min(cur.y, 0.0D) : cur.y, cur.z * 0.60D);
+        }
+
         if (st == STATE_DEATH) {
             setDeltaMovement(0.0D, -0.04D, 0.0D);
             if (t % 4 == 0) {
@@ -411,7 +456,7 @@ public class RuinNautilusEntity extends Mob {
         }
 
         if (st == STATE_DORMANT) {
-            setDeltaMovement(Vec3.ZERO);
+            if (inWater) setDeltaMovement(Vec3.ZERO);
             Player near = sl.getNearestPlayer(this, 18.0D);
             if (near != null && !near.isSpectator() && !near.isCreative()) {
                 startAwaken();
@@ -420,7 +465,11 @@ public class RuinNautilusEntity extends Mob {
         }
 
         if (st == STATE_AWAKEN) {
-            setDeltaMovement(0.0D, t < 35 ? 0.055D : 0.0D, 0.0D);
+            if (inWater && t < 35 && isWaterAt(getX(), getY() + 1.8D, getZ())) {
+                setDeltaMovement(0.0D, 0.055D, 0.0D);
+            } else if (inWater) {
+                setDeltaMovement(Vec3.ZERO);
+            }
             if (t % 3 == 0) {
                 sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 0.5D, getZ(), 8, 1.6D, 0.5D, 1.6D, 0.06D);
             }
@@ -523,20 +572,25 @@ public class RuinNautilusEntity extends Mob {
             attackCooldown = Math.min(attackCooldown, 16);
         }
         if (anim == ANIM_IDLE || anim == ANIM_SWIM) {
-            Vec3 desiredVel;
-            double strafeSign = ((tickCount / 80) % 2 == 0) ? 1.0D : -1.0D;
-            Vec3 perp = new Vec3(-toTarget.z, 0.0D, toTarget.x).normalize().scale(0.14D * strafeSign);
-            if (dist > 15.0D) {
-                desiredVel = toTarget.normalize().scale(isPhase2() ? 0.30D : 0.25D).add(perp.scale(0.5D));
-                if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
-            } else if (dist < 6.5D) {
-                desiredVel = toTarget.normalize().scale(-0.15D).add(perp);
-                if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
-            } else {
-                desiredVel = perp.add(0.0D, Mth.clamp(toTarget.y * 0.09D, -0.11D, 0.11D), 0.0D);
+            if (!inWater) {
                 if (anim != ANIM_IDLE) setAnim(ANIM_IDLE);
+                applyAquaticVelocity(Vec3.ZERO, 0.25D);
+            } else {
+                Vec3 desiredVel;
+                double strafeSign = ((tickCount / 80) % 2 == 0) ? 1.0D : -1.0D;
+                Vec3 perp = new Vec3(-toTarget.z, 0.0D, toTarget.x).normalize().scale(0.14D * strafeSign);
+                if (dist > 15.0D) {
+                    desiredVel = toTarget.normalize().scale(isPhase2() ? 0.30D : 0.25D).add(perp.scale(0.5D));
+                    if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
+                } else if (dist < 6.5D) {
+                    desiredVel = toTarget.normalize().scale(-0.15D).add(perp);
+                    if (anim != ANIM_SWIM) setAnim(ANIM_SWIM);
+                } else {
+                    desiredVel = perp.add(0.0D, Mth.clamp(toTarget.y * 0.09D, -0.11D, 0.11D), 0.0D);
+                    if (anim != ANIM_IDLE) setAnim(ANIM_IDLE);
+                }
+                applyAquaticVelocity(desiredVel, 0.16D);
             }
-            setDeltaMovement(getDeltaMovement().lerp(desiredVel, 0.16D));
 
             if (tickCount % 30 == 0) {
                 playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 0.55F, 0.90F);
@@ -569,13 +623,17 @@ public class RuinNautilusEntity extends Mob {
                 finishAttack(isPhase2() ? 36 : 44);
             }
         } else if (anim == ANIM_JET_RAM) {
+            if (!inWater) {
+                finishAttack(30);
+                return;
+            }
             if (t < 20) {
                 ramDir = toTarget.normalize();
-                setDeltaMovement(ramDir.scale(-0.14D));
+                applyAquaticVelocity(ramDir.scale(-0.14D), 1.0D);
                 if (t == 1) playSfx(TeyvatBossesSounds.subPropellerHum(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.3F, 1.35F);
                 if (t % 3 == 0) sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY() + 1.8D, getZ(), 6, 1.2D, 0.8D, 1.2D, 0.04D);
             } else if (t <= 46) {
-                setDeltaMovement(ramDir.scale(isPhase2() ? 0.88D : 0.76D));
+                applyAquaticVelocity(ramDir.scale(isPhase2() ? 0.88D : 0.76D), 1.0D);
                 if (t % 2 == 0) sl.sendParticles(ParticleTypes.BUBBLE, getX(), getY() + 1.6D, getZ(), 8, 0.8D, 0.8D, 0.8D, 0.10D);
                 for (Player p : sl.getEntitiesOfClass(Player.class, getBoundingBox().inflate(1.0D), le -> le.isAlive() && !le.isSpectator())) {
                     StavesElementBridge.dealElementalDamage(p, this, "HYDRO", 26.0F, 1.0F, false, 0.25F);

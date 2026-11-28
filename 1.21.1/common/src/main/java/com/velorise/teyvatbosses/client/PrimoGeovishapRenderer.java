@@ -182,10 +182,6 @@ public class PrimoGeovishapRenderer extends EntityRenderer<PrimoGeovishapEntity>
                 : OverlayTexture.NO_OVERLAY;
         model.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), packedLight, overlay, 0xFFFFFFFF);
         boolean sleeping = (bossState == PrimoGeovishapEntity.STATE_DORMANT);
-        if (!sleeping) {
-            // Full-bright fierce golden-amber eyes when awake (dimmed when sleeping dormant!)
-            model.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEXTURE)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-        }
 
         boolean chargingUltimate = (animId == PrimoGeovishapEntity.ANIM_PRIMORDIAL_SHOWER
                 || animId == PrimoGeovishapEntity.ANIM_ELEMENTAL_BREATH

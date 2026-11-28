@@ -30,6 +30,11 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -56,6 +61,8 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     public static final int ACTION_SPIT       = 2;
     public static final int ACTION_BREATH     = 3;
     public static final int ACTION_DIVE       = 4;
+    public static final int ACTION_DASH       = 5;
+    public static final int ACTION_COMBO      = 6;
 
     private static final EntityDataAccessor<Boolean> DATA_SADDLED =
             SynchedEntityData.defineId(GoldflameQucusaurMountEntity.class, EntityDataSerializers.BOOLEAN);
@@ -82,8 +89,13 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     private boolean inputDescend = false;
     private boolean inputBreath = false;
     private boolean inputBoost = false;
+    private boolean inputAimDive = false;
     private int spitCooldown = 0;
     private int diveCooldown = 0;
+    private int dashCooldown = 0;
+    private int comboStep = 0;
+    private int comboWindowTicks = 0;
+    private Vec3 dashDir = Vec3.ZERO;
     private float prevBankRoll = 0.0F;
     private float prevFlightPitch = 0.0F;
     private double smoothSeatH = 1.53D;
@@ -96,7 +108,7 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 160.0D)
+                .add(Attributes.MAX_HEALTH, 320.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.34D)
                 .add(Attributes.ARMOR, 8.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.7D)
@@ -129,6 +141,27 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     public float getFlightPitch() { return entityData.get(DATA_FLIGHT_PITCH); }
     public float getPrevFlightPitch() { return prevFlightPitch; }
     public boolean isBreathing() { return getActionState() == ACTION_BREATH; }
+
+    // Live client-side forward-kinematics saddle animation offset (updated every frame by GoldflameQucusaurMountRenderer)
+    private float clientSaddleDx = 0.0F;
+    private float clientSaddleDy = 0.0F;
+    private float clientSaddleDz = 0.0F;
+    private float clientSaddlePitchDeg = 0.0F;
+    private float clientSaddleRollDeg = 0.0F;
+
+    public void setClientSaddleSync(float dx, float dy, float dz, float pitchDeg, float rollDeg) {
+        this.clientSaddleDx = dx;
+        this.clientSaddleDy = dy;
+        this.clientSaddleDz = dz;
+        this.clientSaddlePitchDeg = pitchDeg;
+        this.clientSaddleRollDeg = rollDeg;
+    }
+
+    public float getClientSaddleDx() { return clientSaddleDx; }
+    public float getClientSaddleDy() { return clientSaddleDy; }
+    public float getClientSaddleDz() { return clientSaddleDz; }
+    public float getClientSaddlePitchDeg() { return clientSaddlePitchDeg; }
+    public float getClientSaddleRollDeg() { return clientSaddleRollDeg; }
 
     /** Syncs live client flight keys so client-side travel() ascends, descends, and boosts immediately. */
     public void setClientFlightInputs(boolean ascend, boolean descend, boolean boost) {
@@ -164,12 +197,19 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     public String getActiveAnimationClip() {
         int act = getActionState();
         if (act == ACTION_TAKEOFF) return "takeoff_roar";
-        if (act == ACTION_DIVE) return "dive_bomb";
+        if (act == ACTION_DIVE) return "charge_drill";
+        if (act == ACTION_DASH) return "dive_bomb";
+        if (act == ACTION_COMBO) return "wing_swipe";
         if (act == ACTION_BREATH) return isFlying() ? "mount_breath_air" : "breath_sweep";
         if (isFlying()) {
             if (isBoosting()) return "mount_boost";
+            double dy = getY() - yo;
+            boolean climbing = inputAscend || dy > 0.012D || getDeltaMovement().y > 0.025D;
+            if (climbing) {
+                return "fly_hover";
+            }
             double hSpeed = getDeltaMovement().horizontalDistance();
-            if (hSpeed > 0.35D) return "fly_glide";
+            if (hSpeed > 0.36D) return "fly_glide";
             return isNearGround() ? "low_altitude_hover" : "fly_hover";
         }
         return getDeltaMovement().horizontalDistance() > 0.04D ? "walk" : "idle_ground";
@@ -201,27 +241,12 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     protected void positionRider(Entity passenger, MoveFunction callback) {
         if (!hasPassenger(passenger)) return;
 
-        // Track exact saddle_cushion bone height & forward offset across ground, hover, boost, and dive poses
-        double targetH = 1.53D;
-        double targetFwd = 0.14D;
-        int act = getActionState();
-        if (act == ACTION_DIVE) {
-            targetH = 1.24D;
-            targetFwd = 0.38D;
-        } else if (act == ACTION_TAKEOFF) {
-            targetH = 1.48D;
-            targetFwd = 0.12D;
-        } else if (isFlying()) {
-            if (isBoosting()) {
-                targetH = 1.38D;
-                targetFwd = 0.26D;
-            } else {
-                targetH = 1.41D;
-                targetFwd = 0.20D;
-            }
-        }
-        smoothSeatH = Mth.lerp(0.22D, smoothSeatH, targetH);
-        smoothSeatFwd = Mth.lerp(0.22D, smoothSeatFwd, targetFwd);
+        // Anchor rider to the exact bind-pose saddle cushion; live per-frame animation bob & pitch
+        // are synced 1:1 from the posed saddle bone in GoldflameQucusaurMountRenderer + LivingEntityRendererMixin.
+        double targetH = 1.56D;
+        double targetFwd = 0.125D;
+        smoothSeatH = Mth.lerp(0.25D, smoothSeatH, targetH);
+        smoothSeatFwd = Mth.lerp(0.25D, smoothSeatFwd, targetFwd);
 
         // Exact world transform matching GoldflameQucusaurMountRenderer: R_y(180 - yBodyRot) * R_z(bankRoll)
         float yawRad = this.yBodyRot * Mth.DEG_TO_RAD;
@@ -243,6 +268,20 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     @Override
     public void onPassengerTurned(Entity passenger) {
         clampPassengerBody(passenger);
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        inputAscend = inputDescend = inputBreath = inputBoost = inputAimDive = false;
+        entityData.set(DATA_BOOSTING, false);
+        int act = getActionState();
+        if (act == ACTION_DIVE || act == ACTION_DASH || act == ACTION_BREATH) {
+            setAction(ACTION_NONE);
+        }
+        if (fluteRecallTicks <= 0) {
+            setNoGravity(false);
+        }
     }
 
     private void clampPassengerBody(Entity passenger) {
@@ -289,41 +328,21 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
             }
         }
 
-        if (!isVehicle()) {
-            if (!level().isClientSide() && level() instanceof ServerLevel sl) {
-                if (fluteRecallTicks > 0 && fluteRecallTarget != null) {
-                    fluteRecallTicks--;
-                    Vec3 delta = fluteRecallTarget.subtract(position());
-                    double d = delta.length();
-                    if (d <= 3.2D) {
-                        fluteRecallTicks = 0;
-                        fluteRecallTarget = null;
-                        entityData.set(DATA_FLYING, false);
-                        setNoGravity(false);
-                        setDeltaMovement(0.0D, -0.15D, 0.0D);
-                    } else {
-                        Vec3 step = delta.normalize().scale(Math.min(0.68D, d * 0.16D));
-                        setDeltaMovement(step.x, step.y, step.z);
-                        float yaw = (float) (Mth.atan2(delta.z, delta.x) * (180.0D / Math.PI)) - 90.0F;
-                        setYRot(yaw);
-                        yBodyRot = yaw;
-                        yHeadRot = yaw;
-                    }
-                } else if (followMode && ownerUuid != null) {
-                    Player owner = sl.getPlayerByUUID(ownerUuid);
-                    if (owner != null && owner.isAlive()) {
-                        double dSq = distanceToSqr(owner);
-                        if (dSq > 100.0D) {
-                            fluteRecallTarget = owner.position().add(0.0D, 0.5D, 0.0D);
-                            fluteRecallTicks = 40;
-                            entityData.set(DATA_FLYING, true);
-                            setNoGravity(true);
-                        } else if (dSq > 36.0D && !isFlying()) {
-                            getNavigation().moveTo(owner, 1.15D);
-                        }
-                    }
-                }
+        // Feed normal Minecraft food or fire items when injured to heal the dragon
+        FoodProperties food = stack.get(DataComponents.FOOD);
+        if ((food != null || isFireHealItem(stack)) && getHealth() < getMaxHealth()) {
+            if (level() instanceof ServerLevel sl) {
+                float healAmt = food != null ? Math.max(10.0F, food.nutrition() * 5.0F) : 40.0F;
+                heal(healAmt);
+                if (!player.isCreative()) stack.shrink(1);
+                sl.sendParticles(ParticleTypes.HEART, getX(), getY() + 2.0D, getZ(), 6, 0.6D, 0.4D, 0.6D, 0.02D);
+                sl.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 1.0F, 0.9F);
+                return InteractionResult.CONSUME;
             }
+            return InteractionResult.SUCCESS;
+        }
+
+        if (!isVehicle()) {
             player.startRiding(this);
             return InteractionResult.CONSUME;
         }
@@ -344,10 +363,10 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
             case GoldflameQucusaurControlPayload.ACTION_DESCEND_STOP -> inputDescend = false;
             case GoldflameQucusaurControlPayload.ACTION_BOOST_START -> inputBoost = true;
             case GoldflameQucusaurControlPayload.ACTION_BOOST_STOP -> inputBoost = false;
-            case GoldflameQucusaurControlPayload.ACTION_FIREBALL_SPIT -> tryFireballSpit(player);
+            case GoldflameQucusaurControlPayload.ACTION_FIREBALL_SPIT -> {}
             case GoldflameQucusaurControlPayload.ACTION_BREATH_START -> {
                 inputBreath = true;
-                if (getPhlogiston() >= 8.0F && getActionState() != ACTION_DIVE) {
+                if (getPhlogiston() >= 8.0F && getActionState() != ACTION_DIVE && getActionState() != ACTION_DASH) {
                     setAction(ACTION_BREATH);
                 }
             }
@@ -357,13 +376,10 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
                     setAction(ACTION_NONE);
                 }
             }
-            case GoldflameQucusaurControlPayload.ACTION_RMB_SKILL -> {
-                if (isFlying()) {
-                    tryGoldenDive(player);
-                } else {
-                    startTakeoff(true, player);
-                }
-            }
+            case GoldflameQucusaurControlPayload.ACTION_RMB_DASH -> tryForwardFlameDash(player);
+            case GoldflameQucusaurControlPayload.ACTION_RMB_AIM_DIVE_START -> startAimedDrillDive(player);
+            case GoldflameQucusaurControlPayload.ACTION_RMB_AIM_DIVE_STOP -> stopAimedDrillDive(player);
+            case GoldflameQucusaurControlPayload.ACTION_RMB_SKILL -> tryForwardFlameDash(player);
             default -> {}
         }
     }
@@ -396,26 +412,80 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
         level().playSound(null, getX(), getY(), getZ(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.NEUTRAL, 1.1F, 1.15F);
     }
 
-    private void tryFireballSpit(ServerPlayer player) {
-        if (spitCooldown > 0 || getPhlogiston() < 30.0F) return;
-        setPhlogiston(getPhlogiston() - 30.0F);
-        spitCooldown = 14;
-        setAction(ACTION_SPIT);
+    /** LMB Tap: 3-hit chained Dragon Combo (Hit 1 Wing Slash -> Hit 2 Flame Bite -> Hit 3 Explosive Fireball Finisher). */
+    private void tryComboAttack(ServerPlayer player) {
+        if (spitCooldown > 0 || getActionState() == ACTION_DIVE) return;
+        if (comboWindowTicks <= 0) comboStep = 0;
+        comboStep = (comboStep % 3) + 1;
+        comboWindowTicks = 32;
+        spitCooldown = (comboStep == 3) ? 12 : 7;
+
         Vec3 look = player.getLookAngle().normalize();
-        Vec3 mouth = position().add(look.scale(1.9D)).add(0.0D, 1.75D, 0.0D);
-        GoldflameFireballEntity.spawn(level(), player, mouth, look, 1.85F, 12.0F, 2.5F, true);
-        level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.BLAZE_SHOOT, SoundSource.NEUTRAL, 1.0F, 1.05F);
+        Vec3 center = position().add(look.scale(2.8D)).add(0.0D, 1.4D, 0.0D);
+
+        if (comboStep == 3) {
+            setAction(ACTION_SPIT);
+            if (getPhlogiston() >= 15.0F) {
+                setPhlogiston(getPhlogiston() - 15.0F);
+            }
+            Vec3 mouth = position().add(look.scale(1.9D)).add(0.0D, 1.75D, 0.0D);
+            GoldflameFireballEntity.spawn(level(), player, mouth, look, 2.05F, 15.0F, 2.8F, true);
+            level().playSound(null, mouth.x, mouth.y, mouth.z, SoundEvents.BLAZE_SHOOT, SoundSource.NEUTRAL, 1.15F, 0.92F);
+        } else {
+            setAction(ACTION_COMBO);
+            level().playSound(null, getX(), getY() + 1.4D, getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.NEUTRAL, 1.2F, comboStep == 1 ? 0.95F : 0.78F);
+        }
+
+        if (level() instanceof ServerLevel sl) {
+            float dmg = (comboStep == 1) ? 10.5F : (comboStep == 2 ? 13.0F : 15.5F);
+            double rad = (comboStep == 3) ? 4.4D : 3.8D;
+            AABB box = new AABB(center.x - rad, center.y - 2.4D, center.z - rad, center.x + rad, center.y + 2.4D, center.z + rad);
+            for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
+                    t -> t != this && t != player && t.isAlive())) {
+                StavesElementBridge.dealElementalDamage(e, player, "PYRO", dmg, 1.0F, false, 0.25F);
+                e.igniteForSeconds(comboStep == 3 ? 5.0F : 3.0F);
+                e.push(look.x * (0.55D + comboStep * 0.18D), 0.28D + comboStep * 0.08D, look.z * (0.55D + comboStep * 0.18D));
+            }
+            sl.sendParticles(ParticleTypes.FLAME, center.x, center.y, center.z, 18 + comboStep * 8, 1.4D, 0.6D, 1.4D, 0.12D);
+            sl.sendParticles(ParticleTypes.SWEEP_ATTACK, center.x, center.y, center.z, 2, 0.5D, 0.3D, 0.5D, 0.0D);
+        }
     }
 
-    private void tryGoldenDive(ServerPlayer player) {
-        if (diveCooldown > 0 || getPhlogiston() < 80.0F) return;
-        setPhlogiston(getPhlogiston() - 80.0F);
-        diveCooldown = 50;
+    /** RMB Tap: Short high-speed piercing forward Flame Dash along the rider's aim direction. */
+    private void tryForwardFlameDash(ServerPlayer player) {
+        if (dashCooldown > 0 || getPhlogiston() < 22.0F || getActionState() == ACTION_DIVE) return;
+        setPhlogiston(getPhlogiston() - 22.0F);
+        dashCooldown = 16;
+        setAction(ACTION_DASH);
+        Vec3 look = player.getLookAngle().normalize();
+        if (isFlying()) {
+            this.dashDir = look;
+        } else {
+            Vec3 flat = new Vec3(look.x, 0.0D, look.z);
+            this.dashDir = flat.lengthSqr() > 0.001D ? flat.normalize() : Vec3.directionFromRotation(0.0F, getYRot());
+        }
+        setDeltaMovement(dashDir.scale(1.65D));
+        level().playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.NEUTRAL, 1.15F, 1.12F);
+    }
+
+    /** RMB Hold: Continuous Golden Drill Dive rocketing straight along the rider's live crosshair until impact or release. */
+    private void startAimedDrillDive(ServerPlayer player) {
+        if (!isFlying() || diveCooldown > 0 || getPhlogiston() < 15.0F) return;
+        inputAimDive = true;
+        setNoGravity(true);
         setAction(ACTION_DIVE);
         Vec3 look = player.getLookAngle().normalize();
-        Vec3 diveVec = new Vec3(look.x * 1.45D, Math.min(-1.15D, look.y * 1.65D), look.z * 1.45D);
-        setDeltaMovement(diveVec);
-        level().playSound(null, getX(), getY(), getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.NEUTRAL, 1.15F, 0.85F);
+        setDeltaMovement(look.scale(1.62D));
+        level().playSound(null, getX(), getY() + 1.2D, getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.NEUTRAL, 1.3F, 0.80F);
+    }
+
+    private void stopAimedDrillDive(ServerPlayer player) {
+        inputAimDive = false;
+        if (getActionState() == ACTION_DIVE) {
+            setAction(ACTION_NONE);
+            diveCooldown = 18;
+            setDeltaMovement(getDeltaMovement().scale(0.45D));
+        }
     }
 
     @Override
@@ -439,11 +509,23 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
                 setNoGravity(true);
                 int act = getActionState();
                 if (act == ACTION_DIVE) {
-                    entityData.set(DATA_FLIGHT_PITCH, Mth.lerp(0.25F, getFlightPitch(), 38.0F));
+                    // RMB Hold: continuously steer straight along rider's live 3D crosshair until impact or release!
+                    Vec3 aim = player.getLookAngle().normalize();
+                    Vec3 drillVel = getDeltaMovement().lerp(aim.scale(1.65D), 0.35D);
+                    setDeltaMovement(drillVel);
+                    float targetPitch = Mth.clamp(player.getXRot() * 0.85F, -55.0F, 55.0F);
+                    entityData.set(DATA_FLIGHT_PITCH, Mth.lerp(0.30F, getFlightPitch(), targetPitch));
                     move(MoverType.SELF, getDeltaMovement());
-                    if (onGround() || verticalCollision) {
+                    if (onGround() || verticalCollision || horizontalCollision) {
                         detonateGoldenDive(player);
                     }
+                    return;
+                }
+                if (act == ACTION_DASH) {
+                    Vec3 dVel = (dashDir.lengthSqr() > 0.01D ? dashDir : player.getLookAngle().normalize()).scale(1.55D);
+                    setDeltaMovement(dVel);
+                    entityData.set(DATA_FLIGHT_PITCH, Mth.lerp(0.30F, getFlightPitch(), Mth.clamp(player.getXRot() * 0.65F, -35.0F, 35.0F)));
+                    move(MoverType.SELF, getDeltaMovement());
                     return;
                 }
 
@@ -453,17 +535,23 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
                     setPhlogiston(getPhlogiston() - 1.1F);
                 }
 
-                double speed = boosting ? 1.50D : 0.72D; // ~30 blocks/s on boost
-                Vec3 look = Vec3.directionFromRotation(0.0F, getYRot());
-                Vec3 right = look.cross(new Vec3(0.0D, 1.0D, 0.0D)).normalize();
-                double vx = (look.x * forward - right.x * strafe * 0.65D) * speed;
-                double vz = (look.z * forward - right.z * strafe * 0.65D) * speed;
+                double speed = boosting ? 1.50D : 0.78D;
+                // True 3D look-pitch flight: looking up + W climbs smoothly, looking down + W descends smoothly!
+                Vec3 look3D = player.getLookAngle().normalize();
+                Vec3 flatFwd = Vec3.directionFromRotation(0.0F, getYRot());
+                Vec3 right = flatFwd.cross(new Vec3(0.0D, 1.0D, 0.0D)).normalize();
+                double vx = (look3D.x * forward - right.x * strafe * 0.65D) * speed;
+                double vz = (look3D.z * forward - right.z * strafe * 0.65D) * speed;
                 double vy = 0.0D;
-                if (inputAscend) vy += 0.45D;
-                if (inputDescend) vy -= 0.48D;
-                if (!inputAscend && !inputDescend && Math.abs(forward) > 0.1F) {
-                    vy = Mth.clamp(-player.getXRot() / 90.0D * 0.55D, -0.45D, 0.45D);
+                if (Math.abs(forward) > 0.05F) {
+                    vy = look3D.y * forward * speed;
+                    // Realistic dragon gliding sink: gliding level/forward without climbing or boosting gently loses altitude
+                    if (!inputAscend && !boosting && vy <= 0.025D) {
+                        vy -= 0.038D;
+                    }
                 }
+                if (inputAscend) vy = Math.max(vy, 0.48D);
+                if (inputDescend) vy = Math.min(vy, -0.50D);
                 if (act == ACTION_TAKEOFF && getActionTicks() < 12) {
                     vy = Math.max(vy, 0.55D);
                 }
@@ -491,22 +579,43 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
                 entityData.set(DATA_BOOSTING, false);
                 entityData.set(DATA_BANK_ROLL, Mth.lerp(0.25F, getBankRoll(), 0.0F));
                 entityData.set(DATA_FLIGHT_PITCH, Mth.lerp(0.25F, getFlightPitch(), 0.0F));
-                setSpeed(0.30F);
-                super.travel(new Vec3(strafe * 0.55F, travelVector.y, forward));
+                if (getActionState() == ACTION_DASH) {
+                    Vec3 dVel = (dashDir.lengthSqr() > 0.01D ? dashDir : Vec3.directionFromRotation(0.0F, getYRot())).scale(1.35D);
+                    setDeltaMovement(dVel.x, getDeltaMovement().y, dVel.z);
+                    move(MoverType.SELF, getDeltaMovement());
+                    return;
+                }
+                // Grounded heavy dragon stride speed matched 1:1 to walk animation cadence
+                setSpeed(0.155F);
+                super.travel(new Vec3(strafe * 0.50F, travelVector.y, forward));
                 return;
             }
         }
 
-        // Unridden: settle gently to ground
+        // Unridden (e.g., rider died or dismounted mid-air): re-enable gravity and descend cleanly to ground
         prevBankRoll = getBankRoll();
         prevFlightPitch = getFlightPitch();
         entityData.set(DATA_BANK_ROLL, Mth.lerp(0.20F, getBankRoll(), 0.0F));
         entityData.set(DATA_FLIGHT_PITCH, Mth.lerp(0.20F, getFlightPitch(), 0.0F));
-        inputAscend = inputDescend = inputBreath = inputBoost = false;
+        inputAscend = inputDescend = inputBreath = inputBoost = inputAimDive = false;
         entityData.set(DATA_BOOSTING, false);
-        if (isFlying()) {
+        if (fluteRecallTicks <= 0) {
             setNoGravity(false);
-            if (onGround()) entityData.set(DATA_FLYING, false);
+            if (isFlying()) {
+                if (onGround()) {
+                    entityData.set(DATA_FLYING, false);
+                    setDeltaMovement(getDeltaMovement().x * 0.5D, 0.0D, getDeltaMovement().z * 0.5D);
+                } else {
+                    Vec3 cur = getDeltaMovement();
+                    double fallY = Math.max(cur.y - 0.055D, -0.45D);
+                    setDeltaMovement(cur.x * 0.85D, fallY, cur.z * 0.85D);
+                    move(MoverType.SELF, getDeltaMovement());
+                    if (onGround()) {
+                        entityData.set(DATA_FLYING, false);
+                    }
+                    return;
+                }
+            }
         }
         super.travel(travelVector);
     }
@@ -535,11 +644,63 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
     @Override
     public void tick() {
         super.tick();
-        if (level().isClientSide()) return;
+        if (level().isClientSide()) {
+            if (isBreathing()) {
+                LivingEntity rider = getControllingPassenger();
+                Vec3 dir = (rider != null)
+                        ? rider.getLookAngle().normalize()
+                        : Vec3.directionFromRotation(0.0F, yBodyRot).normalize();
+                Vec3 mouth = position().add(0.0D, 1.58D, 0.0D).add(dir.scale(1.65D));
+                float heatFactor = Mth.clamp(getActionTicks() / 80.0F, 0.0F, 1.0F);
+                double range = 17.0D + heatFactor * 4.0D;
+                GoldflameQucusaurEntity.spawnIceAndFireBreathParticles(this, mouth, dir, range, 0.95F, heatFactor);
+            }
+            return;
+        }
         ServerLevel sl = (ServerLevel) level();
 
         if (spitCooldown > 0) spitCooldown--;
         if (diveCooldown > 0) diveCooldown--;
+        if (dashCooldown > 0) dashCooldown--;
+        if (comboWindowTicks > 0) comboWindowTicks--;
+
+        // Autonomous Flute Recall, Follow/Stay AI, and Breeding (runs every server tick when unridden)
+        if (!isVehicle()) {
+            if (fluteRecallTicks > 0 && fluteRecallTarget != null) {
+                fluteRecallTicks--;
+                Vec3 delta = fluteRecallTarget.subtract(position());
+                double d = delta.length();
+                if (d <= 3.2D || fluteRecallTicks <= 0) {
+                    fluteRecallTicks = 0;
+                    fluteRecallTarget = null;
+                    entityData.set(DATA_FLYING, false);
+                    setNoGravity(false);
+                    setDeltaMovement(0.0D, -0.15D, 0.0D);
+                } else {
+                    entityData.set(DATA_FLYING, true);
+                    setNoGravity(true);
+                    Vec3 step = delta.normalize().scale(Math.min(0.75D, Math.max(0.32D, d * 0.16D)));
+                    setDeltaMovement(step.x, step.y, step.z);
+                    float yaw = (float) (Mth.atan2(delta.z, delta.x) * (180.0D / Math.PI)) - 90.0F;
+                    setYRot(yaw);
+                    yBodyRot = yaw;
+                    yHeadRot = yaw;
+                }
+            } else if (followMode && ownerUuid != null) {
+                Player owner = sl.getPlayerByUUID(ownerUuid);
+                if (owner != null && owner.isAlive() && owner.level() == sl) {
+                    double dSq = distanceToSqr(owner);
+                    if (dSq > 100.0D && dSq < 4096.0D) {
+                        fluteRecallTarget = owner.position().add(0.0D, 0.6D, 0.0D);
+                        fluteRecallTicks = 60;
+                        entityData.set(DATA_FLYING, true);
+                        setNoGravity(true);
+                    } else if (dSq > 36.0D && !isFlying()) {
+                        getNavigation().moveTo(owner, 1.15D);
+                    }
+                }
+            }
+        }
 
         int act = getActionState();
         int ticks = getActionTicks() + 1;
@@ -549,26 +710,74 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
             setAction(ACTION_NONE);
         } else if (act == ACTION_SPIT && ticks >= 12) {
             setAction(ACTION_NONE);
-        } else if (act == ACTION_DIVE && ticks >= 45) {
+        } else if (act == ACTION_COMBO && ticks >= 10) {
             setAction(ACTION_NONE);
+        } else if (act == ACTION_DASH) {
+            if (getControllingPassenger() instanceof Player rp) {
+                AABB box = getBoundingBox().inflate(2.2D, 1.4D, 2.2D);
+                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, box,
+                        t -> t != this && t != rp && t.isAlive())) {
+                    StavesElementBridge.dealElementalDamage(e, rp, "PYRO", 13.5F, 1.0F, false, 0.25F);
+                    e.igniteForSeconds(4.0F);
+                    e.push(dashDir.x * 0.95D, 0.35D, dashDir.z * 0.95D);
+                }
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.0D, getZ(), 10, 0.9D, 0.5D, 0.9D, 0.08D);
+            }
+            if (ticks >= 9) {
+                setAction(ACTION_NONE);
+                setDeltaMovement(getDeltaMovement().scale(0.45D));
+            }
+        } else if (act == ACTION_DIVE) {
+            if (getControllingPassenger() instanceof Player rp) {
+                setPhlogiston(getPhlogiston() - 1.6F);
+                sl.sendParticles(ParticleTypes.FLAME, getX(), getY() + 1.0D, getZ(), 14, 1.0D, 0.6D, 1.0D, 0.12D);
+                sl.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 1.0D, getZ(), 4, 0.7D, 0.4D, 0.7D, 0.06D);
+                AABB hitBox = getBoundingBox().inflate(2.4D, 1.6D, 2.4D);
+                boolean hitEnemy = false;
+                for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, hitBox,
+                        t -> t != this && t != rp && t.isAlive())) {
+                    hitEnemy = true;
+                    break;
+                }
+                if (hitEnemy) {
+                    detonateGoldenDive(rp);
+                } else if (!inputAimDive || getPhlogiston() <= 1.0F || ticks >= 120) {
+                    inputAimDive = false;
+                    diveCooldown = 18;
+                    setAction(ACTION_NONE);
+                    setDeltaMovement(getDeltaMovement().scale(0.45D));
+                }
+            } else {
+                inputAimDive = false;
+                setAction(ACTION_NONE);
+            }
         } else if (act == ACTION_BREATH) {
             LivingEntity rider = getControllingPassenger();
             if (!inputBreath || !(rider instanceof Player player) || getPhlogiston() < 3.0F) {
                 setAction(ACTION_NONE);
             } else {
                 setPhlogiston(getPhlogiston() - 2.75F); // ~55/s
+                float heatFactor = Mth.clamp(ticks / 80.0F, 0.0F, 1.0F);
+                if (ticks % 10 == 0) {
+                    sl.playSound(null, getX(), getY() + 1.6D, getZ(),
+                            SoundEvents.BLAZE_SHOOT, SoundSource.NEUTRAL,
+                            0.65F + heatFactor * 0.45F, 0.72F + heatFactor * 0.68F);
+                }
                 if (ticks % 5 == 0) {
+                    float breathDmg = 5.0F + heatFactor * 10.0F; // ramps 5.0 -> 15.0 Pyro dmg over 4s (3x!)
+                    float burnSec = 3.0F + heatFactor * 3.0F;
+                    double maxReach = 17.0D + heatFactor * 4.0D;
+                    double hitR = 1.6D + heatFactor * 0.5D;
                     Vec3 look = player.getLookAngle().normalize();
                     Vec3 mouth = position().add(0.0D, 1.75D, 0.0D).add(look.scale(1.6D));
-                    for (double d = 1.5D; d <= 18.0D; d += 2.0D) {
+                    for (double d = 1.5D; d <= maxReach; d += 2.0D) {
                         Vec3 pt = mouth.add(look.scale(d));
-                        sl.sendParticles(ParticleTypes.FLAME, pt.x, pt.y, pt.z, 2, 0.35D, 0.35D, 0.35D, 0.02D);
-                        AABB box = new AABB(pt.x - 1.6D, pt.y - 1.6D, pt.z - 1.6D, pt.x + 1.6D, pt.y + 1.6D, pt.z + 1.6D);
+                        AABB box = new AABB(pt.x - hitR, pt.y - hitR, pt.z - hitR, pt.x + hitR, pt.y + hitR, pt.z + hitR);
                         List<LivingEntity> hits = sl.getEntitiesOfClass(LivingEntity.class, box,
                                 e -> e != this && e != player && e.isAlive());
                         for (LivingEntity e : hits) {
-                            StavesElementBridge.dealElementalDamage(e, player, "PYRO", 5.0F, 0.5F, false, 0.20F);
-                            e.igniteForSeconds(3.0F);
+                            StavesElementBridge.dealElementalDamage(e, player, "PYRO", breathDmg, 0.5F + heatFactor * 0.5F, false, 0.20F);
+                            e.igniteForSeconds(burnSec);
                         }
                     }
                 }
@@ -585,6 +794,10 @@ public class GoldflameQucusaurMountEntity extends PathfinderMob {
 
     public boolean isOwnedBy(Player player) {
         return ownerUuid == null || ownerUuid.equals(player.getUUID());
+    }
+
+    public static boolean isFireHealItem(ItemStack stack) {
+        return stack.is(Items.BLAZE_ROD) || stack.is(Items.MAGMA_CREAM) || stack.is(Items.FIRE_CHARGE);
     }
 
     public boolean toggleFollowMode() {

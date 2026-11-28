@@ -1,11 +1,10 @@
 package com.velorise.teyvatbosses.client;
 
+import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import com.velorise.teyvatbosses.entity.GoldflameQucusaurMountEntity;
 import com.velorise.teyvatbosses.network.GoldflameQucusaurControlPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
-import com.velorise.teyvatbosses.TeyvatBossesConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -13,11 +12,12 @@ import org.lwjgl.glfw.GLFW;
 import java.util.function.Consumer;
 
 /**
- * Client input controller & compact Phlogiston HUD for {@link GoldflameQucusaurMountEntity}:
+ * Client input controller &amp; minimal Phlogiston bar HUD for {@link GoldflameQucusaurMountEntity}:
  * <ul>
- *   <li>Ground: WASD walk, Space = Takeoff, RMB = Heatwave Takeoff.</li>
- *   <li>Air: Space = Ascend, C = Descend, Sprint = Glide Boost, RMB = Golden Dive.</li>
- *   <li>Both: LMB Tap = Fireball Spit, LMB Hold = Golden Flame Breath.</li>
+ *   <li>Flight: W + Look pitch (up/down), Space/C altitude override, Ctrl boost.</li>
+ *   <li>LMB Hold: Continuous Goldflame Breath Torrent (instant, no tap combo).</li>
+ *   <li>RMB Tap: Piercing Forward Flame Dash.</li>
+ *   <li>RMB Hold (Air Only): Continuous Aimed Golden Drill Dive.</li>
  * </ul>
  */
 public final class GoldflameQucusaurClientController {
@@ -39,7 +39,11 @@ public final class GoldflameQucusaurClientController {
     private static boolean prevDescend = false;
     private static boolean prevBoost = false;
     private static boolean breathSent = false;
-    private static int lmbHoldTicks = 0;
+    private static boolean aimDiveSent = false;
+    private static int rmbHoldTicks = 0;
+    private static int lastMountId = -1;
+    private static int mountGraceTicks = 0;
+    private static boolean waitingForRmbRelease = false;
 
     private GoldflameQucusaurClientController() {}
 
@@ -74,14 +78,21 @@ public final class GoldflameQucusaurClientController {
                 packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_BREATH_STOP));
                 breathSent = false;
             }
+            if (aimDiveSent) {
+                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_RMB_AIM_DIVE_STOP));
+                aimDiveSent = false;
+            }
             prevLmb = prevRmb = prevSpace = prevDescend = prevBoost = false;
-            lmbHoldTicks = 0;
+            rmbHoldTicks = 0;
+            lastMountId = -1;
+            mountGraceTicks = 0;
+            waitingForRmbRelease = false;
             smoothZoom = THIRD_PERSON_ZOOM_GROUND;
             prevCamRoll = curCamRoll = 0.0F;
             return;
         }
 
-        // Smooth 3rd-person dragon camera zoom (Ice and Fire / Dragon Mounts style) & subtle bank roll
+        // Smooth 3rd-person dragon camera zoom & subtle bank roll
         float targetZoom = mount.isFlying()
                 ? (mount.isBoosting() ? THIRD_PERSON_ZOOM_BOOST : THIRD_PERSON_ZOOM_FLY)
                 : THIRD_PERSON_ZOOM_GROUND;
@@ -99,7 +110,6 @@ public final class GoldflameQucusaurClientController {
         boolean descend = GLFW.glfwGetKey(win, GLFW.GLFW_KEY_C) == GLFW.GLFW_PRESS;
         boolean boost = mc.options.keySprint.isDown();
 
-        // Apply live flight inputs directly on client mount so travel() responds immediately!
         mount.setClientFlightInputs(space, descend, boost);
 
         // Space: Takeoff from ground, Ascend while flying
@@ -113,7 +123,7 @@ public final class GoldflameQucusaurClientController {
             packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_ASCEND_STOP));
         }
 
-        // C key: Descend (keeps Shift free for dismount)
+        // C key: Descend
         if (descend != prevDescend) {
             packetSender.accept(new GoldflameQucusaurControlPayload(
                     descend ? GoldflameQucusaurControlPayload.ACTION_DESCEND_START
@@ -127,26 +137,46 @@ public final class GoldflameQucusaurClientController {
                           : GoldflameQucusaurControlPayload.ACTION_BOOST_STOP));
         }
 
-        // LMB: Tap (<6 ticks) = Fireball Spit, Hold (>=6 ticks) = Continuous Golden Flame Breath
-        if (lmb) {
-            lmbHoldTicks++;
-            if (lmbHoldTicks == 6 && !breathSent) {
-                breathSent = true;
-                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_BREATH_START));
-            }
-        } else if (prevLmb) {
-            if (breathSent) {
-                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_BREATH_STOP));
-                breathSent = false;
-            } else if (lmbHoldTicks > 0 && lmbHoldTicks < 6) {
-                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_FIREBALL_SPIT));
-            }
-            lmbHoldTicks = 0;
+        // LMB: Hold ONLY -> Continuous Golden Flame Breath (no tap combo)
+        if (lmb && !breathSent) {
+            breathSent = true;
+            packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_BREATH_START));
+        } else if (!lmb && breathSent) {
+            breathSent = false;
+            packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_BREATH_STOP));
         }
 
-        // RMB: Golden Dive (air) / Heatwave Takeoff (ground)
-        if (rmb && !prevRmb) {
-            packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_RMB_SKILL));
+        // Prevent the Right-Click used to mount the dragon from triggering Dash immediately
+        if (mount.getId() != lastMountId) {
+            lastMountId = mount.getId();
+            mountGraceTicks = 8;
+            waitingForRmbRelease = true;
+            rmbHoldTicks = 0;
+            prevRmb = false;
+        }
+        if (mountGraceTicks > 0) mountGraceTicks--;
+        if (waitingForRmbRelease) {
+            if (!rmb) waitingForRmbRelease = false;
+            rmb = false;
+        } else if (mountGraceTicks > 0) {
+            rmb = false;
+        }
+
+        // RMB: Tap = Forward Flame Dash; Hold (>=7 ticks, AIR ONLY) = Continuous Aimed Drill Dive
+        if (rmb) {
+            rmbHoldTicks++;
+            if (rmbHoldTicks == 7 && !aimDiveSent && mount.isFlying()) {
+                aimDiveSent = true;
+                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_RMB_AIM_DIVE_START));
+            }
+        } else if (prevRmb) {
+            if (aimDiveSent) {
+                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_RMB_AIM_DIVE_STOP));
+                aimDiveSent = false;
+            } else if (rmbHoldTicks > 0 && rmbHoldTicks < 7) {
+                packetSender.accept(new GoldflameQucusaurControlPayload(GoldflameQucusaurControlPayload.ACTION_RMB_DASH));
+            }
+            rmbHoldTicks = 0;
         }
 
         prevLmb = lmb;
@@ -159,37 +189,43 @@ public final class GoldflameQucusaurClientController {
     public static void renderHud(GuiGraphics gui) {
         GoldflameQucusaurMountEntity mount = getRiddenMount();
         if (mount == null) return;
-        Minecraft mc = Minecraft.getInstance();
         int h = gui.guiHeight();
-        int barW = 136;
-        int barH = 14;
+
+        // Sleek Genshin-style slim Phlogiston bar in the bottom-left corner (no box or text)
+        int barW = 112;
+        int barH = 4;
         int x = 10;
-        int y = h - 54;
+        int y = h - 14;
 
-        Component title = Component.translatable("hud.velorise_teyvat_bosses.qucusaur_phlogiston",
-                (int) mount.getPhlogiston(), (int) GoldflameQucusaurMountEntity.MAX_PHLOGISTON);
-        String line1 = mount.isFlying() ? "[Space/C] Up/Down  [Ctrl] Boost" : "[Space] Fly  [RMB] Heatwave";
-        String line2 = mount.isFlying() ? "[LMB] Fire/Breath  [RMB] Dive" : "[LMB] Fire/Breath  [Shift] Dismount";
+        // Tapered translucent pill trough (1px inset on top & bottom rows for sleek rounded ends)
+        gui.fill(x + 1, y, x + barW - 1, y + barH, 0xAA180B06);
+        gui.fill(x, y + 1, x + barW, y + barH - 1, 0xAA180B06);
 
-        int textW = Math.max(barW, Math.max(mc.font.width(line1), mc.font.width(line2)));
-        int panelW = Math.min(textW + 10, Math.max(barW + 10, (gui.guiWidth() / 2) - 102));
-
-        // Clean compact dark panel that never overlaps the centered vanilla hotbar
-        gui.fill(x - 4, y - 4, x + panelW, y + 48, 0xB8180A08);
-        gui.fill(x - 4, y - 4, x + panelW, y - 3, 0xCCCE8A1C);
-        gui.fill(x - 4, y + 47, x + panelW, y + 48, 0xCC8A4C14);
-
-        gui.drawString(mc.font, title, x, y, 0xFFFFD868, true);
-
-        // Custom Natlan Phlogiston bar texture
-        gui.blit(PHLOGISTON_BG, x, y + 11, 0, 0, barW, barH, barW, barH);
-        float pct = Math.max(0.0F, Math.min(1.0F, mount.getPhlogiston() / GoldflameQucusaurMountEntity.MAX_PHLOGISTON));
+        float pct = Mth.clamp(mount.getPhlogiston() / GoldflameQucusaurMountEntity.MAX_PHLOGISTON, 0.0F, 1.0F);
         int fillW = (int) (barW * pct);
-        if (fillW > 3) {
-            gui.blit(PHLOGISTON_FILL, x, y + 11, 0, 0, fillW, barH, barW, barH);
+        if (fillW > 2) {
+            // Segmented molten crimson-orange -> warm gold -> bright cream-white gradient fill
+            int segs = 12;
+            for (int i = 0; i < segs; i++) {
+                int sx0 = x + (fillW * i) / segs;
+                int sx1 = x + (fillW * (i + 1)) / segs;
+                if (sx1 <= sx0) continue;
+                float t = (i + 0.5F) / segs;
+                int r = (int) Mth.lerp(t, 238, 255);
+                int g = (int) Mth.lerp(t, 82, 232);
+                int b = (int) Mth.lerp(t, 24, 152);
+                int col = 0xFF000000 | (r << 16) | (g << 8) | b;
+                int coreCol = 0xFF000000 | (Math.min(255, r + 14) << 16) | (Math.min(255, g + 26) << 8) | Math.min(255, b + 36);
+                int c0 = Math.max(x + 1, sx0);
+                int c1 = Math.min(x + barW - 1, sx1);
+                if (c1 > c0) {
+                    gui.fill(c0, y, c1, y + barH, col);
+                }
+                gui.fill(sx0, y + 1, sx1, y + barH - 1, coreCol);
+            }
+            // Bright glowing leading spark at the fill edge (Genshin Phlogiston highlight)
+            int tipX = Math.min(x + barW - 2, x + fillW - 2);
+            gui.fill(tipX, y, tipX + 2, y + barH, 0xFFFFF8D0);
         }
-
-        gui.drawString(mc.font, line1, x, y + 28, 0xFFF2DFC4, true);
-        gui.drawString(mc.font, line2, x, y + 38, 0xFFD9C0A3, true);
     }
 }

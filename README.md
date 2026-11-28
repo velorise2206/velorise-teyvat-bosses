@@ -7,24 +7,26 @@
 
 An action-focused Overworld boss & mecha expansion mod across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**. **Velorise: Teyvat Bosses** works standalone or pairs with **[Velorise's Staves](https://github.com/velorise2206/velorise-staves)** via `StavesElementBridge` for elemental reactions, innate auras, and shield counters.
 
-> **Release Scope Note:** This release focuses on **Minecraft 1.21.1 (Fabric & NeoForge)** (full 5 World Bosses, 5 Boss Compasses + Master Compass with live 360° needles, Modpack Config, 8-node Advancement Tree, and all 5 updated Boss Arenas). The `1.20.1/forge` module is currently an initialization stub (WIP).
+> **Release Scope Note:** This release focuses on **Minecraft 1.21.1 (Fabric & NeoForge)** (6 World Bosses, Boss Compasses with live 360° needles, Pilotable Mechs & Mounts, Modpack Config, and 6 Overworld/Underground Boss Arenas). The `1.20.1/forge` module is currently an initialization stub (WIP).
 
 ---
 
 ## Implemented Bosses (`1.21.1`)
 
-
-| Boss                               | Entity ID                                 | Arena Structure                                                    | Key Mechanics & Drops                                                                                                                                                                                                               |
-| :----------------------------------- | :------------------------------------------ | :------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cryo Regisvine**                 | `velorise_teyvat_bosses:cryo_regisvine`   | `cryo_regisvine_arena` *(underground ice cavern + surface tunnel)* | Root & corolla weakpoint breaks, frost darts, ice pillars; drops Cryo Trophy & *Frostbound Bloom* Music Disc.                                                                                                                       |
-| **Anemo Hypostasis**               | `velorise_teyvat_bosses:anemo_hypostasis` | `anemo_hypostasis_arena`                                           | Innate Anemo aura (Swirl-reactive), tornadoes, wind currents, Wind Crystal revival phase; drops Anemo Trophy & *Gale of Beth* Music Disc.                                                                                           |
-| **The Open-Eyed**                  | `velorise_teyvat_bosses:the_open_eyed`    | `the_open_eyed_arena`                                              | Dormant crimson-star ambush, Elemental Stars, Supreme Overseer & Phenomena's Delirium Sky Spears; drops The Open-Eyed Trophy & *Vigil of the Unblinking* Music Disc.                                                                |
-| **Ruin Guard**                     | `velorise_teyvat_bosses:ruin_guard`       | `thousand_winds_temple_arena`                                      | Physical boss (mutation-immune), eye-core stun, 6-missile barrage, 3-hit alternating-arm combo, cyclone spin, Phase 2 Overdrive; drops Ruin Mech salvage parts, Ruin Guard Trophy & *Iron Sentinel of Thousand Winds* Music Disc.   |
-| **Astralion: Prismatic Sovereign** | `velorise_teyvat_bosses:astralion`        | Spawn Egg / Summon                                                 | 7-element rotating Omni-boss across 3 forms (**Monolith**, **Leviathan**, **Cosmic Singularity**), 100-pt Prismatic Shield counter-break, Sevenfold Cataclysm; drops Astralion Trophy & *Sovereign of the Seven Prisms* Music Disc. |
+| Boss                         | Entity ID                                   | Arena Structure                                                    | Key Mechanics & Drops                                                                                                                                                                                             |
+| :--------------------------- | :------------------------------------------ | :----------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cryo Regisvine**           | `velorise_teyvat_bosses:cryo_regisvine`     | `cryo_regisvine_arena` *(underground ice cavern + surface tunnel)* | Root & corolla weakpoint breaks, frost darts, ice pillars; drops Cryo Trophy & *Frostbound Bloom* Music Disc.                                                                                                     |
+| **Anemo Hypostasis**         | `velorise_teyvat_bosses:anemo_hypostasis`   | `anemo_hypostasis_arena`                                           | Innate Anemo aura (Swirl-reactive), tornadoes, wind currents, Wind Crystal revival phase; drops Anemo Trophy, Anemo Cube Companion & *Gale of Beth* Music Disc.                                                   |
+| **Ruin Guard**               | `velorise_teyvat_bosses:ruin_guard`         | `thousand_winds_temple_arena`                                      | Physical boss (mutation-immune), eye-core stun, 6-missile barrage, 3-hit alternating-arm combo, cyclone spin, Phase 2 Overdrive; drops Ruin Mech salvage parts, Ruin Guard Trophy & *Iron Sentinel* Music Disc. |
+| **Ruin Nautilus**            | `velorise_teyvat_bosses:ruin_nautilus`      | `ruin_nautilus_arena` *(underwater)*                               | Aquatic Ruin boss with Hydro Torpedo barrages, jet-ram charges, and submerged combat; drops Ruin Submersible components, Trophy & *Abyssal Current* Music Disc.                                                   |
+| **Primo Geovishap**          | `velorise_teyvat_bosses:primo_geovishap`    | `primo_geovishap_arena`                                            | Multi-part Geo colossus with elemental infusion (Pyro/Hydro/Cryo/Electro), Primordial Shower blast zones, and shield counter-reflect; drops Geo Tunnel Driller parts, Trophy & *Sovereign of the Ancient Veins* Music Disc. |
+| **Goldflame Qucusaur Tyrant**| `velorise_teyvat_bosses:goldflame_qucusaur` | `goldflame_qucusaur_arena`                                         | Aerial Pyro dragon boss with Golden Flame shield phase, sweeping particle flame breath, and subdue-to-tame at `1 HP` (`STATE_SUBDUED`); drops Trophy & *Goldflame Tyrant* Music Disc.                           |
 
 ---
 
-## Pilotable Ruin Mech (`velorise_teyvat_bosses:ruin_mech`)
+## Pilotable Mechs, Vehicles & Mounts
+
+### Pilotable Ruin Mech (`velorise_teyvat_bosses:ruin_mech`)
 
 Assemble your own ancient war machine outdoors from 5 salvage parts dropped by **Ruin Guard**:
 
@@ -41,14 +43,29 @@ Assemble your own ancient war machine outdoors from 5 salvage parts dropped by *
      - `Space` **Tap**: Boost Leap (`~14` blocks) | **Hold (`0.45s`)**: Super Boost Leap (`~36` blocks)
      - `MMB` (Middle Mouse): Toggle Hard Lock-On (`[LOCK]` radar)
 
+### Goldflame Qucusaur Mount (`velorise_teyvat_bosses:goldflame_qucusaur_mount`)
+
+- **Subdue-to-Tame**: Reduce the **Goldflame Qucusaur Tyrant** boss to `1 HP` (`STATE_SUBDUED`), then right-click it to immediately tame and mount a full `320 HP` saddled **Goldflame Qucusaur**.
+- **Flight & Phlogiston HUD**: Free aerial flight and gliding with a sleek bottom-center Phlogiston bar, camera roll, and smooth landing physics.
+- **Controls**:
+  - `LMB` **Hold**: Continuous heat-scaling Pyro particle breath (`heatFactor` ramps `0% -> 100%` over `4s`: `5 -> 15` damage/hit, `17 -> 21` block range, `1.6 -> 2.1` block radius, `3s -> 6s` burn, plus `SOUL_FIRE_FLAME` blue core above `55%` heat).
+  - `RMB` **Tap**: Flame Dash | **Hold (Mid-Air)**: Aerial Drill Dash along aim direction.
+  - `Space` / `Ctrl`: Ascend / Boost & Descend.
+- **Phlogiston Flute / Saddle & Crest**: Right-click to recall your Qucusaur (`64`-block radius), `Shift + Right-Click` to toggle **Follow / Stay**, right-click a mob to command a fireball strike, or store/summon via **Goldflame Qucusaur Crest**. Heal with normal food or fire items (`Blaze Rod`, `Magma Cream`, `Fire Charge`).
+
+### Ruin Submersible & Geo Tunnel Driller
+
+- **Ruin Submersible (`velorise_teyvat_bosses:ruin_submersible`)**: Aquatic exploration & combat vehicle with Hydro Torpedo fire and underwater steering.
+- **Geo Tunnel Driller (`velorise_teyvat_bosses:geo_driller`)**: Underground tunneling vehicle for rapid subterranean excavation.
+
 ---
 
 ## Overworld Arenas, Rewards & Original Audio
 
-- **Natural-Blended Overworld Arenas**: 4 structure arenas (`anemo_hypostasis_arena`, `cryo_regisvine_arena`, `the_open_eyed_arena`, `thousand_winds_temple_arena`) with terrain-hugging perimeter blending and safe `/locate` surface coordinates.
+- **Natural-Blended Overworld Arenas**: 6 structure arenas (`anemo_hypostasis_arena`, `cryo_regisvine_arena`, `thousand_winds_temple_arena`, `ruin_nautilus_arena`, `primo_geovishap_arena`, `goldflame_qucusaur_arena`) with terrain-hugging perimeter blending and safe `/locate` surface coordinates.
 - **Trounce Blossom & Respawn Anchor**: Defeated bosses spawn a **Trounce Blossom** (`trounce_blossom`) for reward claims, followed by a **Ley Line Respawn Blossom** (`boss_respawn_anchor`) for in-place re-summoning.
-- **5 Collectible 3D Boss Trophies**: `cryo_regisvine_trophy`, `anemo_hypostasis_trophy`, `the_open_eyed_trophy`, `ruin_guard_trophy`, and `astralion_trophy` rendered from the bosses' actual 3D models (right-click placed trophies to toggle static statue vs. animated hologram mode).
-- **Original Boss Themes & Mech SFX**: 5 original `.ogg` boss themes playable in-combat and via Jukebox Music Discs (`music_disc_*`), plus synthesized mechanical servo/joint/clank/reactor/radar SFX.
+- **Collectible 3D Boss Trophies**: Boss trophies rendered from the bosses' actual 3D models (right-click placed trophies to toggle static statue vs. animated hologram mode).
+- **Original Boss Themes & Mech SFX**: Original `.ogg` boss themes playable in-combat and via Jukebox Music Discs (`music_disc_*`), plus synthesized mechanical servo/joint/clank/reactor/radar SFX.
 
 ---
 

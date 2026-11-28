@@ -192,9 +192,6 @@ public class TrounceBlossomEntity extends Entity {
             if (TeyvatBossesItems.markOfBindingBlessing() != null) {
                 giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.markOfBindingBlessing(), 2 + random.nextInt(2)));
             }
-            if (TeyvatBossesItems.goldflameQucusaurEgg() != null) {
-                giveToPlayer(sl, player, new ItemStack(TeyvatBossesItems.goldflameQucusaurEgg(), 1));
-            }
             giveToPlayer(sl, player, new ItemStack(Items.BLAZE_POWDER, 6 + random.nextInt(5)));
             giveToPlayer(sl, player, new ItemStack(Items.GOLD_INGOT, 8 + random.nextInt(6)));
             giveToPlayer(sl, player, new ItemStack(Items.DIAMOND, 3 + random.nextInt(3)));

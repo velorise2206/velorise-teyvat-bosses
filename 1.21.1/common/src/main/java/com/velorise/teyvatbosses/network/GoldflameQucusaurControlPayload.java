@@ -24,8 +24,11 @@ public record GoldflameQucusaurControlPayload(int action) implements CustomPacke
     public static final int ACTION_BOOST_STOP    = 7;
     public static final int ACTION_ASCEND_START  = 8;
     public static final int ACTION_ASCEND_STOP   = 9;
-    public static final int ACTION_DESCEND_START = 10;
-    public static final int ACTION_DESCEND_STOP  = 11;
+    public static final int ACTION_DESCEND_START      = 10;
+    public static final int ACTION_DESCEND_STOP       = 11;
+    public static final int ACTION_RMB_DASH           = 12;
+    public static final int ACTION_RMB_AIM_DIVE_START = 13;
+    public static final int ACTION_RMB_AIM_DIVE_STOP  = 14;
 
     public static final Type<GoldflameQucusaurControlPayload> TYPE =
             new Type<>(TeyvatBossesConstants.id("goldflame_qucusaur_control"));

@@ -90,9 +90,12 @@ public class GoldflameQucusaurEggEntity extends Entity {
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-        if (level().isClientSide()) return false;
-        if (source.getEntity() instanceof Player player && player.isShiftKeyDown()) {
-            dropEggItem();
+        if (level().isClientSide()) return true;
+        if (source.getEntity() instanceof Player player) {
+            if (!player.getAbilities().instabuild) {
+                dropEggItem();
+            }
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.TURTLE_EGG_CRACK, SoundSource.NEUTRAL, 0.9F, 1.15F);
             discard();
             return true;
         }
@@ -148,6 +151,13 @@ public class GoldflameQucusaurEggEntity extends Entity {
     @Override
     public void tick() {
         super.tick();
+        if (!isNoGravity()) {
+            setDeltaMovement(getDeltaMovement().add(0.0D, -0.06D, 0.0D));
+            move(net.minecraft.world.entity.MoverType.SELF, getDeltaMovement());
+            if (onGround()) {
+                setDeltaMovement(0.0D, 0.0D, 0.0D);
+            }
+        }
         if (level().isClientSide()) {
             if (isHeated() && tickCount % 4 == 0) {
                 level().addParticle(ParticleTypes.FLAME,

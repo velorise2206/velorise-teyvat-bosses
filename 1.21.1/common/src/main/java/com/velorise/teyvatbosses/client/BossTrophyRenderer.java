@@ -110,7 +110,6 @@ public class BossTrophyRenderer implements BlockEntityRenderer<BossTrophyBlockEn
                 poseStack.scale(-0.18F, -0.18F, 0.18F);
                 poseStack.translate(0.0D, -1.501D, 0.0D);
                 primoModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO)), packedLight, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
-                primoModel.renderGoldenEyes(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFFFFFFF);
                 primoEmissiveModel.renderToBuffer(poseStack, buf.getBuffer(RenderType.entityCutoutNoCull(TEX_PRIMO_EM)), LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0xFFF2AA24);
             }
         }
